@@ -16,23 +16,18 @@
     body { background: #0e0e11; color: #ececf1; }
   }
 
-  .hero {
-    background: linear-gradient(135deg, #1c2a4a 0%, #2b1c4a 60%, #3a1c3f 100%);
-    color: #fff; padding: 3.5rem 1.25rem 3rem;
-  }
-  @media (prefers-color-scheme: dark) {
-    .hero { background: linear-gradient(135deg, #141d33 0%, #1e1433 60%, #2a142c 100%); }
-  }
-  .hero-inner { max-width: 44rem; margin: 0 auto; }
+  header { padding: 3rem 1.25rem 0.5rem; }
+  .header-inner { max-width: 44rem; margin: 0 auto; }
   .eyebrow {
     font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em;
-    text-transform: uppercase; opacity: 0.75; margin-bottom: 0.9rem;
+    text-transform: uppercase; color: #8a8a93; margin-bottom: 0.9rem;
   }
-  .hero h1 {
+  header h1 {
     font-size: clamp(1.9rem, 6vw, 2.6rem); line-height: 1.15;
     letter-spacing: -0.02em; margin-bottom: 0.8rem; font-weight: 800;
   }
-  .hero p { font-size: 1.05rem; opacity: 0.85; max-width: 34rem; }
+  header p { font-size: 1.05rem; color: #5d5d66; max-width: 34rem; }
+  @media (prefers-color-scheme: dark) { header p { color: #a9a9b3; } }
 
   main { max-width: 44rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
   .section-label {
@@ -71,8 +66,8 @@
 </head>
 <body>
 
-<header class="hero">
-  <div class="hero-inner">
+<header>
+  <div class="header-inner">
     <div class="eyebrow">A daily study series</div>
     <h1>System design, one idea at a time.</h1>
     <p>Visual, in-depth lessons that start from zero and go deep. Built for reading on your phone. A new one lands every morning.</p>
