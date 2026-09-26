@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Load Balancing Deep Dive</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,750&display=swap');
+
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f6f4;
+      --surface: #ffffff;
+      --surface-2: #e9eeeb;
+      --ink: #17201d;
+      --muted: #52615c;
+      --faint: #70817b;
+      --line: #cbd5d0;
+      --line-strong: #9eaea7;
+      --teal: #087f70;
+      --teal-2: #d9f0e9;
+      --orange: #d55f21;
+      --orange-2: #ffe5d4;
+      --blue: #286690;
+      --blue-2: #deebf3;
+      --red: #b33b3b;
+      --red-2: #f7dddd;
+      --yellow: #8a6500;
+      --yellow-2: #f8edc6;
+      --code: #14211d;
+      --code-ink: #e4efe9;
+      --shadow: 0 18px 45px rgba(24, 47, 39, .08);
+      --radius: 16px;
+      --mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      --sans: "Manrope", system-ui, sans-serif;
+      --serif: "Source Serif 4", Georgia, serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1513;
+        --surface: #14201d;
+        --surface-2: #1b2a26;
+        --ink: #eef4f1;
+        --muted: #b7c5bf;
+        --faint: #92a39c;
+        --line: #30423c;
+        --line-strong: #4a6158;
+        --teal: #52c9b3;
+        --teal-2: #163d36;
+        --orange: #ff9861;
+        --orange-2: #492a1b;
+        --blue: #7fbbdf;
+        --blue-2: #193447;
+        --red: #ff8585;
+        --red-2: #482326;
+        --yellow: #e7c867;
+        --yellow-2: #40391d;
+        --code: #09100e;
+        --code-ink: #e4efe9;
+        --shadow: 0 20px 55px rgba(0, 0, 0, .2);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    a { color: var(--teal); text-underline-offset: 3px; }
+    :focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; }
+
+    .progress { position: fixed; inset: 0 0 auto 0; height: 4px; z-index: 30; background: transparent; }
+    .progress > span { display: block; height: 100%; width: 0; background: var(--orange); }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(54px, 8vw, 100px) 20px 48px;
+      background: var(--code);
+      color: var(--code-ink);
+      border-bottom: 1px solid #294038;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: .24;
+      background-image: linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(90deg, transparent, #000 42%, #000);
+      pointer-events: none;
+    }
+    .hero-inner { width: min(1120px, 100%); margin: 0 auto; position: relative; z-index: 1; display: grid; grid-template-columns: 1.18fr .82fr; gap: 50px; align-items: center; }
+    .lesson-tag { font-family: var(--mono); font-size: .76rem; letter-spacing: .08em; color: #8bd7c9; margin-bottom: 18px; }
+    h1 { font-family: var(--serif); font-size: clamp(2.65rem, 6vw, 5.6rem); line-height: .96; letter-spacing: -.045em; margin: 0; max-width: 780px; }
+    .hero-copy { margin: 24px 0 0; color: #b9cac4; max-width: 690px; font-size: clamp(1rem, 2vw, 1.2rem); }
+    .hero-stats { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+    .hero-stat { border-top: 1px solid #456158; min-width: 120px; padding-top: 10px; }
+    .hero-stat b { display: block; color: #fff; font-size: 1.15rem; }
+    .hero-stat span { color: #8fa79f; font-size: .78rem; }
+
+    .traffic-viz { min-height: 330px; display: grid; place-items: center; }
+    .traffic-viz svg { width: 100%; max-width: 430px; height: auto; overflow: visible; }
+    .packet { animation: packet 3.2s linear infinite; }
+    .packet.p2 { animation-delay: -1.1s; }
+    .packet.p3 { animation-delay: -2.2s; }
+    @keyframes packet { 0% { transform: translateX(0); opacity: 0; } 10%, 82% { opacity: 1; } 100% { transform: translateX(260px); opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .packet { animation: none; } }
+
+    .layout { width: min(960px, calc(100% - 40px)); margin: 0 auto; }
+    .jumpbar { position: sticky; top: 10px; z-index: 20; margin: 18px auto 0; width: min(960px, calc(100% - 32px)); padding: 8px; background: color-mix(in srgb, var(--surface) 91%, transparent); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 13px; backdrop-filter: blur(10px); }
+    .jumpbar nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+    .jumpbar a { color: var(--muted); text-decoration: none; font-size: .79rem; font-weight: 700; padding: 7px 10px; border-radius: 8px; }
+    .jumpbar a:hover { background: var(--surface-2); color: var(--ink); }
+
+    section { padding: clamp(64px, 9vw, 108px) 0; scroll-margin-top: 78px; border-bottom: 1px solid var(--line); }
+    section:last-of-type { border-bottom: 0; }
+    .section-head { display: grid; grid-template-columns: 170px 1fr; gap: 24px; margin-bottom: 36px; }
+    .section-num { font-family: var(--mono); font-size: .76rem; color: var(--orange); padding-top: 9px; }
+    h2 { font-family: var(--serif); font-size: clamp(2rem, 4.3vw, 3.7rem); line-height: 1.05; letter-spacing: -.035em; margin: 0 0 12px; max-width: 780px; }
+    .section-head p { color: var(--muted); font-size: 1.04rem; margin: 0; max-width: 750px; }
+    h3 { font-size: 1.22rem; line-height: 1.25; margin: 0 0 10px; letter-spacing: -.01em; }
+    h4 { font-size: .92rem; margin: 0 0 6px; }
+    p { margin: 0 0 1em; }
+    .section-purpose { display: inline-flex; align-items: center; gap: 9px; margin: 0 0 12px; color: var(--teal); font-family: var(--mono); font-size: .76rem; font-weight: 500; letter-spacing: .02em; }
+    .section-purpose::before { content: ""; width: 24px; height: 2px; background: currentColor; }
+    .term { font-weight: 700; color: var(--ink); text-decoration: underline dotted var(--line-strong); text-underline-offset: 3px; }
+    .plain-definition { margin: 22px 0 0; padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; color: var(--muted); }
+    .plain-definition strong { color: var(--ink); }
+    .lesson-map { width: min(960px, calc(100% - 40px)); margin: 26px auto 0; display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); background: var(--surface); border-radius: 14px; overflow: hidden; }
+    .lesson-map div { padding: 18px 20px; border-right: 1px solid var(--line); }
+    .lesson-map div:last-child { border-right: 0; }
+    .lesson-map b { display: block; margin-bottom: 4px; color: var(--ink); }
+    .lesson-map span { color: var(--muted); font-size: .86rem; }
+    .section-intro { max-width: 720px; font-size: 1.02rem; color: var(--muted); margin: -8px 0 28px 194px; }
+    .section-intro strong { color: var(--ink); }
+    .microcopy { color: var(--muted); font-size: .88rem; margin: -8px 0 18px; max-width: 720px; }
+
+    .callout { display: grid; grid-template-columns: auto 1fr; gap: 15px; align-items: start; padding: 20px 22px; background: var(--teal-2); border: 1px solid color-mix(in srgb, var(--teal) 32%, var(--line)); border-radius: 12px; margin: 26px 0; }
+    .callout-icon { width: 30px; height: 30px; display: grid; place-items: center; background: var(--teal); color: var(--bg); border-radius: 50%; font-family: var(--mono); font-weight: 700; font-size: .82rem; }
+    .callout p { margin: 0; color: var(--muted); }
+    .callout strong { color: var(--ink); }
+
+    .mental-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .principle { padding: 26px 22px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-height: 210px; }
+    .principle .index { font-family: var(--mono); color: var(--orange); font-size: .76rem; }
+    .principle h3 { margin-top: 42px; }
+    .principle p { color: var(--muted); font-size: .92rem; margin: 0; }
+
+    .flow { margin-top: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 26px; }
+    .flow-title { display: flex; justify-content: space-between; gap: 18px; align-items: end; margin-bottom: 20px; }
+    .flow-title p { color: var(--muted); margin: 0; font-size: .86rem; }
+    .flow-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .flow-step { position: relative; min-width: 0; min-height: 82px; padding: 14px 8px; background: var(--surface-2); border-radius: 10px; text-align: center; font-size: .76rem; font-weight: 700; line-height: 1.35; display: grid; align-content: center; overflow-wrap: anywhere; }
+    .flow-step span { display: block; color: var(--faint); font-family: var(--mono); font-size: .68rem; margin-top: 5px; font-weight: 400; }
+    .flow-step:not(:last-child) { border-right: 2px solid color-mix(in srgb, var(--orange) 65%, var(--line)); }
+
+    .switcher { display: flex; gap: 8px; margin-bottom: 22px; }
+    .seg-btn { border: 1px solid var(--line-strong); background: var(--surface); padding: 10px 18px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+    .seg-btn[aria-selected="true"] { color: var(--bg); background: var(--ink); border-color: var(--ink); }
+    .layer-panel { display: none; }
+    .layer-panel.active { display: block; }
+    .layer-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: 18px; }
+    .layer-diagram, .layer-copy { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: clamp(20px, 4vw, 34px); }
+    .layer-diagram { min-height: 410px; display: grid; align-content: center; gap: 12px; }
+    .stack-row { display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: center; }
+    .stack-row b { font-family: var(--mono); color: var(--faint); font-size: .75rem; }
+    .stack-box { padding: 15px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 9px; font-size: .84rem; }
+    .stack-row.active-row .stack-box { background: var(--orange-2); border-color: var(--orange); color: var(--ink); font-weight: 700; }
+    .layer-copy .lead { font-family: var(--serif); font-size: 1.5rem; line-height: 1.35; color: var(--ink); }
+    .trade-list { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 10px; }
+    .trade-list li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: .91rem; color: var(--muted); }
+    .trade-list b { color: var(--ink); }
+    .trade-list .good { color: var(--teal); }
+    .trade-list .bad { color: var(--red); }
+    .decision { margin-top: 18px; padding: 15px; background: var(--yellow-2); border-radius: 9px; color: var(--ink); font-size: .88rem; }
+
+    .lab { background: var(--code); color: var(--code-ink); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; }
+    .lab-bar { display: flex; justify-content: space-between; gap: 16px; align-items: center; border-bottom: 1px solid #2c403a; padding: 15px 20px; }
+    .lab-dots { display: flex; gap: 6px; }
+    .lab-dots i { width: 8px; height: 8px; border-radius: 50%; background: #496059; }
+    .lab-title { font-family: var(--mono); font-size: .78rem; color: #9fb4ad; }
+    .lab-body { padding: clamp(20px, 5vw, 34px); }
+    .algo-tabs { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 26px; }
+    .algo-btn { border: 1px solid #425c54; background: transparent; color: #b8cbc4; padding: 8px 11px; border-radius: 7px; font-family: var(--mono); font-size: .74rem; cursor: pointer; }
+    .algo-btn.active { background: #dff7ef; color: #11201b; border-color: #dff7ef; }
+    .lab-grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 32px; }
+    .control-group { margin-bottom: 20px; }
+    .control-group label { display: flex; justify-content: space-between; gap: 15px; color: #b8cbc4; font-size: .82rem; margin-bottom: 8px; }
+    .control-group output { color: #fff; font-family: var(--mono); }
+    input[type="range"] { width: 100%; min-height: 44px; accent-color: #68d5bf; cursor: pointer; }
+    .algo-summary { font-family: var(--serif); font-size: 1.28rem; line-height: 1.35; margin: 5px 0 12px; }
+    .algo-rule { font-family: var(--mono); color: #79d7c5; font-size: .76rem; margin-bottom: 20px; }
+    .server-bars { display: grid; gap: 14px; }
+    .server-row { display: grid; grid-template-columns: 74px 1fr 42px; gap: 12px; align-items: center; font-family: var(--mono); font-size: .75rem; }
+    .server-track { height: 17px; background: #253933; border-radius: 3px; overflow: hidden; }
+    .server-fill { height: 100%; background: #62cdb8; width: 0%; transition: width .35s ease; }
+    .server-row:nth-child(3) .server-fill { background: #f39b69; }
+    .server-row strong { text-align: right; color: #fff; }
+    .lab-note { margin-top: 24px; color: #9fb4ad; font-size: .83rem; border-top: 1px solid #2c403a; padding-top: 18px; }
+    .lab-note b { color: #fff; }
+
+    .matrix { width: 100%; border-collapse: collapse; margin-top: 32px; font-size: .88rem; }
+    .matrix th, .matrix td { text-align: left; padding: 14px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .matrix th { font-family: var(--mono); font-size: .7rem; color: var(--faint); letter-spacing: .04em; }
+    .matrix td:first-child { font-weight: 700; color: var(--ink); }
+    .matrix td { color: var(--muted); }
+    .badge { display: inline-block; padding: 3px 7px; border-radius: 5px; font-family: var(--mono); font-size: .66rem; white-space: nowrap; }
+    .badge.green { color: var(--teal); background: var(--teal-2); }
+    .badge.orange { color: var(--orange); background: var(--orange-2); }
+
+    .health-layout { display: grid; grid-template-columns: 1.05fr .95fr; gap: 18px; }
+    .health-visual, .health-controls { padding: clamp(20px, 4vw, 32px); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+    .health-flow { display: grid; gap: 14px; margin-top: 25px; }
+    .health-node { display: grid; grid-template-columns: 42px 1fr auto; gap: 13px; align-items: center; padding: 14px; background: var(--surface-2); border-radius: 10px; }
+    .pulse { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--teal-2); color: var(--teal); font-family: var(--mono); font-size: .7rem; }
+    .health-node p { margin: 0; color: var(--muted); font-size: .81rem; }
+    .health-node strong { font-size: .9rem; }
+    .status { font-family: var(--mono); font-size: .67rem; padding: 4px 7px; border-radius: 5px; background: var(--teal-2); color: var(--teal); }
+    .status.warn { background: var(--orange-2); color: var(--orange); }
+    .health-option { border-bottom: 1px solid var(--line); padding: 16px 0; }
+    .health-option:last-child { border-bottom: 0; }
+    .health-option button { width: 100%; border: 0; background: transparent; padding: 0; text-align: left; cursor: pointer; display: flex; justify-content: space-between; gap: 20px; font-weight: 700; }
+    .health-option button span:last-child { font-family: var(--mono); color: var(--orange); }
+    .health-detail { color: var(--muted); font-size: .86rem; margin: 10px 0 0; display: none; }
+    .health-option.open .health-detail { display: block; }
+
+    .formula { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 10px; margin: 28px 0; }
+    .formula-box { padding: 20px 15px; text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+    .formula-box b { display: block; font-family: var(--serif); font-size: 1.3rem; }
+    .formula-box span { font-size: .75rem; color: var(--muted); }
+    .formula-op { font-family: var(--mono); color: var(--orange); font-size: 1.2rem; }
+    .calc { display: grid; grid-template-columns: 1fr .8fr; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+    .calc-controls { padding: clamp(22px, 4vw, 34px); }
+    .calc-result { background: var(--teal-2); padding: clamp(22px, 4vw, 34px); display: flex; flex-direction: column; justify-content: center; }
+    .calc-row { margin-bottom: 20px; }
+    .calc-row label { display: flex; justify-content: space-between; gap: 10px; font-size: .86rem; color: var(--muted); margin-bottom: 8px; }
+    .calc-row output { font-family: var(--mono); color: var(--ink); }
+    .big-number { font-family: var(--serif); font-size: clamp(3.2rem, 8vw, 6rem); line-height: .85; letter-spacing: -.05em; }
+    .calc-result > span { color: var(--muted); font-size: .82rem; margin-top: 10px; }
+    .calc-result p { font-size: .84rem; color: var(--muted); margin: 22px 0 0; padding-top: 17px; border-top: 1px solid color-mix(in srgb, var(--teal) 35%, transparent); }
+    .senior-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 24px; }
+    .senior-card { padding: 22px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); }
+    .senior-card p { margin: 0; color: var(--muted); font-size: .88rem; }
+
+    .failure-tabs { display: grid; grid-template-columns: .45fr 1.55fr; gap: 18px; }
+    .failure-nav { display: flex; flex-direction: column; gap: 7px; }
+    .failure-btn { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 13px 14px; cursor: pointer; font-size: .86rem; font-weight: 700; }
+    .failure-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .failure-panel { display: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: clamp(22px, 4vw, 34px); }
+    .failure-panel.active { display: block; }
+    .failure-panel .symptom { font-family: var(--serif); font-size: 1.5rem; color: var(--ink); }
+    .failure-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 24px; }
+    .failure-col { padding: 16px; background: var(--surface-2); border-radius: 9px; }
+    .failure-col span { display: block; font-family: var(--mono); color: var(--orange); font-size: .68rem; margin-bottom: 8px; }
+    .failure-col p { margin: 0; color: var(--muted); font-size: .82rem; }
+
+    .answer-list { display: grid; gap: 12px; }
+    details.answer { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; overflow: hidden; }
+    details.answer summary { cursor: pointer; list-style: none; padding: 20px 58px 20px 20px; font-weight: 700; position: relative; }
+    details.answer summary::-webkit-details-marker { display: none; }
+    details.answer summary::after { content: "+"; position: absolute; right: 20px; top: 17px; font-family: var(--mono); color: var(--orange); font-size: 1.25rem; }
+    details.answer[open] summary::after { content: "−"; }
+    .answer-body { border-top: 1px solid var(--line); padding: 22px; color: var(--muted); }
+    .answer-body strong { color: var(--ink); }
+    .answer-body ul { padding-left: 20px; }
+    .answer-body li { margin-bottom: 9px; }
+    .answer-frame { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 18px 0; }
+    .answer-frame div { background: var(--surface-2); border-radius: 8px; padding: 12px; font-size: .78rem; }
+    .answer-frame b { display: block; color: var(--orange); font-family: var(--mono); font-size: .67rem; margin-bottom: 4px; }
+
+    .drill-shell { display: grid; grid-template-columns: .72fr 1.28fr; gap: 18px; }
+    .drill-list { display: flex; flex-direction: column; gap: 7px; }
+    .drill-btn { border: 1px solid var(--line); background: var(--surface); padding: 14px; border-radius: 9px; text-align: left; cursor: pointer; }
+    .drill-btn b { display: block; font-size: .86rem; }
+    .drill-btn span { color: var(--faint); font-family: var(--mono); font-size: .66rem; }
+    .drill-btn.active { border-color: var(--orange); background: var(--orange-2); }
+    .drill-stage { padding: clamp(24px, 5vw, 38px); background: var(--code); color: var(--code-ink); border-radius: 18px; min-height: 480px; display: flex; flex-direction: column; }
+    .drill-meta { color: #91aaa1; font-family: var(--mono); font-size: .72rem; }
+    .drill-stage h3 { font-family: var(--serif); font-size: clamp(1.7rem, 4vw, 2.6rem); margin: 36px 0 18px; max-width: 690px; }
+    .drill-prompt { color: #b7c8c2; }
+    .constraints { display: flex; gap: 7px; flex-wrap: wrap; margin: 18px 0 26px; }
+    .constraints span { border: 1px solid #3e574f; border-radius: 5px; padding: 4px 7px; font-family: var(--mono); font-size: .66rem; color: #a9c0b7; }
+    .drill-actions { display: flex; gap: 9px; flex-wrap: wrap; margin-top: auto; padding-top: 24px; }
+    .action-btn { border: 1px solid #5c766e; background: transparent; color: #d7e3df; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: .82rem; }
+    .action-btn.primary { background: #e9fff7; color: #12221c; border-color: #e9fff7; }
+    .rubric { display: none; background: #1d2d28; border-radius: 10px; padding: 18px; margin-top: 22px; color: #b7c8c2; font-size: .84rem; }
+    .rubric.show { display: block; }
+    .rubric b { color: #fff; }
+    .rubric ul { margin-bottom: 0; padding-left: 19px; }
+
+    .closing { background: var(--orange-2); padding: clamp(55px, 8vw, 90px) 20px; }
+    .closing-inner { width: min(860px, 100%); margin: 0 auto; }
+    .closing h2 { max-width: none; }
+    .checklist { display: grid; gap: 10px; margin: 28px 0; }
+    .check { display: grid; grid-template-columns: 30px 1fr; gap: 12px; align-items: start; }
+    .check i { width: 24px; height: 24px; display: grid; place-items: center; border: 1px solid var(--orange); border-radius: 50%; color: var(--orange); font-style: normal; font-family: var(--mono); font-size: .7rem; margin-top: 2px; }
+    .check p { margin: 0; color: var(--muted); }
+    .closing-quote { font-family: var(--serif); font-size: clamp(1.3rem, 3vw, 1.8rem); line-height: 1.4; border-top: 1px solid color-mix(in srgb, var(--orange) 35%, transparent); padding-top: 25px; }
+    footer { padding: 28px 20px; text-align: center; color: var(--faint); font-family: var(--mono); font-size: .68rem; }
+
+    @media (max-width: 850px) {
+      .hero-inner, .layer-grid, .health-layout, .calc, .drill-shell { grid-template-columns: 1fr; }
+      .traffic-viz { min-height: 220px; }
+      .traffic-viz svg { max-width: 360px; }
+      .section-head { grid-template-columns: 1fr; gap: 6px; }
+      .section-intro { margin-left: 0; }
+      .lesson-map { grid-template-columns: 1fr; }
+      .lesson-map div { border-right: 0; border-bottom: 1px solid var(--line); }
+      .lesson-map div:last-child { border-bottom: 0; }
+      .mental-grid { grid-template-columns: 1fr; }
+      .principle { min-height: 0; }
+      .principle h3 { margin-top: 24px; }
+      .lab-grid { grid-template-columns: 1fr; }
+      .failure-tabs { grid-template-columns: 1fr; }
+      .failure-nav { display: grid; grid-template-columns: repeat(2, 1fr); }
+      .answer-frame { grid-template-columns: repeat(2, 1fr); }
+      .drill-stage { min-height: 0; }
+    }
+
+    @media (max-width: 620px) {
+      body { font-size: 16px; line-height: 1.68; }
+      .layout { width: min(100% - 32px, 960px); }
+      .hero { padding: 48px 16px 34px; }
+      .hero-inner { gap: 10px; }
+      h1 { font-size: clamp(2.2rem, 12vw, 3.25rem); line-height: 1; }
+      h2 { font-size: clamp(1.8rem, 9vw, 2.5rem); }
+      .hero-copy { font-size: 1rem; line-height: 1.65; }
+      .hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); }
+      .hero-stat { min-width: 0; }
+      .hero-stat b { font-size: 1rem; }
+      .hero-stat span { font-size: .7rem; line-height: 1.35; display: block; }
+      .traffic-viz { min-height: 160px; }
+      .traffic-viz svg { max-width: 300px; }
+      .lesson-map { width: calc(100% - 32px); margin-top: 18px; }
+      .jumpbar { position: static; width: calc(100% - 32px); }
+      .jumpbar nav { display: grid; grid-template-columns: repeat(2, 1fr); }
+      .jumpbar a { display: grid; place-items: center; min-height: 44px; text-align: center; padding: 7px 5px; font-size: .72rem; }
+      section { padding: 54px 0; }
+      .section-head { margin-bottom: 26px; }
+      .section-num { padding-top: 0; }
+      .section-purpose { margin-bottom: 9px; }
+      .plain-definition { padding: 16px; }
+      .principle, .layer-diagram, .layer-copy, .health-visual, .health-controls, .senior-card { padding: 19px 17px; }
+      .algo-btn, .seg-btn, .failure-btn, .drill-btn, .action-btn, .health-option button { min-height: 44px; }
+      .health-option button { padding: 9px 0; }
+      .algo-tabs { display: grid; grid-template-columns: 1fr 1fr; }
+      .algo-btn { white-space: normal; overflow-wrap: anywhere; }
+      .lab-bar { padding: 12px 14px; }
+      .lab-body { padding: 18px 15px; }
+      .server-row { grid-template-columns: 54px minmax(0, 1fr) 30px; }
+      details.answer summary { min-height: 58px; }
+      .answer-body { padding: 18px 16px; }
+      .flow { padding: 18px; }
+      .flow-title { display: block; }
+      .flow-steps { grid-template-columns: 1fr; }
+      .flow-step:not(:last-child) { border-right: 0; border-bottom: 2px solid color-mix(in srgb, var(--orange) 65%, var(--line)); }
+      .switcher { display: grid; grid-template-columns: 1fr 1fr; }
+      .seg-btn { padding: 10px 8px; }
+      .layer-diagram { min-height: 0; }
+      .lab { border-radius: 13px; }
+      .server-row { grid-template-columns: 58px 1fr 34px; gap: 8px; }
+      .matrix, .matrix tbody, .matrix tr, .matrix td { display: block; }
+      .matrix thead { display: none; }
+      .matrix tr { padding: 14px 0; border-bottom: 1px solid var(--line); }
+      .matrix td { border: 0; padding: 4px 0; }
+      .matrix td::before { content: attr(data-label); display: block; color: var(--faint); font-family: var(--mono); font-size: .63rem; }
+      .formula { grid-template-columns: 1fr; }
+      .formula-op { transform: none; text-align: center; padding: 2px 0; }
+      .senior-grid, .failure-cols { grid-template-columns: 1fr; }
+      .failure-nav { grid-template-columns: 1fr; }
+      .answer-frame { grid-template-columns: 1fr; }
+      details.answer summary { padding-left: 16px; }
+      .drill-stage { min-height: 0; }
+    }
+
+    @media print {
+      .progress, .jumpbar, .switcher, .algo-tabs, .drill-actions, .failure-nav { display: none !important; }
+      body { background: white; color: black; }
+      .hero, .lab, .drill-stage { background: #12201b !important; color: white !important; print-color-adjust: exact; }
+      section { break-inside: avoid; padding: 36px 0; }
+      details.answer .answer-body { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <div>
+        <div class="lesson-tag">SYSTEM DESIGN / LESSON 02 / SENIOR TRACK</div>
+        <h1>Traffic is a control problem.</h1>
+        <p class="hero-copy">A <strong>load balancer</strong> is a traffic router: it receives a connection—a communication channel that can carry one or many requests—or an individual request, chooses a healthy backend server (the machine that performs the application work), and forwards the traffic. This lesson builds that idea one decision at a time—where to route, what signal to use, how to detect failure, and how to add capacity safely.</p>
+        <div class="hero-stats" aria-label="Lesson scope">
+          <div class="hero-stat"><b>4</b><span>ways to choose a server</span></div>
+          <div class="hero-stat"><b>2</b><span>places to make the decision</span></div>
+          <div class="hero-stat"><b>6</b><span>model answers</span></div>
+        </div>
+      </div>
+      <div class="traffic-viz" aria-hidden="true">
+        <svg viewBox="0 0 450 330" role="img" aria-label="Requests flowing through a load balancer to healthy servers">
+          <defs><marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7" fill="#526f65"/></marker></defs>
+          <g fill="none" stroke="#526f65" stroke-width="2" marker-end="url(#arrow)">
+            <path d="M42 165 H136"/><path d="M240 165 C290 165 282 70 338 70"/><path d="M240 165 H338"/><path d="M240 165 C290 165 282 260 338 260"/>
+          </g>
+          <g fill="#dff7ef" stroke="#73cbb9" stroke-width="2">
+            <rect x="136" y="110" width="104" height="110" rx="16"/>
+          </g>
+          <g fill="#10211b" font-family="DM Mono, monospace" text-anchor="middle"><text x="188" y="152" font-size="11">LOAD</text><text x="188" y="169" font-size="11">BALANCER</text><text x="188" y="195" font-size="9" fill="#287c6a">policy + state</text></g>
+          <g fill="#1d312a" stroke="#718e84" stroke-width="2">
+            <rect x="338" y="38" width="78" height="64" rx="10"/><rect x="338" y="133" width="78" height="64" rx="10"/><rect x="338" y="228" width="78" height="64" rx="10"/>
+          </g>
+          <g fill="#b7d0c7" font-family="DM Mono, monospace" font-size="9"><text x="351" y="63">node 01</text><text x="351" y="158">node 02</text><text x="351" y="253">node 03</text></g>
+          <g fill="#62cdb8"><circle cx="402" cy="87" r="4"/><circle cx="402" cy="182" r="4"/><circle cx="402" cy="277" r="4"/></g>
+          <g fill="#ff9861"><circle class="packet" cx="48" cy="165" r="5"/><circle class="packet p2" cx="48" cy="165" r="5"/><circle class="packet p3" cx="48" cy="165" r="5"/></g>
+          <text x="40" y="148" fill="#91aaa1" font-family="DM Mono, monospace" font-size="9">traffic</text>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <div class="jumpbar">
+    <nav aria-label="Lesson navigation">
+      <a href="#model">Mental model</a><a href="#layers">Routing layers</a><a href="#algorithms">Algorithms</a><a href="#health">Health</a><a href="#scaling">Scaling</a><a href="#failures">Failures</a><a href="#interview">Interview</a><a href="#drills">Drills</a>
+    </nav>
+  </div>
+
+  <div class="lesson-map" aria-label="How to use this lesson">
+    <div><b>1. Learn</b><span>Read the mental model, layer choices, health checks, and scaling logic in order.</span></div>
+    <div><b>2. Interact</b><span>Change one control at a time in the routing and capacity explorers; watch what changes and why.</span></div>
+    <div><b>3. Test yourself</b><span>Answer the interview prompts aloud, then reveal the complete model answer and compare.</span></div>
+  </div>
+
+  <main>
+    <section id="model">
+      <div class="layout">
+        <div class="section-head">
+          <div class="section-num">01 / MENTAL MODEL</div>
+          <div><div class="section-purpose">READ · Learn the core idea</div><h2>Balance outcomes, not request counts.</h2><p>The naive goal is “send equal traffic everywhere.” The real goal is to keep response times and errors low while respecting server capacity, network distance, session needs, and cost.</p></div>
+        </div>
+        <div class="plain-definition"><strong>Two measurements to know:</strong> <span class="term">latency</span> is how long one request takes from start to finish. <span class="term">p99 latency</span> is the response time that 99 out of 100 requests finish within; only the slowest 1 out of 100 takes longer. Teams watch p99 because an average can hide a painful slow tail.</div>
+        <div class="mental-grid">
+          <article class="principle"><span class="index">01 — OBSERVE</span><h3>State is delayed</h3><p>Connection counts, latency, and health are sampled. Every routing decision uses a slightly stale picture of a changing fleet, meaning the full group of available servers.</p></article>
+          <article class="principle"><span class="index">02 — DECIDE</span><h3>Policy encodes trade-offs</h3><p>Round robin rotates evenly; least-load reacts to current work. <strong>Hashing</strong> turns a stable key, such as a user ID, into a repeatable server choice and preserves <strong>affinity</strong>, meaning related requests stay near the same server. No policy wins for every workload.</p></article>
+          <article class="principle"><span class="index">03 — ACT</span><h3>Actions reshape state</h3><p>Routing changes queue depth—the number of requests waiting—and response time. Retries add traffic; newly started servers need time to warm. Every action changes the next decision.</p></article>
+        </div>
+        <div class="callout"><div class="callout-icon">!</div><p><strong>Senior signal:</strong> separate the <span class="term">data plane</span>—the proxies that forward live traffic—from the <span class="term">control plane</span>—the system that discovers servers and distributes routing rules. If the control plane stops updating, the data plane should keep serving with its last known good configuration rather than drop all traffic.</p></div>
+        <div class="flow">
+          <div class="flow-title"><h3>One request, five decisions</h3><p>The “load balancer” is often a chain, not a box.</p></div>
+          <div class="flow-steps"><div class="flow-step">Global entry<span>choose a geographic deployment</span></div><div class="flow-step">Network router<span>accept a communication channel</span></div><div class="flow-step">Request-aware proxy<span>read and route one request</span></div><div class="flow-step">Service router<span>choose one running server</span></div><div class="flow-step">Application<span>do the work</span></div></div>
+          <div class="plain-definition"><strong>Read the chain left to right.</strong> <span class="term">DNS</span> maps a service name to an IP address, the identifier for a network endpoint. <span class="term">Anycast</span> advertises the same IP address from multiple locations so the network tends to choose a nearby one. An <span class="term">edge L4 balancer</span> routes a network connection using an IP address, which identifies a network endpoint, and a port, which identifies a service on that endpoint. An <span class="term">L7 proxy</span> reads application details such as an HTTP path. A <span class="term">service load balancer</span> then chooses one healthy application instance, meaning one running copy of the server program. A <span class="term">region</span> is a separate geographic deployment area, while a <span class="term">connection</span> is a communication channel that can carry one or many requests.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="layers">
+      <div class="layout">
+        <div class="section-head"><div class="section-num">02 / WHERE TO DECIDE</div><div><div class="section-purpose">TRY IT · Compare two routing layers</div><h2>Transport routing sees flows. Application routing sees meaning.</h2><p><span class="term">Layer 4 (L4)</span> routes using network and transport details such as IP address and port. <span class="term">Layer 7 (L7)</span> understands the application request, including the URL path (the part after the domain) and headers (metadata sent with the request). Choose a tab, then compare what each layer can see, what it enables, and what it costs.</p></div></div>
+        <div class="switcher" role="tablist" aria-label="Load balancer layer">
+          <button class="seg-btn" role="tab" aria-selected="true" aria-controls="panel-l4" id="tab-l4" data-layer="l4">Layer 4 / Transport</button>
+          <button class="seg-btn" role="tab" aria-selected="false" aria-controls="panel-l7" id="tab-l7" data-layer="l7">Layer 7 / Application</button>
+        </div>
+        <div class="layer-panel active" id="panel-l4" role="tabpanel" aria-labelledby="tab-l4">
+          <div class="layer-grid">
+            <div class="layer-diagram"><div class="stack-row"><b>L7</b><div class="stack-box">Application messages: HTTP web requests, gRPC remote calls, WebSocket persistent two-way messages</div></div><div class="stack-row"><b>L6</b><div class="stack-box">Transport Layer Security (TLS) encryption</div></div><div class="stack-row"><b>L5</b><div class="stack-box">Session: the ongoing conversation</div></div><div class="stack-row active-row"><b>L4</b><div class="stack-box">Transport: TCP (reliable stream) or UDP (independent packets), IP address, port</div></div><div class="stack-row"><b>L3</b><div class="stack-box">IP network routing</div></div></div>
+            <article class="layer-copy"><p class="lead">Routes a connection using the <span class="term">5-tuple</span>: source IP, source port, destination IP, destination port, and protocol. Because it does not inspect the request body, data can remain encrypted from the client all the way to the backend. It can also move a very high number of network packets with little processing overhead.</p><ul class="trade-list"><li><span class="good">+</span><span><b>Strength:</b> fast and <strong>protocol-agnostic</strong>—it can route traffic without understanding the application protocol. TCP provides reliable ordered delivery; UDP sends independent packets with less processor and network overhead.</span></li><li><span class="good">+</span><span><b>Strength:</b> <strong>direct server return</strong> lets the chosen server send the response straight to the client, keeping response traffic off the balancer.</span></li><li><span class="bad">−</span><span><b>Limit:</b> cannot route by URL path, request header, <strong>tenant</strong> (an isolated customer or account), or HTTP method (an action such as GET or POST); one connection is usually one routing unit.</span></li><li><span class="bad">−</span><span><b>Limit:</b> HTTP/2, a version of the web protocol that can <strong>multiplex</strong> many simultaneous requests over one connection, lets one connection hide uneven work.</span></li></ul><div class="decision"><b>Choose L4 when:</b> traffic processed per second, preserving the client’s network address, non-web protocols, or <strong>TLS passthrough</strong>—leaving encryption intact until the backend—matters more than request-aware policy.</div></article>
+          </div>
+        </div>
+        <div class="layer-panel" id="panel-l7" role="tabpanel" aria-labelledby="tab-l7">
+          <div class="layer-grid">
+            <div class="layer-diagram"><div class="stack-row active-row"><b>L7</b><div class="stack-box">Request meaning: destination service, route, metadata, customer, or action</div></div><div class="stack-row"><b>L6</b><div class="stack-box">Transport Layer Security (TLS): decrypt, inspect, optionally re-encrypt</div></div><div class="stack-row"><b>L5</b><div class="stack-box">Session: the ongoing conversation</div></div><div class="stack-row"><b>L4</b><div class="stack-box">Transport: TCP or QUIC; QUIC carries HTTP/3, a newer web protocol</div></div><div class="stack-row"><b>L3</b><div class="stack-box">IP network routing</div></div></div>
+            <article class="layer-copy"><p class="lead">Terminates the application protocol, then routes each request using its meaning. <span class="term">TLS termination</span> means decrypting the secure connection at the proxy so it can read fields such as the URL path; the proxy may encrypt traffic again before forwarding it.</p><ul class="trade-list"><li><span class="good">+</span><span><b>Strength:</b> route by URL path or requested domain name, authenticate callers, enforce request limits, retry safe work, run a <strong>canary release</strong> by sending a small traffic share to a new version, and record detailed metrics.</span></li><li><span class="good">+</span><span><b>Strength:</b> can reuse backend connections while balancing individual HTTP/2 requests or gRPC remote-procedure calls.</span></li><li><span class="bad">−</span><span><b>Limit:</b> decryption, request parsing, <strong>buffering</strong> (temporarily storing request data), and policy checks consume processor capacity, memory, and response time.</span></li><li><span class="bad">−</span><span><b>Limit:</b> a bad retry or <strong>timeout</strong> rule—the maximum wait before giving up—can make many proxies fail together and can repeat state-changing operations.</span></li></ul><div class="decision"><b>Choose L7 when:</b> routing needs application details, a gradual release, per-route rules, or rich <strong>telemetry</strong>—metrics, logs, and traces that explain behavior. QUIC is a newer encrypted transport used by HTTP/3; the proxy must explicitly support it.</div></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="algorithms">
+      <div class="layout">
+        <div class="section-head"><div class="section-num">03 / ROUTING POLICY</div><div><div class="section-purpose">TRY IT · Change one variable at a time</div><h2>Pick the signal that tracks actual work.</h2><p>A <span class="term">routing algorithm</span> is the rule used to select the next server. Pick an algorithm, then move one slider and watch how the request counts shift. The bars are a teaching model—not benchmark data.</p></div></div>
+        <p class="microcopy"><strong>How to read the controls:</strong> “work-size skew” means some requests consume much more processor (CPU) time than others. “Hot-key traffic” means one tenant, user, or cached item receives a disproportionate share of requests.</p>
+        <div class="lab">
+          <div class="lab-bar"><div class="lab-dots"><i></i><i></i><i></i></div><div class="lab-title">routing-policy.lab</div><div class="lab-title">3 nodes</div></div>
+          <div class="lab-body">
+            <div class="algo-tabs" role="tablist" aria-label="Routing algorithms">
+              <button class="algo-btn active" data-algo="rr">round_robin</button><button class="algo-btn" data-algo="least">least_connections</button><button class="algo-btn" data-algo="weighted">weighted_random</button><button class="algo-btn" data-algo="hash">consistent_hash</button>
+            </div>
+            <div class="lab-grid">
+              <div>
+                <div class="control-group"><label for="requests">Incoming requests <output id="requestOut">120</output></label><input id="requests" type="range" min="30" max="300" step="10" value="120" /></div>
+                <div class="control-group"><label for="skew">Work-size skew <output id="skewOut">medium</output></label><input id="skew" type="range" min="0" max="2" step="1" value="1" /></div>
+                <div class="control-group"><label for="hotkey">Hot-key traffic <output id="hotkeyOut">20%</output></label><input id="hotkey" type="range" min="0" max="60" step="10" value="20" /></div>
+                <p class="algo-summary" id="algoSummary">Equal request counts. Unequal work can still create unequal queues.</p>
+                <div class="algo-rule" id="algoRule">next = counter++ mod N</div>
+              </div>
+              <div><div class="server-bars" id="serverBars"><div class="server-row"><span>node_01</span><div class="server-track"><div class="server-fill"></div></div><strong>0</strong></div><div class="server-row"><span>node_02</span><div class="server-track"><div class="server-fill"></div></div><strong>0</strong></div><div class="server-row"><span>node_03</span><div class="server-track"><div class="server-fill"></div></div><strong>0</strong></div></div><div class="lab-note" id="algoNote"><b>Watch:</b> round robin assumes each request costs roughly the same. Long-lived or expensive requests break that assumption.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <table class="matrix" aria-label="Load balancing algorithm comparison">
+          <thead><tr><th>ALGORITHM</th><th>BEST FIT</th><th>STATE / COST</th><th>HIDDEN TRAP</th></tr></thead>
+          <tbody>
+            <tr><td data-label="Algorithm">Round robin</td><td data-label="Best fit"><span class="badge green">similar servers</span> short, similar-cost requests</td><td data-label="State / cost">Constant work: advance one counter</td><td data-label="Hidden trap">Ignores in-flight work and slow nodes.</td></tr>
+            <tr><td data-label="Algorithm">Least connections</td><td data-label="Best fit"><span class="badge green">long-lived</span> variable-duration connections</td><td data-label="State / cost">Track each node’s active connections</td><td data-label="Hidden trap">HTTP/2 can carry many requests on one connection, so connection count can hide real work.</td></tr>
+            <tr><td data-label="Algorithm">Power of two choices</td><td data-label="Best fit"><span class="badge green">large fleet</span> many independent balancers</td><td data-label="State / cost">Sample two nodes, pick the less loaded</td><td data-label="Hidden trap">Quality depends on choosing a useful load measurement and keeping it fresh.</td></tr>
+            <tr><td data-label="Algorithm">Weighted random / round robin</td><td data-label="Best fit"><span class="badge orange">mixed capacity</span> or a small canary release</td><td data-label="State / cost">Assign a traffic share, or weight, to each node</td><td data-label="Hidden trap">Static weights lag degradation; overly fast updates can swing traffic back and forth.</td></tr>
+            <tr><td data-label="Algorithm">Consistent / rendezvous hashing</td><td data-label="Best fit"><span class="badge orange">affinity</span> keep the same key near the same cache or shard</td><td data-label="State / cost">Map keys predictably across the current node set</td><td data-label="Hidden trap">A popular key can overwhelm its owner; replicas or bounded spillover help.</td></tr>
+            <tr><td data-label="Algorithm">EWMA latency</td><td data-label="Best fit"><span class="badge green">changing speed</span> adapt to recent response time</td><td data-label="State / cost">An exponentially weighted moving average gives more weight to recent latency</td><td data-label="Hidden trap">Many balancers may herd toward the node that currently looks fastest.</td></tr>
+          </tbody>
+        </table>
+        <div class="callout"><div class="callout-icon">2</div><p><strong>Power of two choices:</strong> choosing the less-loaded of two random nodes gives dramatically better maximum load than one random choice, while avoiding a globally sorted fleet. It is a favorite senior-level answer for large, distributed client-side balancing.</p></div>
+      </div>
+    </section>
+
+    <section id="health">
+      <div class="layout">
+        <div class="section-head"><div class="section-num">04 / HEALTH & EJECTION</div><div><div class="section-purpose">READ + EXPLORE · Open each signal</div><h2>“Healthy” is a routing opinion.</h2><p>A server can answer a simple health URL while its database connection pool is exhausted. Expand each signal to learn what it detects and the mistake it prevents. <span class="term">Ejection</span> means temporarily removing a failing server from routing.</p></div></div>
+        <div class="health-layout">
+          <article class="health-visual"><h3>The layered health loop</h3><p style="color:var(--muted);font-size:.9rem">Use different signals at different time scales. A single probe should not carry every meaning.</p><div class="health-flow"><div class="health-node"><div class="pulse">01</div><div><strong>Liveness</strong><p>Can the process make progress?</p></div><span class="status">restart</span></div><div class="health-node"><div class="pulse">02</div><div><strong>Readiness</strong><p>Should it receive new traffic now?</p></div><span class="status">remove</span></div><div class="health-node"><div class="pulse">03</div><div><strong>Passive observation</strong><p>Are real requests failing or timing out?</p></div><span class="status warn">eject</span></div><div class="health-node"><div class="pulse">04</div><div><strong>Recovery</strong><p>Can traffic return without a surge?</p></div><span class="status">ramp</span></div></div></article>
+          <div class="health-controls">
+            <div class="health-option open"><button aria-expanded="true"><span>Active probes</span><span>−</span></button><p class="health-detail">Send a small test request on an interval. Use a timeout, require several failures before removal, and add <span class="term">jitter</span>—small random timing variation—so thousands of balancers do not probe at once. Check readiness without synchronously calling every dependency; otherwise the probes can become the outage.</p></div>
+            <div class="health-option"><button aria-expanded="false"><span>Passive health</span><span>+</span></button><p class="health-detail"><span class="term">Passive health</span> watches real traffic for connection failures, timeouts, resets, and HTTP 5xx server-error responses. It catches problems synthetic probes miss, but must separate backend faults from caller cancellation or overload elsewhere.</p></div>
+            <div class="health-option"><button aria-expanded="false"><span>Outlier detection</span><span>+</span></button><p class="health-detail"><span class="term">Outlier detection</span> compares a server’s errors or latency with its peers and temporarily removes unusually bad performers. Cap the removable percentage so a bad release does not eject the whole fleet and concentrate traffic on the survivors.</p></div>
+            <div class="health-option"><button aria-expanded="false"><span>Panic mode</span><span>+</span></button><p class="health-detail"><span class="term">Panic mode</span> is a last-resort policy used when too few servers remain healthy: route some traffic to recently unhealthy servers rather than overload the final healthy subset. Serving degraded responses may be safer than causing total failure.</p></div>
+            <div class="health-option"><button aria-expanded="false"><span>Slow start</span><span>+</span></button><p class="health-detail"><span class="term">Slow start</span> gradually increases a recovered or new server’s traffic share. This gives its just-in-time code compiler, caches, connection pools, and local proxy time to warm before full load arrives.</p></div>
+          </div>
+        </div>
+        <div class="callout"><div class="callout-icon">∿</div><p><strong>Avoid synchronized behavior.</strong> Add random variation to probe intervals, wait progressively longer after repeated recovery failures, and limit how many servers re-enter at once. Identical timers across thousands of balancers create load spikes exactly when the system is weakest.</p></div>
+      </div>
+    </section>
+
+    <section id="scaling">
+      <div class="layout">
+        <div class="section-head"><div class="section-num">05 / AUTOSCALING</div><div><div class="section-purpose">ESTIMATE · Build a safe fleet size</div><h2>The balancer reacts in milliseconds. Capacity arrives in minutes.</h2><p><span class="term">Autoscaling</span> adds or removes servers from measured demand. It acts slowly because metrics arrive late, machines take time to boot, and warm caches fill gradually. Move the inputs below and read the calculation, not just the final number.</p></div></div>
+        <div class="plain-definition"><strong>Capacity must be measured at the target SLO.</strong> An <span class="term">SLO (service-level objective)</span> is a concrete reliability target, such as “99.9% of requests succeed and p99 stays below 200 ms.” If one server can technically push 1,400 requests per second but misses the SLO above 1,000, use 1,000 as its measured capacity.</div>
+        <div class="formula" aria-label="Capacity planning formula"><div class="formula-box"><b>Peak demand</b><span>requests per second</span></div><div class="formula-op">÷</div><div class="formula-box"><b>Safe capacity</b><span>RPS per instance × target utilization</span></div><div class="formula-op">=</div><div class="formula-box"><b>Desired fleet</b><span>rounded up + failure reserve</span></div></div>
+        <div class="calc">
+          <div class="calc-controls">
+            <div class="calc-row"><label for="rps">Peak demand <output id="rpsOut">12,000 RPS</output></label><input id="rps" type="range" min="1000" max="50000" step="1000" value="12000" /></div>
+            <div class="calc-row"><label for="capacity">Measured capacity per instance <output id="capOut">1,000 RPS</output></label><input id="capacity" type="range" min="250" max="3000" step="250" value="1000" /></div>
+            <div class="calc-row"><label for="util">Target utilization <output id="utilOut">65%</output></label><input id="util" type="range" min="40" max="85" step="5" value="65" /></div>
+            <div class="calc-row"><label for="reserve">Failure reserve <output id="reserveOut">20%</output></label><input id="reserve" type="range" min="0" max="50" step="5" value="20" /></div>
+          </div>
+          <div class="calc-result"><div class="big-number" id="instanceCount">23</div><span>instances at peak, including reserve</span><p id="calcExplain">Each instance is budgeted for 650 safe RPS. Base fleet 19; reserve adds 4.</p></div>
+        </div>
+        <div class="callout"><div class="callout-icon">#</div><p><strong>Default example:</strong> 12,000 peak requests per second ÷ (1,000 measured requests per second × 65% target utilization) = 18.46, so round up to 19 servers. A 20% failure reserve adds 4 more, for <strong>23 servers total</strong>. The spare capacity absorbs bursts and a small failure without immediately violating the SLO.</p></div>
+        <div class="senior-grid">
+          <article class="senior-card"><h3>Scale on the bottleneck</h3><p>CPU utilization matters only when processor time limits capacity. Queue depth, concurrent work, resource saturation, or request latency may predict overload earlier. For background workers, the age of the oldest waiting job often beats CPU.</p></article>
+          <article class="senior-card"><h3>Keep a warm buffer</h3><p>If boot, registration, and cache warm-up take 4 minutes while demand can double in 1 minute, reactive scaling cannot catch up. Add servers ahead of a forecast spike or keep spare capacity.</p></article>
+          <article class="senior-card"><h3>Drain before terminate</h3><p>Mark the server unready, stop sending new work, wait for active requests, then terminate it. Keep the removal delay longer than normal request duration so a server does not disappear mid-request.</p></article>
+          <article class="senior-card"><h3>Stabilize the loop</h3><p>Add capacity quickly and remove it slowly. Use <strong>hysteresis</strong>—different thresholds for scaling up and down—plus cooldown periods and rate limits. Otherwise the fleet can oscillate, repeatedly adding and removing servers.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="failures">
+      <div class="layout">
+        <div class="section-head"><div class="section-num">06 / FAILURE REASONING</div><div><div class="section-purpose">EXPLORE · Trace what happens next</div><h2>Design for the second-order failure.</h2><p>A <span class="term">second-order failure</span> is damage caused by the system’s reaction to the first problem—for example, retries creating more traffic after servers slow down. Choose a scenario and read it left to right: mechanism → mitigation → metric.</p></div></div>
+        <div class="failure-tabs">
+          <div class="failure-nav" role="tablist" aria-label="Failure scenarios"><button class="failure-btn active" data-failure="retry">Retry storm</button><button class="failure-btn" data-failure="zone">Zone loss</button><button class="failure-btn" data-failure="slow">Slow node</button><button class="failure-btn" data-failure="control">Stale control plane</button></div>
+          <div>
+            <article class="failure-panel active" id="failure-retry"><h3>Retry storm</h3><p class="symptom">A 10% failure becomes 40% more load on the same unhealthy fleet.</p><div class="failure-cols"><div class="failure-col"><span>MECHANISM</span><p>Multiple layers retry independently; timeouts overlap; a non-idempotent request—one that changes state each time, such as charging a card—may run twice.</p></div><div class="failure-col"><span>MITIGATION</span><p>Give one layer ownership of retries. Use a total deadline, increasing delays with random variation, a cap on retry traffic, and duplicate parallel attempts only for safe reads.</p></div><div class="failure-col"><span>METRIC</span><p>Attempts per logical request, retry success rate, deadline exhaustion, retry load as % of originals.</p></div></div></article>
+            <article class="failure-panel" id="failure-zone"><h3>Zone loss</h3><p class="symptom">Removing one-third of capacity overloads the two-thirds that remain.</p><div class="failure-cols"><div class="failure-col"><span>MECHANISM</span><p>Fleet ran above 66% utilization; cross-zone failover adds network cost and connection churn.</p></div><div class="failure-col"><span>MITIGATION</span><p>Keep enough spare capacity to lose one zone, prefer same-zone traffic, cap traffic per zone, allow controlled cross-zone spillover, and rehearse evacuation.</p></div><div class="failure-col"><span>METRIC</span><p>Capacity by failure domain, cross-zone traffic, spillover rate, healthy headroom after loss.</p></div></div></article>
+            <article class="failure-panel" id="failure-slow"><h3>Slow node</h3><p class="symptom">It passes health checks but accumulates queues and dominates p99 latency—the response time that 99 out of 100 requests finish within.</p><div class="failure-cols"><div class="failure-col"><span>MECHANISM</span><p>Garbage collection pauses, a competing workload on the same machine, a slow dependency, or an exhausted connection pool increases service time without a hard failure.</p></div><div class="failure-col"><span>MITIGATION</span><p>Cap concurrent work, favor servers with better recent latency, eject slow outliers based on real traffic, bound the queue, and pass the caller’s deadline downstream.</p></div><div class="failure-col"><span>METRIC</span><p>Per-endpoint latency and inflight work—not fleet averages—plus queue wait versus service time.</p></div></div></article>
+            <article class="failure-panel" id="failure-control"><h3>Stale control plane</h3><p class="symptom">Proxies keep routing to removed nodes—or drop every route during a config outage.</p><div class="failure-cols"><div class="failure-col"><span>MECHANISM</span><p>Discovery updates stop, partial config arrives, or a bad global push invalidates all listeners.</p></div><div class="failure-col"><span>MITIGATION</span><p>Keep the last known good rules, replace configuration as one versioned unit, roll out gradually, define how long stale endpoint data remains usable, and let proxies route without calling the controller.</p></div><div class="failure-col"><span>METRIC</span><p>Config age, version skew, rejected updates, endpoint staleness, control-plane convergence time.</p></div></div></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="interview">
+      <div class="layout">
+        <div class="section-head"><div class="section-num">07 / INTERVIEW BANK</div><div><div class="section-purpose">QUIZ YOURSELF · Answer, then reveal</div><h2>Questions, with complete model answers.</h2><p>First answer aloud in this order: requirements → design → failure handling → trade-off. Then open the answer and compare. A strong response states assumptions, makes one clear choice, uses numbers where possible, and names the boundary where the design stops working.</p></div></div>
+        <div class="answer-list">
+          <details class="answer"><summary>How would you load-balance a global API serving 2M requests per second?</summary><div class="answer-body"><p><strong>Start with requirements:</strong> regions, latency SLO (the promised response-time target), read/write mix, protocol, session state, data-location rules, and tolerated regional failure. Then propose a hierarchy rather than one global balancer.</p><div class="answer-frame"><div><b>GLOBAL</b>Anycast—advertising one IP address from many locations—or latency-aware DNS directs clients to a healthy region.</div><div><b>REGIONAL EDGE</b>A redundant L4 fleet routes network connections using IP, port, and protocol.</div><div><b>APPLICATION</b>L7 proxies read HTTP details, enforce authentication and rate limits, and test a new release with a small share of traffic.</div><div><b>SERVICE</b>Client-side or sidecar balancing chooses one application instance.</div></div><ul><li>Scale the traffic-forwarding proxies horizontally by adding more identical instances; never make them call a central controller for every request.</li><li>Prefer the nearest region, allow controlled spillover, and provision for the agreed failure model—for example, enough spare capacity to lose one region, or an explicit plan to reject lower-priority traffic.</li><li>Combine synthetic health probes with errors and latency from real requests. Version routing configuration and make proxies retain the last known good version if updates stop.</li><li>Use consistent hashing only where affinity is required; keep user session state external where practical.</li><li>Protect capacity with admission control (reject work before overload), per-tenant limits, a cap on retry traffic, and load shedding for lower-priority requests. Observe p50, p95, and p99—the response times that 50%, 95%, and 99% of requests finish within—plus errors, saturation, drops, retry amplification, configuration age, and spare capacity per zone.</li></ul><p><strong>Close with trade-off:</strong> DNS is simple but client and resolver caches make failover slower. Anycast can redirect traffic faster, but it depends on internet routing behavior. L7 enables rich request-aware policy but consumes more processor capacity and adds another component that can fail.</p></div></details>
+
+          <details class="answer"><summary>When would you choose consistent hashing, and what can go wrong?</summary><div class="answer-body"><p><strong>Consistent hashing</strong> is a deterministic way to map a key—such as a tenant ID—to a server while minimizing remapping when servers join or leave. Use it when sending the same key to the same owner improves correctness or efficiency: cache locality, database-shard ownership, tenant affinity, or stateful streaming.</p><ul><li><strong>Key choice matters:</strong> hashing user ID may create tenant affinity; hashing URL may create cache affinity. Low-cardinality or skewed keys create hotspots.</li><li><strong>Virtual nodes or weighted rendezvous</strong> give a physical server multiple positions or a larger score so distribution is smoother and faster servers can own more keys.</li><li><strong>Bounded-load hashing</strong> preserves most key-to-server affinity but sends a key elsewhere when its normal owner crosses a safe load limit.</li><li><strong>Replication</strong> stores a key on multiple servers, giving alternate owners during failure and a way to split hot traffic; define which copy is authoritative.</li><li><strong>Membership churn still hurts:</strong> adding or removing many servers remaps cache keys and creates a cold-cache wave. Introduce new servers gradually and limit the rate of membership changes.</li></ul><p>A strong answer states that hashing balances <em>keys</em>, not <em>work</em>. One celebrity tenant or viral object can dominate an otherwise perfect ring.</p></div></details>
+
+          <details class="answer"><summary>Why can least-connections perform worse than round robin?</summary><div class="answer-body"><p>Least-connections relies on a proxy’s local, delayed count and assumes each connection represents comparable remaining work. That breaks in several ways:</p><ul><li>HTTP/2 and gRPC can <strong>multiplex</strong> many concurrent requests over one network connection, so connection count under-reports real work.</li><li>One connection may stream for hours while another serves a 2 ms request.</li><li>A newly added node has zero connections and can receive a surge before it is warm.</li><li>Across many independent balancers, each has only a partial view and may simultaneously choose the same apparently idle node.</li><li>A slow node completes requests less often, so the algorithm eventually avoids it—but only after queues and latency rise.</li></ul><p>Prefer least outstanding requests or concurrency when the proxy sees requests; combine with power-of-two sampling, slow start, and passive latency/outlier signals. If requests are uniform and short, round robin may be more stable and cheaper.</p></div></details>
+
+          <details class="answer"><summary>Design health checks for a dependency-heavy service.</summary><div class="answer-body"><p>Separate meanings. <strong>Liveness</strong> asks whether the process can still make progress and should restart if it cannot. <strong>Readiness</strong> asks whether it should receive new work now. A shallow readiness probe verifies that the process can handle events, has critical local connection capacity, has valid configuration, and can serve—without synchronously calling every dependency.</p><ul><li>Use active checks—synthetic probe requests—with a timeout shorter than their interval, random timing jitter, and different failure counts for removal and recovery.</li><li>Add passive checks from real traffic: connection errors, resets, timeouts, and each server’s rate of 5xx responses, which are HTTP server-error codes.</li><li>Temporarily eject servers whose error rate or latency is much worse than peers, but cap the percentage removed; increase the ejection duration after repeated failures.</li><li>If the healthy set becomes dangerously small, decide whether to try recently unhealthy servers instead of overloading the last healthy ones. That is a fail-open or panic-mode choice.</li><li>On recovery, increase the server’s traffic share gradually. During a release, mark it unready before stopping the process so active requests can finish.</li></ul><p>Do not make readiness depend on every optional downstream: a shared dependency outage would remove all callers and turn a partial outage into total unavailability.</p></div></details>
+
+          <details class="answer"><summary>How do load balancing and autoscaling interact?</summary><div class="answer-body"><p>They are coupled feedback loops. The balancer moves demand immediately; the scaler estimates demand and changes supply after delay. Bad coupling produces oscillation, cold-start overload, and premature scale-in.</p><ul><li>Scale on a measurement close to the bottleneck: concurrent work, waiting queue depth, resource saturation, or response time—not automatically processor utilization.</li><li>Set target utilization to leave failure and burst headroom. Capacity-test an instance at the target SLO, not at absolute maximum throughput.</li><li>Scale out aggressively and scale in conservatively with stabilization windows and cooldown.</li><li>Register only when ready; use slow-start weight after registration. Before scale-in, mark unready and drain longer than relevant request duration.</li><li>Forecast or pre-scale when traffic can rise faster than boot + warm-up time.</li></ul><p>Explicitly model a zone failure: if losing 1 of 3 zones is in scope, normal utilization must be low enough that 2 zones can carry the allowed load or the system must shed lower-priority traffic.</p></div></details>
+
+          <details class="answer"><summary>Where should retries live: client, load balancer, or service?</summary><div class="answer-body"><p>Choose one primary retry owner per network hop and enforce an end-to-end deadline. L7 proxies can retry before response headers and select a different healthy server, but they may not understand whether repeating the business operation is safe. Clients understand the operation better but often lack backend health context.</p><ul><li>Retry only temporary failures and only <strong>idempotent</strong> operations—operations whose repeated execution has the same effect as one execution—or require an idempotency key that lets the server detect duplicates.</li><li>Budget attempts globally: if each of three layers retries three times, one user request can become 27 backend attempts.</li><li>Use <strong>exponential backoff</strong>, which waits progressively longer between attempts; add random timing jitter and cap retry traffic relative to successful requests.</li><li>Never continue beyond the caller’s absolute deadline; propagate cancellation so abandoned work stops.</li><li>A <strong>hedged request</strong> sends a delayed duplicate to another server to reduce the slow tail. Use it only for safe reads, delay the duplicate, and cap the extra load.</li></ul><p>The key phrase: <strong>retries spend shared capacity to buy success probability.</strong> During overload, aggressive retries reduce both.</p></div></details>
+        </div>
+      </div>
+    </section>
+
+    <section id="drills">
+      <div class="layout">
+        <div class="section-head"><div class="section-num">08 / PRACTICE</div><div><div class="section-purpose">QUIZ YOURSELF · Design, then compare</div><h2>Make the trade-off out loud.</h2><p>Select one scenario. Build your answer in four steps: requirements, routing choice, failure response, and trade-off. There is no timer. Reveal the full model answer only after you have committed to your own design.</p></div></div>
+        <div class="drill-shell">
+          <div class="drill-list"><button class="drill-btn active" data-drill="0"><b>Global checkout</b><span>REGION ROUTING</span></button><button class="drill-btn" data-drill="1"><b>WebSocket fleet</b><span>LONG-LIVED CONNECTIONS</span></button><button class="drill-btn" data-drill="2"><b>Multi-tenant cache</b><span>KEY AFFINITY</span></button></div>
+          <div class="drill-stage">
+            <div class="drill-meta"><span id="drillLabel">DRILL 01</span></div>
+            <h3 id="drillTitle">Route checkout traffic across three regions without duplicating charges.</h3>
+            <p class="drill-prompt" id="drillPrompt">Peak is 300k requests per second. One region may fail. Writes must remain correct; 99 out of 100 reads should finish within 150 milliseconds. Explain global routing, regional balancing, retries, health, and capacity.</p>
+            <div class="constraints" id="constraints"><span>3 REGIONS</span><span>PAYMENTS</span><span>REGION FAILURE</span><span>P99 &lt; 150 MS</span></div>
+            <div class="rubric" id="rubric"><b>Model answer</b><div id="modelAnswer"><p>Route users to the nearest healthy region using Anycast (one IP address advertised from many locations) or latency-aware DNS, then use redundant regional L7 proxies that can read HTTP request details. Keep payment writes idempotent with a client-supplied key and designate one retry owner so an ambiguous timeout cannot create a second charge.</p><p>Provision so the remaining two regions can carry the allowed failover load, or explicitly shed non-checkout traffic. Remove bad servers with active and passive health signals, drain before termination, and watch p99 latency, error rate, saturation, retry amplification, and spare capacity by region.</p><p><strong>Trade-off:</strong> active-active regions improve availability and read latency, but globally correct writes require a clearly owned data-consistency design; do not imply the load balancer alone solves duplicate payments.</p></div></div>
+            <div class="drill-actions"><button class="action-btn primary" id="rubricBtn" aria-expanded="false" aria-controls="rubric">Show model answer</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="closing">
+      <div class="closing-inner">
+        <div class="section-purpose">REVIEW · Use this as your final checklist</div>
+        <h2>Key takeaways: six moves in a strong answer.</h2>
+        <div class="checklist"><div class="check"><i>1</i><p><strong>Scope:</strong> protocol, SLO, geography, state, traffic shape, and failure model.</p></div><div class="check"><i>2</i><p><strong>Hierarchy:</strong> global, regional, application, and service-level decisions.</p></div><div class="check"><i>3</i><p><strong>Policy:</strong> algorithm tied to a workload signal, not chosen by habit.</p></div><div class="check"><i>4</i><p><strong>Health:</strong> active + passive signals, ejection guardrails, and slow recovery.</p></div><div class="check"><i>5</i><p><strong>Capacity:</strong> target utilization, warm-up delay, graceful drain, and enough spare capacity for the stated failure.</p></div><div class="check"><i>6</i><p><strong>Failure:</strong> retry amplification, stale routing rules, hotspots, and the metrics needed to detect each one.</p></div></div>
+        <p class="closing-quote">The strongest senior answer does not claim the system is balanced. It explains which imbalance is tolerated, how it is detected, and what the system does next.</p>
+      </div>
+    </div>
+  </main>
+  <footer>LOAD BALANCING DEEP DIVE · SYSTEM DESIGN STUDY SERIES</footer>
+
+  <script>
+    (function () {
+      var progress = document.getElementById('progressBar');
+      function updateProgress() {
+        var h = document.documentElement.scrollHeight - window.innerHeight;
+        progress.style.width = (h > 0 ? (window.scrollY / h) * 100 : 0) + '%';
+      }
+      window.addEventListener('scroll', updateProgress, { passive: true });
+      updateProgress();
+
+      var layerButtons = document.querySelectorAll('[data-layer]');
+      layerButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          layerButtons.forEach(function (b) { b.setAttribute('aria-selected', 'false'); });
+          document.querySelectorAll('.layer-panel').forEach(function (p) { p.classList.remove('active'); });
+          button.setAttribute('aria-selected', 'true');
+          document.getElementById('panel-' + button.dataset.layer).classList.add('active');
+        });
+      });
+
+      var algo = 'rr';
+      var algoData = {
+        rr: { summary: 'Equal request counts. Unequal work can still create unequal queues.', rule: 'next = counter++ mod N', note: '<b>Watch:</b> round robin assumes each request costs roughly the same. Long-lived or expensive requests break that assumption.' },
+        least: { summary: 'Favors the lowest observed in-flight count, adapting to request duration.', rule: 'next = argmin(active_connections)', note: '<b>Watch:</b> counts are local and stale. One HTTP/2 connection may carry hundreds of requests; use outstanding requests when possible.' },
+        weighted: { summary: 'Sends traffic in proportion to declared capacity or rollout weight.', rule: 'P(node_i) = weight_i / Σ weights', note: '<b>Watch:</b> weights are intent, not truth. Combine them with health and adaptive load signals so a degraded high-weight node can shed traffic.' },
+        hash: { summary: 'Keeps a key near the same owner, minimizing remaps when membership changes.', rule: 'next = successor(hash(key))', note: '<b>Watch:</b> affinity balances keys, not work. Hot keys need replication, key splitting, or bounded-load spillover.' }
+      };
+      var requestInput = document.getElementById('requests');
+      var skewInput = document.getElementById('skew');
+      var hotkeyInput = document.getElementById('hotkey');
+      function simulate() {
+        var r = Number(requestInput.value), skew = Number(skewInput.value), hot = Number(hotkeyInput.value);
+        document.getElementById('requestOut').textContent = r;
+        document.getElementById('skewOut').textContent = ['low', 'medium', 'high'][skew];
+        document.getElementById('hotkeyOut').textContent = hot + '%';
+        var vals;
+        if (algo === 'rr') vals = [r / 3 * (1 + skew * .18), r / 3 * (1 - skew * .11), r / 3 * (1 + skew * .04)];
+        if (algo === 'least') vals = [r * (.33 + skew * .01), r * (.34 - skew * .015), r * (.33 + skew * .005)];
+        if (algo === 'weighted') vals = [r * .5, r * .3, r * .2];
+        if (algo === 'hash') vals = [r * (.33 + hot / 100), r * (.34 - hot / 200), r * (.33 - hot / 200)];
+        var max = Math.max.apply(null, vals) * 1.12;
+        document.querySelectorAll('.server-row').forEach(function (row, i) {
+          row.querySelector('.server-fill').style.width = Math.min(100, vals[i] / max * 100) + '%';
+          row.querySelector('strong').textContent = Math.round(vals[i]);
+        });
+        document.getElementById('algoSummary').textContent = algoData[algo].summary;
+        document.getElementById('algoRule').textContent = algoData[algo].rule;
+        document.getElementById('algoNote').innerHTML = algoData[algo].note;
+      }
+      document.querySelectorAll('.algo-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+          document.querySelectorAll('.algo-btn').forEach(function (b) { b.classList.remove('active'); });
+          button.classList.add('active'); algo = button.dataset.algo; simulate();
+        });
+      });
+      [requestInput, skewInput, hotkeyInput].forEach(function (input) { input.addEventListener('input', simulate); });
+      simulate();
+
+      document.querySelectorAll('.health-option button').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var item = button.parentElement;
+          var open = item.classList.toggle('open');
+          button.setAttribute('aria-expanded', String(open));
+          button.lastElementChild.textContent = open ? '−' : '+';
+        });
+      });
+
+      var rps = document.getElementById('rps'), capacity = document.getElementById('capacity'), util = document.getElementById('util'), reserve = document.getElementById('reserve');
+      function calcFleet() {
+        var demand = Number(rps.value), cap = Number(capacity.value), u = Number(util.value) / 100, res = Number(reserve.value) / 100;
+        var safe = cap * u, base = Math.ceil(demand / safe), extra = Math.ceil(base * res), total = base + extra;
+        document.getElementById('rpsOut').textContent = demand.toLocaleString() + ' RPS';
+        document.getElementById('capOut').textContent = cap.toLocaleString() + ' RPS';
+        document.getElementById('utilOut').textContent = Math.round(u * 100) + '%';
+        document.getElementById('reserveOut').textContent = Math.round(res * 100) + '%';
+        document.getElementById('instanceCount').textContent = total;
+        document.getElementById('calcExplain').textContent = 'Each instance is budgeted for ' + Math.round(safe).toLocaleString() + ' safe RPS. Base fleet ' + base + '; reserve adds ' + extra + '.';
+      }
+      [rps, capacity, util, reserve].forEach(function (input) { input.addEventListener('input', calcFleet); });
+      calcFleet();
+
+      document.querySelectorAll('.failure-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+          document.querySelectorAll('.failure-btn').forEach(function (b) { b.classList.remove('active'); });
+          document.querySelectorAll('.failure-panel').forEach(function (p) { p.classList.remove('active'); });
+          button.classList.add('active'); document.getElementById('failure-' + button.dataset.failure).classList.add('active');
+        });
+      });
+
+      var drills = [
+        { label: 'DRILL 01', title: 'Route checkout traffic across three regions without duplicating charges.', prompt: 'Peak is 300k requests per second. One region may fail. Writes must remain correct; 99 out of 100 reads should finish within 150 milliseconds. Explain global routing, regional balancing, retries, health, and capacity.', tags: ['3 REGIONS','PAYMENTS','REGION FAILURE','P99 < 150 MS'], answer: '<p>Route users to the nearest healthy region using Anycast (one IP address advertised from many locations) or latency-aware DNS, then use redundant regional L7 proxies that can read HTTP request details. Keep payment writes idempotent with a client-supplied key and designate one retry owner so an ambiguous timeout cannot create a second charge.</p><p>Provision so the remaining two regions can carry the allowed failover load, or explicitly shed non-checkout traffic. Remove bad servers with active and passive health signals, drain before termination, and watch p99 latency, error rate, saturation, retry amplification, and spare capacity by region.</p><p><b>Trade-off:</b> active-active regions improve availability and read latency, but globally correct writes require a clearly owned data-consistency design; the load balancer alone cannot prevent duplicate payments.</p>' },
+        { label: 'DRILL 02', title: 'Balance 8 million long-lived WebSocket connections.', prompt: 'A WebSocket keeps a two-way connection open so either side can send messages. Connections last from seconds to hours. Messages are small, but reconnect storms are possible. The fleet spans four zones and scales throughout the day.', tags: ['WEBSOCKET','LONG-LIVED','4 ZONES','RECONNECT STORM'], answer: '<p>Use an L4 or lightweight L7 edge that tracks active connections and enforces a per-server connection cap. Least-connections is a useful starting point, but also consider event-loop delay, memory, and outbound bandwidth because one quiet connection and one busy connection do not cost the same.</p><p>Spread normal traffic across four zones and reserve enough headroom for one-zone loss. During deploy or scale-in, stop assigning new connections, keep existing ones until a drain deadline, and tell clients to reconnect with exponential backoff plus random jitter. Add admission control so a mass reconnect cannot consume every open-connection slot or processor cycle.</p><p><b>Trade-off:</b> preserving connection affinity avoids needless reconnects, but it slows rebalancing. The safe design accepts temporary imbalance and drains gradually instead of force-moving millions of live sockets.</p>' },
+        { label: 'DRILL 03', title: 'Route a multi-tenant cache with one extremely hot customer.', prompt: 'Ten thousand tenants share 200 cache nodes. One tenant suddenly generates 25% of all requests. Preserve cache hit rate without allowing one node to melt.', tags: ['CACHE','HOT KEY','10K TENANTS','200 NODES'], answer: '<p>Use consistent or rendezvous hashing so most tenant keys stay on the same cache nodes when membership changes. Give each tenant several candidate owners and use bounded-load spillover: prefer the normal owner, but route to a replica when it crosses a safe concurrency or queue limit.</p><p>The hot tenant needs its own treatment because hashing balances keys, not work. Split that tenant across finer-grained keys, replicate its hottest objects, enforce a tenant request budget, and monitor request rate, hit rate, queue depth, and latency per tenant and per node. Add new nodes slowly to avoid a cold-cache wave.</p><p><b>Trade-off:</b> more replicas and spillover reduce hotspots but lower locality and increase cache-fill traffic. Preserve affinity for ordinary tenants while deliberately weakening it for the hot one.</p>' }
+      ];
+      var currentDrill = 0;
+      function renderDrill() {
+        var d = drills[currentDrill];
+        document.getElementById('drillLabel').textContent = d.label;
+        document.getElementById('drillTitle').textContent = d.title; document.getElementById('drillPrompt').textContent = d.prompt;
+        document.getElementById('constraints').innerHTML = d.tags.map(function (tag) { return '<span>' + tag.replace('<','&lt;') + '</span>'; }).join('');
+        document.getElementById('modelAnswer').innerHTML = d.answer;
+        document.getElementById('rubric').classList.remove('show');
+        document.getElementById('rubricBtn').textContent = 'Show model answer';
+        document.getElementById('rubricBtn').setAttribute('aria-expanded', 'false');
+      }
+      document.querySelectorAll('.drill-btn').forEach(function (button, i) { button.addEventListener('click', function () { document.querySelectorAll('.drill-btn').forEach(function (b) { b.classList.remove('active'); }); button.classList.add('active'); currentDrill = i; renderDrill(); }); });
+      document.getElementById('rubricBtn').addEventListener('click', function () {
+        var r = document.getElementById('rubric');
+        var show = r.classList.toggle('show');
+        this.textContent = show ? 'Hide model answer' : 'Show model answer';
+        this.setAttribute('aria-expanded', String(show));
+      });
+      renderDrill();
+    })();
+  </script>
+</body>
+</html>
