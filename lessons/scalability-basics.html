@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <title>Scalability Basics</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #edf1ed;
+      --paper: #ffffff;
+      --paper-2: #f5f7f4;
+      --ink: #132322;
+      --muted: #4c5f5c;
+      --line: #cbd5d1;
+      --grid: #dde5e1;
+      --line-strong: #94a7a2;
+      --teal: #087f73;
+      --teal-soft: #d7f1ec;
+      --orange: #ef6c35;
+      --orange-soft: #ffdfcf;
+      --yellow: #f5c84c;
+      --red: #c84231;
+      --shadow: 0 12px 32px rgba(28, 49, 46, .10);
+      --radius-lg: 22px;
+      --radius-md: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1716;
+        --paper: #142321;
+        --paper-2: #1b2c29;
+        --ink: #f0f7f5;
+        --muted: #adbfba;
+        --line: #344945;
+        --grid: #1d2d2a;
+        --line-strong: #5e7570;
+        --teal: #4ed6c4;
+        --teal-soft: #173e38;
+        --orange: #ff8b56;
+        --orange-soft: #512c21;
+        --yellow: #ffd866;
+        --red: #ff7c69;
+        --shadow: 0 18px 44px rgba(0, 0, 0, .28);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+        var(--bg);
+      background-size: 40px 40px;
+      color: var(--ink);
+      font-family: "Archivo", sans-serif;
+      font-size: 16px;
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    a { color: inherit; }
+    .shell { width: min(1080px, calc(100% - 32px)); margin: 0 auto; padding: 18px 0 72px; }
+    .topbar {
+      position: sticky;
+      top: 10px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+      padding: 10px 12px;
+      background: color-mix(in srgb, var(--paper) 92%, transparent);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      border-radius: 18px;
+    }
+    .progress-copy { font: 600 12px/1 "IBM Plex Mono", monospace; white-space: nowrap; color: var(--muted); }
+    .progress-track { height: 8px; flex: 1; overflow: hidden; background: var(--paper-2); border: 1px solid var(--line); border-radius: 100px; }
+    .progress-bar { height: 100%; width: 0; background: var(--orange); transition: width .25s ease; }
+    .section-nav { display: flex; gap: 6px; }
+    .section-nav a { text-decoration: none; font-size: 13px; font-weight: 700; padding: 7px 10px; border-radius: 10px; }
+    .section-nav a:hover, .section-nav a:focus-visible { background: var(--teal-soft); outline: none; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+      gap: 22px;
+      align-items: stretch;
+      margin-bottom: 24px;
+    }
+    .hero-copy, .hero-board { border: 1px solid var(--line-strong); box-shadow: var(--shadow); }
+    .hero-copy { background: var(--paper); padding: clamp(28px, 5vw, 58px); border-radius: var(--radius-lg) 8px var(--radius-lg) 8px; }
+    .kicker { display: inline-flex; align-items: center; gap: 8px; color: var(--teal); font: 600 12px/1.2 "IBM Plex Mono", monospace; }
+    .pulse { width: 9px; height: 9px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 5px var(--teal-soft); }
+    h1 { max-width: 700px; margin: 22px 0 18px; font-size: clamp(40px, 6vw, 64px); line-height: 1; letter-spacing: -.045em; }
+    .hero-copy > p { max-width: 640px; margin: 0; font-size: clamp(17px, 2vw, 20px); line-height: 1.55; color: var(--muted); }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .tag { padding: 8px 11px; border: 1px solid var(--line); background: var(--paper-2); border-radius: 8px; font: 500 12px/1.1 "IBM Plex Mono", monospace; }
+    .hero-board { display: flex; flex-direction: column; justify-content: space-between; background: var(--ink); color: var(--paper); padding: 28px; border-radius: 8px var(--radius-lg) 8px var(--radius-lg); overflow: hidden; position: relative; }
+    @media (prefers-color-scheme: dark) { .hero-board { background: #dfeae7; color: #132322; } }
+    .hero-board::after { content: ""; position: absolute; right: -45px; bottom: -45px; width: 160px; height: 160px; border: 26px solid var(--orange); border-radius: 50%; opacity: .9; }
+    .terminal-line { position: relative; z-index: 1; font: 500 13px/1.7 "IBM Plex Mono", monospace; }
+    .terminal-line span { color: var(--orange); }
+    .big-number { position: relative; z-index: 1; margin-top: 56px; }
+    .big-number strong { display: block; font-size: clamp(56px, 9vw, 96px); line-height: .8; letter-spacing: -.07em; }
+    .big-number small { display: block; margin-top: 16px; font: 500 12px/1.4 "IBM Plex Mono", monospace; max-width: 180px; }
+
+    section { scroll-margin-top: 90px; margin-top: 68px; }
+    .section-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, .48fr); gap: 32px; align-items: end; margin: 0 4px 22px; }
+    .section-head h2 { margin: 0; font-size: clamp(30px, 4vw, 44px); line-height: 1.05; letter-spacing: -.035em; }
+    .section-head p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
+    .eyebrow { margin: 0 0 10px; color: var(--orange); font: 600 12px/1 "IBM Plex Mono", monospace; }
+
+    .lesson-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+    .lesson { grid-column: span 4; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 24px; min-height: 210px; }
+    .lesson.wide { grid-column: span 8; }
+    .lesson.accent { background: var(--teal-soft); border-color: color-mix(in srgb, var(--teal) 42%, var(--line)); }
+    .lesson-number { color: var(--orange); font: 600 12px/1 "IBM Plex Mono", monospace; }
+    .lesson h3 { margin: 18px 0 10px; font-size: 22px; line-height: 1.2; }
+    .lesson p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.65; }
+    .percentile-explainer { margin-top: 18px; padding: 16px; border: 1px solid color-mix(in srgb, var(--teal) 48%, var(--line)); background: color-mix(in srgb, var(--paper) 72%, transparent); border-radius: 10px; }
+    .percentile-explainer strong { display: block; font-size: 15px; }
+    .percentile-explainer p { margin-top: 6px; color: var(--ink); font-size: 14px; line-height: 1.55; }
+    .percentile-visual { display: grid; grid-template-columns: 99fr minmax(32px, 1fr); min-height: 32px; margin-top: 12px; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 7px; font: 600 11px/1 "IBM Plex Mono", monospace; }
+    .percentile-visual span { display: grid; place-items: center; }
+    .percentile-visual .within { background: var(--teal); color: #fff; }
+    .percentile-visual .slower { background: var(--orange); color: #fff; }
+    .mini-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .mini-compare div { padding: 12px; border: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 70%, transparent); border-radius: 10px; }
+    .mini-compare strong { display: block; font-size: 14px; }
+    .mini-compare span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; }
+
+    .lab { background: var(--paper); border: 1px solid var(--line-strong); border-radius: 26px 9px 26px 9px; overflow: hidden; box-shadow: var(--shadow); }
+    .lab-header { padding: 18px 22px; background: var(--ink); color: var(--paper); display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+    @media (prefers-color-scheme: dark) { .lab-header { background: #dfeae7; color: #132322; } }
+    .lab-header h3 { margin: 0; font-size: 18px; }
+    .lab-header span { font: 500 11px/1 "IBM Plex Mono", monospace; }
+    .lab-body { display: grid; grid-template-columns: minmax(250px, .75fr) minmax(0, 1.25fr); }
+    .controls { padding: 24px; border-right: 1px solid var(--line); background: var(--paper-2); }
+    .control-label { display: flex; justify-content: space-between; gap: 12px; font: 600 12px/1.2 "IBM Plex Mono", monospace; }
+    .control-label output { color: var(--orange); }
+    input[type="range"] { width: 100%; accent-color: var(--orange); margin: 15px 0 24px; }
+    .choice-list { display: grid; gap: 8px; }
+    .choice-btn { display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: center; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--paper); padding: 11px 12px; border-radius: 10px; cursor: pointer; }
+    .choice-btn:hover, .choice-btn:focus-visible { border-color: var(--teal); outline: none; }
+    .choice-btn.active { border-color: var(--teal); background: var(--teal-soft); box-shadow: inset 4px 0 var(--teal); }
+    .choice-icon { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 7px; font: 600 12px/1 "IBM Plex Mono", monospace; }
+    .choice-btn strong { display: block; font-size: 14px; }
+    .choice-btn small { color: var(--muted); }
+    .sim { min-width: 0; padding: 24px; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--line); padding-bottom: 18px; }
+    .metric { padding: 0 14px; border-right: 1px solid var(--line); }
+    .metric:first-child { padding-left: 0; }
+    .metric:last-child { border-right: 0; }
+    .metric span { display: block; color: var(--muted); font: 500 11px/1.2 "IBM Plex Mono", monospace; }
+    .metric strong { display: block; margin-top: 6px; font-size: clamp(22px, 3vw, 32px); letter-spacing: -.04em; }
+    .architecture { min-height: 230px; padding: 26px 0 16px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+    .flow { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .node { min-width: 86px; padding: 13px 9px; border: 2px solid var(--ink); border-radius: 11px; background: var(--paper); text-align: center; font: 600 11px/1.3 "IBM Plex Mono", monospace; position: relative; }
+    .node.db { border-radius: 50% / 18%; }
+    .node.hot { border-color: var(--red); color: var(--red); }
+    .server-stack { display: grid; gap: 5px; }
+    .server-stack .node { padding: 8px; }
+    .arrow { color: var(--line-strong); font-size: 25px; }
+    .sim-note { display: flex; gap: 12px; align-items: flex-start; background: var(--orange-soft); padding: 14px; border-radius: 10px; }
+    .sim-note b { color: var(--orange); font: 700 14px/1.2 "IBM Plex Mono", monospace; }
+    .sim-note p { margin: 0; font-size: 14px; }
+
+    .toolkit { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 14px; }
+    .tool-tabs { display: grid; align-content: start; gap: 7px; }
+    .tool-tab { border: 1px solid var(--line); background: var(--paper); padding: 15px; border-radius: 10px; text-align: left; cursor: pointer; font-weight: 700; }
+    .tool-tab small { display: block; margin-top: 3px; color: var(--muted); font: 400 11px/1.3 "IBM Plex Mono", monospace; }
+    .tool-tab:hover, .tool-tab:focus-visible { outline: none; border-color: var(--orange); }
+    .tool-tab.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    @media (prefers-color-scheme: dark) { .tool-tab.active { background: #dfeae7; color: #132322; } }
+    .tool-panel { background: var(--paper); border: 1px solid var(--line); border-radius: 10px 24px 10px 24px; padding: clamp(24px, 4vw, 42px); min-height: 420px; }
+    .tool-panel h3 { margin: 0; font-size: clamp(28px, 4vw, 42px); line-height: 1; letter-spacing: -.04em; }
+    .tool-panel .lead { color: var(--muted); font-size: 17px; line-height: 1.65; max-width: 720px; }
+    .technique-flow { display: flex; align-items: center; gap: 8px; margin: 24px 0 4px; padding: 16px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; }
+    .flow-step { flex: 1; min-width: 0; padding: 10px 8px; background: var(--paper); border: 1px solid var(--line-strong); border-radius: 8px; text-align: center; font: 600 12px/1.35 "IBM Plex Mono", monospace; }
+    .flow-arrow { color: var(--orange); font: 700 18px/1 "IBM Plex Mono", monospace; }
+    .pattern-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 24px; }
+    .pattern { border-top: 2px solid var(--line); padding: 13px 2px; }
+    .pattern strong { display: block; font-size: 14px; }
+    .pattern span { color: var(--muted); font-size: 13px; }
+    .cost-callout { margin-top: 24px; padding: 17px 18px; background: var(--teal-soft); border-radius: 4px 14px 14px 4px; }
+    .cost-callout strong { font: 600 12px/1.2 "IBM Plex Mono", monospace; color: var(--teal); }
+    .cost-callout p { margin: 7px 0 0; }
+
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .calculator, .formula-sheet { background: var(--paper); border: 1px solid var(--line); padding: 24px; border-radius: 18px 6px 18px 6px; }
+    .calculator h3, .formula-sheet h3 { margin: 0 0 18px; font-size: 22px; }
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+    .field label { display: block; margin-bottom: 6px; color: var(--muted); font: 500 11px/1.2 "IBM Plex Mono", monospace; }
+    .field input { width: 100%; padding: 11px; color: var(--ink); background: var(--paper-2); border: 1px solid var(--line); border-radius: 8px; }
+    .field input:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+    .estimate { margin-top: 18px; padding: 18px; background: var(--ink); color: var(--paper); border-radius: 12px; }
+    @media (prefers-color-scheme: dark) { .estimate { background: #dfeae7; color: #132322; } }
+    .estimate strong { display: block; font-size: 34px; line-height: 1; letter-spacing: -.04em; }
+    .estimate span { display: block; margin-top: 7px; font: 400 11px/1.4 "IBM Plex Mono", monospace; }
+    .formula { padding: 13px 0; border-bottom: 1px solid var(--line); }
+    .formula:last-child { border-bottom: 0; }
+    .formula code { color: var(--orange); font: 600 13px/1.5 "IBM Plex Mono", monospace; }
+    .formula p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+
+    .interview-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 14px; align-items: start; }
+    .question-column { min-width: 0; }
+    .answer-controls { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+    .answer-toggle { border: 1px solid var(--line-strong); background: var(--paper); padding: 9px 12px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px; }
+    .answer-toggle:hover, .answer-toggle:focus-visible { border-color: var(--teal); outline: 2px solid var(--teal-soft); outline-offset: 2px; }
+    .question-list { display: grid; gap: 10px; }
+    .question { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .question button { width: 100%; border: 0; background: transparent; padding: 18px; display: grid; grid-template-columns: 36px 1fr auto; gap: 11px; align-items: center; text-align: left; cursor: pointer; }
+    .question button:hover, .question button:focus-visible { background: var(--paper-2); outline: none; }
+    .q-num { color: var(--orange); font: 600 12px/1 "IBM Plex Mono", monospace; }
+    .question button strong { font-size: 16px; }
+    .chev { transition: transform .2s ease; }
+    .question.open .chev { transform: rotate(45deg); }
+    .answer { display: none; padding: 2px 22px 22px 65px; }
+    .question.open .answer { display: block; }
+    .answer-label { display: block; margin-bottom: 8px; color: var(--teal); font: 700 11px/1.2 "IBM Plex Mono", monospace; }
+    .answer p { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.7; }
+    .answer .listen { margin-top: 14px; padding: 12px 14px; background: var(--teal-soft); border-radius: 8px; font-size: 13px; line-height: 1.55; color: var(--ink); }
+    .score-card { position: sticky; top: 88px; background: var(--ink); color: var(--paper); border-radius: 8px 22px 8px 22px; padding: 22px; }
+    @media (prefers-color-scheme: dark) { .score-card { background: #dfeae7; color: #132322; } }
+    .score-card h3 { margin: 0; font-size: 21px; }
+    .score-card p { color: color-mix(in srgb, currentColor 75%, transparent); font-size: 13px; }
+    .check-list { display: grid; gap: 9px; margin: 18px 0 0; padding: 0; list-style: none; }
+    .check-list li { display: grid; grid-template-columns: 22px 1fr; gap: 9px; align-items: start; font-size: 13px; }
+    .tick { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid currentColor; border-radius: 50%; font: 600 10px/1 "IBM Plex Mono", monospace; }
+
+    .takeaways { margin-top: 56px; }
+    .takeaways .section-head { margin-bottom: 18px; }
+    .recap { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .recap div { min-height: 160px; padding: 18px; border: 1px solid var(--line); background: var(--paper); border-radius: 6px 14px; }
+    .recap b { display: block; color: var(--orange); font: 600 12px/1 "IBM Plex Mono", monospace; }
+    .recap strong { display: block; margin-top: 28px; line-height: 1.15; }
+    footer { margin-top: 22px; display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font: 500 11px/1.5 "IBM Plex Mono", monospace; }
+
+    @media (max-width: 840px) {
+      .section-nav { display: none; }
+      .hero, .section-head, .lab-body, .toolkit, .calc-grid, .interview-wrap { grid-template-columns: 1fr; }
+      .hero-board { min-height: 310px; }
+      .lesson { grid-column: span 6; }
+      .lesson.wide { grid-column: span 12; }
+      .controls { border-right: 0; border-bottom: 1px solid var(--line); }
+      .tool-tabs { grid-template-columns: repeat(3, 1fr); }
+      .tool-tab { padding: 11px; }
+      .score-card { position: static; }
+      .recap { grid-template-columns: repeat(2, 1fr); }
+      .recap div:last-child { grid-column: span 2; }
+    }
+    @media (max-width: 560px) {
+      .shell { width: min(100% - 20px, 1080px); padding-top: 10px; }
+      .topbar { top: 6px; }
+      .hero-copy { padding: 28px 22px; }
+      h1 { font-size: 46px; }
+      .hero-board { padding: 22px; }
+      .lesson, .lesson.wide { grid-column: span 12; }
+      .lab-header { align-items: flex-start; flex-direction: column; }
+      .metrics { grid-template-columns: 1fr; gap: 10px; }
+      .metric { padding: 0 0 10px; border-right: 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: end; }
+      .metric:last-child { border-bottom: 0; }
+      .metric strong { font-size: 24px; }
+      .flow { flex-direction: column; }
+      .arrow { transform: rotate(90deg); }
+      .server-stack { grid-template-columns: repeat(2, 1fr); }
+      .tool-tabs { grid-template-columns: 1fr 1fr; }
+      .technique-flow { align-items: stretch; flex-direction: column; }
+      .flow-arrow { transform: rotate(90deg); align-self: center; }
+      .pattern-list, .field-grid { grid-template-columns: 1fr; }
+      .question button { grid-template-columns: 28px 1fr auto; padding: 15px; }
+      .answer { padding: 0 15px 18px 54px; }
+      .recap { grid-template-columns: 1fr; }
+      .recap div:last-child { grid-column: auto; }
+      footer { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="topbar" aria-label="Learning progress">
+      <span class="progress-copy"><span id="progressNum">0</span>% explored</span>
+      <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="section-nav">
+        <a href="#mental-model">Start</a>
+        <a href="#lab">Try it</a>
+        <a href="#toolkit">Explore</a>
+        <a href="#numbers">Estimate</a>
+        <a href="#interview">Quiz</a>
+        <a href="#takeaways">Review</a>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="hero-copy">
+        <div class="kicker"><span class="pulse"></span> SYSTEM DESIGN FIELD GUIDE</div>
+        <h1>Scale without the scramble.</h1>
+        <p>Learn what breaks first, which lever to pull next, and how to explain every trade-off like a senior engineer—not a box-drawing machine.</p>
+        <div class="hero-meta">
+          <span class="tag">~25 min</span>
+          <span class="tag">interactive lab</span>
+          <span class="tag">8 interview prompts</span>
+        </div>
+      </div>
+      <aside class="hero-board" aria-label="Scale summary">
+        <div class="terminal-line"><span>$</span> request_rate ↑<br><span>→</span> bottleneck appears<br><span>→</span> measure before changing<br><span>→</span> trade-off out loud</div>
+        <div class="big-number"><strong>100×</strong><small>THE TRAFFIC TEST: WHAT BREAKS FIRST?</small></div>
+      </aside>
+    </header>
+
+    <main>
+      <section id="mental-model">
+        <div class="section-head">
+          <div><p class="eyebrow">01 / START HERE · READ</p><h2>Start with the shape of the problem</h2></div>
+          <p>Read these four ideas first. Use them to name the bottleneck before you choose a scaling technique.</p>
+        </div>
+        <div class="lesson-grid">
+          <article class="lesson wide accent">
+            <span class="lesson-number">THE TWO SIGNALS</span>
+            <h3>Throughput tells you how much. Latency tells you how well.</h3>
+            <p>A system that handles 10× traffic but takes five seconds per request did not scale—it just got bigger and worse. An average can hide the requests that feel painfully slow, so engineers also look at percentiles.</p>
+            <div class="percentile-explainer">
+              <strong>What does p99 mean?</strong>
+              <p>Line up 100 requests from fastest to slowest. The p99 is the response time of request 99. If p99 is 800 ms, 99 of 100 requests finished within 800 ms; the slowest 1 took longer.</p>
+              <div class="percentile-visual" aria-hidden="true"><span class="within">99 requests finish by p99</span><span class="slower">1</span></div>
+            </div>
+            <div class="mini-compare">
+              <div><strong>Throughput</strong><span>How much work: requests per second</span></div>
+              <div><strong>Latency</strong><span>How long one request takes. p50 = typical; p99 = nearly worst case.</span></div>
+            </div>
+          </article>
+          <article class="lesson">
+            <span class="lesson-number">VERTICAL</span>
+            <h3>Buy a faster barista</h3>
+            <p>More CPU and RAM. Fast to ship, easy to reason about, but expensive near the ceiling—and still one machine that can fail.</p>
+          </article>
+          <article class="lesson">
+            <span class="lesson-number">HORIZONTAL</span>
+            <h3>Open more counters</h3>
+            <p>Add servers behind a load balancer. More coordination, but better headroom and survivability. This is your default interview posture.</p>
+          </article>
+          <article class="lesson wide">
+            <span class="lesson-number">THE REAL DIVIDING LINE</span>
+            <h3>Stateless servers are easy to copy.</h3>
+            <p>Keep sessions in Redis, files in object storage, and durable counters in a shared store. If important state lives on an app box, requests need sticky routing and failures lose state. Sticky sessions are a stopgap, not a destination.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="lab">
+        <div class="section-head">
+          <div><p class="eyebrow">02 / TRY IT · PRESSURE LAB</p><h2>Push traffic. Pull a lever.</h2></div>
+          <p>Move the traffic slider, then try each architecture. Watch p99 and identify which component becomes the next bottleneck.</p>
+        </div>
+        <div class="lab">
+          <div class="lab-header"><h3>Coffee API under load</h3><span id="statusText">STATUS: HEALTHY</span></div>
+          <div class="lab-body">
+            <div class="controls">
+              <label class="control-label" for="traffic">INCOMING TRAFFIC <output id="trafficOut">5,000 rps</output></label>
+              <input id="traffic" type="range" min="1000" max="100000" step="1000" value="5000" />
+              <div class="control-label" style="margin-bottom:12px">ARCHITECTURE MOVE <span>pick one</span></div>
+              <div class="choice-list" id="choiceList">
+                <button class="choice-btn active" data-mode="base"><span class="choice-icon">01</span><span><strong>Single server</strong><small>Find the first wall</small></span></button>
+                <button class="choice-btn" data-mode="vertical"><span class="choice-icon">02</span><span><strong>Bigger box</strong><small>Quick vertical relief</small></span></button>
+                <button class="choice-btn" data-mode="horizontal"><span class="choice-icon">03</span><span><strong>Load balance</strong><small>Add stateless servers</small></span></button>
+                <button class="choice-btn" data-mode="cache"><span class="choice-icon">04</span><span><strong>Add cache</strong><small>Cut repeat DB reads</small></span></button>
+                <button class="choice-btn" data-mode="replica"><span class="choice-icon">05</span><span><strong>Read replica</strong><small>Fan out read load</small></span></button>
+                <button class="choice-btn" data-mode="queue"><span class="choice-icon">06</span><span><strong>Queue async work</strong><small>Absorb burst pressure</small></span></button>
+              </div>
+            </div>
+            <div class="sim">
+              <div class="metrics">
+                <div class="metric"><span>P99 LATENCY</span><strong id="latencyMetric">82ms</strong></div>
+                <div class="metric"><span>CAPACITY</span><strong id="capacityMetric">8K</strong></div>
+                <div class="metric"><span>NEW COST</span><strong id="costMetric">Low</strong></div>
+              </div>
+              <div class="architecture" id="architecture"></div>
+              <div class="sim-note"><b>WHY</b><p id="simExplanation"></p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="toolkit">
+        <div class="section-head">
+          <div><p class="eyebrow">03 / EXPLORE · TOOLKIT</p><h2>Know the lever—and its bill</h2></div>
+          <p>Open each technique and trace its diagram. Say the cost or trade-off out loud before moving on.</p>
+        </div>
+        <div class="toolkit">
+          <div class="tool-tabs" role="tablist" aria-label="Scalability techniques" id="toolTabs"></div>
+          <article class="tool-panel" id="toolPanel" role="tabpanel" tabindex="0"></article>
+        </div>
+      </section>
+
+      <section id="numbers">
+        <div class="section-head">
+          <div><p class="eyebrow">04 / ESTIMATE · BACK-OF-THE-ENVELOPE</p><h2>Quantify before you draw</h2></div>
+          <p>Change the inputs to estimate peak RPS. Practice saying every assumption before you sketch the architecture.</p>
+        </div>
+        <div class="calc-grid">
+          <div class="calculator">
+            <h3>Peak traffic estimator</h3>
+            <div class="field-grid">
+              <div class="field"><label for="dau">DAILY ACTIVE USERS</label><input id="dau" type="number" min="1" value="10000000" /></div>
+              <div class="field"><label for="req">REQUESTS / USER / DAY</label><input id="req" type="number" min="1" value="100" /></div>
+              <div class="field"><label for="peak">PEAK MULTIPLIER</label><input id="peak" type="number" min="1" step="0.5" value="4" /></div>
+              <div class="field"><label for="headroom">SAFETY HEADROOM</label><input id="headroom" type="number" min="1" step="0.1" value="1.25" /></div>
+            </div>
+            <div class="estimate"><strong id="rpsEstimate">57,870 rps</strong><span id="rpsDetail">average × peak × headroom</span></div>
+          </div>
+          <aside class="formula-sheet">
+            <h3>Say the assumptions</h3>
+            <div class="formula"><code>avg rps = DAU × requests ÷ 86,400</code><p>Daily averages hide spikes, so never stop here.</p></div>
+            <div class="formula"><code>peak rps = avg × peak factor</code><p>Use 3–5× if the product has a strong daily usage curve.</p></div>
+            <div class="formula"><code>design rps = peak × headroom</code><p>Capacity without margin becomes an incident during retries or deploys.</p></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="interview">
+        <div class="section-head">
+          <div><p class="eyebrow">05 / QUIZ YOURSELF · INTERVIEW LAB</p><h2>Answer the question behind the question</h2></div>
+          <p>Answer each question aloud in 60 seconds, then open the model answer and compare your reasoning.</p>
+        </div>
+        <div class="interview-wrap">
+          <div class="question-column">
+            <div class="answer-controls"><button class="answer-toggle" id="toggleAnswers" type="button">Show all model answers</button></div>
+            <div class="question-list" id="questionList"></div>
+          </div>
+          <aside class="score-card">
+            <h3>Senior-signal checklist</h3>
+            <p>A strong answer usually earns these four marks:</p>
+            <ul class="check-list">
+              <li><span class="tick">1</span><span>Names the bottleneck before the fix</span></li>
+              <li><span class="tick">2</span><span>Quantifies load or latency</span></li>
+              <li><span class="tick">3</span><span>Explains failure behavior</span></li>
+              <li><span class="tick">4</span><span>Says the trade-off out loud</span></li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section class="takeaways" id="takeaways" aria-labelledby="takeaways-title">
+        <div class="section-head">
+          <div><p class="eyebrow">06 / FINISH HERE · REVIEW</p><h2 id="takeaways-title">Key takeaways</h2></div>
+          <p>Review these five principles last. If one feels unclear, return to the matching section above.</p>
+        </div>
+        <div class="recap" aria-label="Five key scalability ideas">
+          <div><b>01</b><strong>Default to horizontal; use vertical as a bridge.</strong></div>
+          <div><b>02</b><strong>Push durable state out of app servers.</strong></div>
+          <div><b>03</b><strong>Scale reads before writes whenever you can.</strong></div>
+          <div><b>04</b><strong>Every cache is a consistency decision.</strong></div>
+          <div><b>05</b><strong>Name the trade-off, not just the component.</strong></div>
+        </div>
+      </section>
+    </main>
+
+    <footer><span>Build the argument, not just the diagram.</span><span>Progress resets when this page reloads.</span></footer>
+  </div>
+
+  <script>
+    (function () {
+      var explored = {};
+      function mark(key) {
+        explored[key] = true;
+        var count = Object.keys(explored).length;
+        var pct = Math.min(100, Math.round((count / 14) * 100));
+        document.getElementById('progressNum').textContent = pct;
+        document.getElementById('progressBar').style.width = pct + '%';
+      }
+
+      var traffic = document.getElementById('traffic');
+      var mode = 'base';
+      var configs = {
+        base: { cap: 8000, cost: 'Low', note: 'One app server is simple, but CPU saturates first. Once requests exceed capacity, queues form and p99 rises sharply.', nodes: ['Client', 'App', 'DB'] },
+        vertical: { cap: 22000, cost: '$$', note: 'A larger box buys immediate headroom with almost no code change. The ceiling still exists, and one failure still takes the service down.', nodes: ['Client', 'Big app', 'DB'] },
+        horizontal: { cap: 46000, cost: '$$', note: 'A load balancer spreads requests across stateless app servers and removes the app tier as a single point of failure. The database is now the likely wall.', nodes: ['Client', 'LB', 'Servers', 'DB'] },
+        cache: { cap: 76000, cost: '$$', note: 'Cache-aside removes repeated reads from the database. Great leverage—but choose a TTL or invalidation path, and protect against a thundering herd.', nodes: ['Client', 'LB', 'Cache', 'DB'] },
+        replica: { cap: 90000, cost: '$$$', note: 'Read replicas fan out read traffic. Replication lag means the newest write may not appear immediately, so plan for read-your-own-write.', nodes: ['Client', 'LB', 'Primary', 'Replicas'] },
+        queue: { cap: 100000, cost: '$$', note: 'A queue moves email, thumbnails, analytics, and indexing off the request path. During a spike, queue depth grows while the API stays responsive.', nodes: ['Client', 'API', 'Queue', 'Workers'] }
+      };
+
+      function compact(n) { return n >= 1000 ? Math.round(n / 1000) + 'K' : String(n); }
+      function diagram(nodes, overloaded) {
+        return '<div class="flow">' + nodes.map(function (n, i) {
+          var stack = n === 'Servers' || n === 'Replicas' || n === 'Workers';
+          var cls = n === 'DB' || n === 'Primary' ? ' db' : '';
+          if (overloaded && i === nodes.length - 1) cls += ' hot';
+          var node = stack
+            ? '<div class="server-stack"><div class="node">' + n + ' A</div><div class="node">' + n + ' B</div></div>'
+            : '<div class="node' + cls + '">' + n + '</div>';
+          return (i ? '<span class="arrow">→</span>' : '') + node;
+        }).join('') + '</div>';
+      }
+      function updateSim() {
+        var rps = Number(traffic.value);
+        var cfg = configs[mode];
+        var ratio = rps / cfg.cap;
+        var latency = ratio <= .65 ? 60 + ratio * 45 : ratio <= 1 ? 90 + Math.pow(ratio, 4) * 150 : 250 + Math.pow(ratio, 3) * 620;
+        var overloaded = ratio > 1;
+        document.getElementById('trafficOut').textContent = rps.toLocaleString() + ' rps';
+        document.getElementById('latencyMetric').textContent = Math.round(latency).toLocaleString() + 'ms';
+        document.getElementById('capacityMetric').textContent = compact(cfg.cap);
+        document.getElementById('costMetric').textContent = cfg.cost;
+        document.getElementById('statusText').textContent = overloaded ? 'STATUS: SATURATED' : ratio > .78 ? 'STATUS: UNDER PRESSURE' : 'STATUS: HEALTHY';
+        document.getElementById('architecture').innerHTML = diagram(cfg.nodes, overloaded);
+        document.getElementById('simExplanation').textContent = cfg.note;
+      }
+      traffic.addEventListener('input', function () { updateSim(); mark('traffic'); });
+      document.getElementById('choiceList').addEventListener('click', function (e) {
+        var btn = e.target.closest('.choice-btn');
+        if (!btn) return;
+        mode = btn.getAttribute('data-mode');
+        Array.prototype.forEach.call(document.querySelectorAll('.choice-btn'), function (b) { b.classList.toggle('active', b === btn); });
+        updateSim();
+        mark('sim-' + mode);
+      });
+      updateSim();
+
+      var tools = [
+        { id: 'load', name: 'Load balancing', sub: 'distribute + fail over', title: 'Load balancing', lead: 'A load balancer makes horizontal scale real: it routes traffic across healthy servers and stops routing to dead ones.', patterns: [['Round robin', 'Simple rotation; assumes requests cost about the same.'], ['Least connections', 'Better when requests have uneven duration.'], ['L4', 'Fast TCP/UDP routing without HTTP awareness.'], ['L7', 'Routes by path, header, host, or cookie.']], cost: 'Horizontal scale buys headroom and fault tolerance, at the cost of service discovery, coordination, and harder debugging.' },
+        { id: 'cache', name: 'Caching', sub: 'highest-leverage read fix', title: 'Caching', lead: 'Stop asking the database the same question. Cache frequently read data close to the caller, then be explicit about staleness.', patterns: [['Cache-aside', 'App checks cache; on miss, it reads DB and populates.'], ['Write-through', 'Write cache and backing store together.'], ['Write-behind', 'Fast writes, but durability moves off the request path.'], ['CDN', 'Put static media and assets near users at the edge.']], cost: 'Every cache is a consistency decision. Name TTL versus explicit invalidation—and defend against stampedes with jitter, single-flight, or stale-while-revalidate.' },
+        { id: 'replication', name: 'Replication', sub: 'scale database reads', title: 'Read replication', lead: 'Keep one primary for writes and fan reads across replicas. This is usually the first database scaling move for read-heavy systems.', patterns: [['Primary', 'Accepts the authoritative writes.'], ['Replica', 'Copies primary data and serves reads.'], ['Routing', 'Send freshness-sensitive reads to primary.'], ['Failover', 'Promote a replica if the primary dies.']], cost: 'Replicas give cheap read scale, but replication lag introduces eventual consistency. Plan for the user who posts and immediately refreshes.' },
+        { id: 'sharding', name: 'Sharding', sub: 'scale writes—carefully', title: 'Sharding', lead: 'Split the dataset across independent databases when one primary can no longer hold the data or sustain the write volume.', patterns: [['Range key', 'Simple and queryable; vulnerable to hotspots.'], ['Hash key', 'Even distribution; range queries get harder.'], ['Directory', 'Flexible mapping; the directory is infrastructure too.'], ['Resharding', 'Move live data while preserving availability.']], cost: 'Sharding buys write scale but breaks easy joins, cross-shard transactions, and painless rebalancing. Exhaust replicas and caching first.' },
+        { id: 'async', name: 'Queues', sub: 'absorb spikes + async work', title: 'Queues & backpressure', lead: 'Move work that does not need to finish before the response—email, thumbnails, search indexing, analytics—to workers behind a queue.', patterns: [['Producer', 'Publishes a durable job or event.'], ['Queue', 'Buffers work during bursts.'], ['Consumer', 'Processes at a sustainable rate.'], ['Dead letter', 'Holds poison jobs for inspection.']], cost: 'Queues lower request latency and absorb spikes, but add eventual completion, retries, deduplication, and operational lag to reason about.' },
+        { id: 'state', name: 'Statelessness', sub: 'make servers replaceable', title: 'Stateless app servers', lead: 'Any request should be able to land on any server. Move durable state to shared systems and make app boxes disposable.', patterns: [['Sessions', 'Shared Redis or signed tokens—not local memory.'], ['Files', 'Object storage—not a server filesystem.'], ['Counters', 'Shared atomic store—not process memory.'], ['Deploys', 'Drain and replace servers without data loss.']], cost: 'Shared stores make horizontal scale possible, but they become dependencies. Protect them with timeouts, pooling, redundancy, and clear failure behavior.' }
+      ];
+      var toolFlows = {
+        load: ['Client', 'Load balancer', 'Healthy server'],
+        cache: ['Request', 'Cache', 'Database on miss'],
+        replication: ['Write: primary', 'Copy', 'Read: replica'],
+        sharding: ['Shard key', 'Router', 'Matching shard'],
+        async: ['Producer', 'Queue', 'Worker'],
+        state: ['Any request', 'Any app server', 'Shared state']
+      };
+      var tabs = document.getElementById('toolTabs');
+      var panel = document.getElementById('toolPanel');
+      function renderTool(index) {
+        var tool = tools[index];
+        Array.prototype.forEach.call(tabs.children, function (el, i) {
+          el.classList.toggle('active', i === index);
+          el.setAttribute('aria-selected', i === index ? 'true' : 'false');
+        });
+        var visual = toolFlows[tool.id].map(function (step, i) { return (i ? '<span class="flow-arrow">→</span>' : '') + '<span class="flow-step">' + step + '</span>'; }).join('');
+        panel.innerHTML = '<p class="eyebrow">TECHNIQUE ' + String(index + 1).padStart(2, '0') + '</p><h3>' + tool.title + '</h3><p class="lead">' + tool.lead + '</p><div class="technique-flow" aria-label="' + tool.title + ' request flow">' + visual + '</div><div class="pattern-list">' + tool.patterns.map(function (p) { return '<div class="pattern"><strong>' + p[0] + '</strong><span>' + p[1] + '</span></div>'; }).join('') + '</div><div class="cost-callout"><strong>COST / TRADE-OFF</strong><p>' + tool.cost + '</p></div>';
+        mark('tool-' + tool.id);
+      }
+      tools.forEach(function (tool, i) {
+        var b = document.createElement('button');
+        b.className = 'tool-tab';
+        b.setAttribute('role', 'tab');
+        b.innerHTML = tool.name + '<small>' + tool.sub + '</small>';
+        b.addEventListener('click', function () { renderTool(i); });
+        tabs.appendChild(b);
+      });
+      renderTool(0);
+
+      function updateEstimate() {
+        var dau = Math.max(0, Number(document.getElementById('dau').value) || 0);
+        var req = Math.max(0, Number(document.getElementById('req').value) || 0);
+        var peak = Math.max(0, Number(document.getElementById('peak').value) || 0);
+        var head = Math.max(0, Number(document.getElementById('headroom').value) || 0);
+        var avg = dau * req / 86400;
+        var result = Math.round(avg * peak * head);
+        document.getElementById('rpsEstimate').textContent = result.toLocaleString() + ' rps';
+        document.getElementById('rpsDetail').textContent = Math.round(avg).toLocaleString() + ' avg rps × ' + peak + ' peak × ' + head + ' headroom';
+      }
+      ['dau', 'req', 'peak', 'headroom'].forEach(function (id) {
+        document.getElementById(id).addEventListener('input', function () { updateEstimate(); mark('numbers'); });
+      });
+      updateEstimate();
+
+      var questions = [
+        ['Your API’s p99 spikes every day at 9am. How do you diagnose it?', 'Correlate request rate and latency first. Then walk the path: app CPU/GC, connection-pool saturation, database slow queries, cache hit rate, and downstream latency. A daily shape also suggests autoscaling lag or a cold cache after deploys.', 'They are testing whether you measure before prescribing—and whether you look at p99 instead of averages.'],
+        ['When would you choose vertical scaling over horizontal?', 'Use it for urgent relief, tiny systems where distributed complexity is unjustified, or stateful workloads such as a primary database before sharding is warranted. Then frame it as a bridge with a plan to go horizontal.', 'They want judgment, not a slogan that horizontal is always better.'],
+        ['Design a URL shortener for 100 million URLs.', 'Generate a collision-safe base62 code; store code → URL; make redirects read-optimized with replicas and a heavy cache. Shard by short-code hash when necessary. Send click analytics to an asynchronous pipeline so writes do not slow redirects.', 'They are testing key generation, read-heavy data access, and whether analytics stays off the hot path.'],
+        ['Users cannot see their own post immediately after posting. Why?', 'The write reached the primary, but the next read hit a replica that is behind. Route read-your-own-write traffic to the primary, use an optimistic UI, or pay the latency cost of synchronous replication for that path.', 'They want you to connect eventual consistency to a concrete UX failure.'],
+        ['A viral post expires from cache and the database falls over.', 'That is a thundering herd: thousands of simultaneous misses hit the database. Use request coalescing, jittered TTLs, probabilistic early refresh, or stale-while-revalidate.', 'Naming the failure mode is good; choosing a mitigation and its freshness cost is better.'],
+        ['How would you shard a messaging app?', 'Shard messages by conversation ID to preserve locality inside a thread. A user inbox then spans shards, so denormalize an inbox index per user. Huge group conversations can create hot shards and may need isolation.', 'The shard-key reasoning and the failure modes matter more than the specific key.'],
+        ['Scaling versus performance: what is the difference?', 'Performance is the speed of one request; scalability is how behavior changes under growing load. A distributed cache may improve throughput while making a cache miss slightly slower because it adds a lookup before the database.', 'They are checking whether you separate single-request latency from system capacity.'],
+        ['Design distributed rate limiting.', 'Put a token-bucket or sliding-window limiter at the API gateway and keep shared atomic counters in Redis. Define the key, refill rate, burst size, and failure policy. Fail open for availability-sensitive endpoints; fail closed for abuse or billing-sensitive paths.', 'They want stateless-server thinking plus an explicit fail-open versus fail-closed decision.']
+      ];
+      var qList = document.getElementById('questionList');
+      var answerToggle = document.getElementById('toggleAnswers');
+      function syncAnswerToggle() {
+        var allOpen = Array.prototype.every.call(qList.children, function (item) { return item.classList.contains('open'); });
+        answerToggle.textContent = allOpen ? 'Hide all model answers' : 'Show all model answers';
+      }
+      questions.forEach(function (q, i) {
+        var article = document.createElement('article');
+        article.className = 'question' + (i === 0 ? ' open' : '');
+        article.innerHTML = '<button aria-expanded="' + (i === 0 ? 'true' : 'false') + '"><span class="q-num">Q' + (i + 1) + '</span><strong>' + q[0] + '</strong><span class="chev">＋</span></button><div class="answer"><span class="answer-label">MODEL ANSWER</span><p>' + q[1] + '</p><div class="listen"><strong>Why this is a strong answer:</strong> ' + q[2] + '</div></div>';
+        article.querySelector('button').addEventListener('click', function () {
+          var isOpen = article.classList.toggle('open');
+          this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+          if (isOpen) mark('q-' + i);
+          syncAnswerToggle();
+        });
+        qList.appendChild(article);
+      });
+      answerToggle.addEventListener('click', function () {
+        var shouldOpen = !Array.prototype.every.call(qList.children, function (item) { return item.classList.contains('open'); });
+        Array.prototype.forEach.call(qList.children, function (item, i) {
+          item.classList.toggle('open', shouldOpen);
+          item.querySelector('button').setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+          if (shouldOpen) mark('q-' + i);
+        });
+        syncAnswerToggle();
+      });
+      syncAnswerToggle();
+
+    })();
+  </script>
+</body>
+</html>
