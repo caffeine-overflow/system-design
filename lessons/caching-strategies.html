@@ -226,20 +226,38 @@
     <aside class="toc" aria-label="Lesson contents">
       <div class="progress" aria-hidden="true"><span id="progress"></span></div>
       <strong>LEARN → INTERACT → TEST</strong>
-      <a href="#why">01 Why cache</a>
-      <a href="#layers">02 Where caches live</a>
-      <a href="#patterns">03 Request patterns</a>
-      <a href="#eviction">04 Eviction & LRU lab</a>
-      <a href="#invalidation">05 Invalidation</a>
-      <a href="#stampede">06 Stampedes</a>
-      <a href="#cdn">07 CDN edge cases</a>
-      <a href="#distributed">08 Distributed caches</a>
-      <a href="#sizing">09 Sizing example</a>
-      <a href="#quiz">10 Quiz yourself</a>
-      <a href="#takeaways">11 Takeaways</a>
+      <a href="#what">01 What caching is</a>
+      <a href="#why">02 Why cache</a>
+      <a href="#layers">03 Where caches live</a>
+      <a href="#patterns">04 Request patterns</a>
+      <a href="#eviction">05 Eviction & LRU lab</a>
+      <a href="#invalidation">06 Invalidation</a>
+      <a href="#stampede">07 Stampedes</a>
+      <a href="#cdn">08 CDN edge cases</a>
+      <a href="#distributed">09 Distributed caches</a>
+      <a href="#sizing">10 Sizing example</a>
+      <a href="#quiz">11 Quiz yourself</a>
+      <a href="#takeaways">12 Takeaways</a>
     </aside>
 
     <main class="content">
+      <section id="what">
+        <div class="mode">READ · WHAT CACHING IS</div>
+        <h2>Learn what a cache actually is</h2>
+        <p class="instruction">Get the core idea and the four words this whole lesson runs on.</p>
+        <p class="lead">A <strong>cache</strong> is a fast, limited store of <strong>copies</strong> of data that is expensive to produce or fetch. Instead of doing the expensive work every time, the system checks the fast copy first — and only does the real work when the copy isn't there.</p>
+        <p>Think of your kitchen. The grocery store is the <strong>database</strong>: full selection, far away, slow. Your fridge is the <strong>cache</strong>: limited space, nearby, fast. You restock the fridge from the store (populate), eat from the fridge when the food is there, and drive to the store when it isn't. Caching is that idea, applied to computers.</p>
+        <div class="callout"><strong>The four words that run this lesson</strong>
+          <ul>
+            <li><strong>Hit</strong> — the cache had the data. Fast, cheap, no origin work needed.</li>
+            <li><strong>Miss</strong> — the cache didn't have it. The request falls through to the origin (the database or service), which does the real work and hands back a copy for the cache to store.</li>
+            <li><strong>TTL (time to live)</strong> — how long a copy stays in the cache before it's treated as stale and refreshed. TTL is the dial that trades freshness for speed.</li>
+            <li><strong>Eviction</strong> — when the cache runs out of space, it must throw something out. How it chooses (section 05) decides how well your hit ratio survives under pressure.</li>
+          </ul>
+        </div>
+        <p class="trade"><b>Trade-off stated out loud:</b> caching turns repeated expensive work into cheap copies — but copies can be stale, memory is finite, and the cache itself becomes a thing you must operate and defend.</p>
+      </section>
+
       <section id="why">
         <div class="mode">READ · WHY CACHING MATTERS</div>
         <h2>Read the latency ladder</h2>
