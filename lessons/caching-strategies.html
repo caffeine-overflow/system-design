@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Caching Strategies</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f8f9;
+      --paper: #ffffff;
+      --ink: #172126;
+      --muted: #52636b;
+      --faint: #74858c;
+      --line: #d7e0e3;
+      --line-strong: #b7c5ca;
+      --blue: #0b6ca8;
+      --blue-soft: #e5f2f9;
+      --teal: #087c70;
+      --teal-soft: #e2f3ef;
+      --orange: #a54c13;
+      --orange-soft: #fff0e3;
+      --red: #a22b36;
+      --red-soft: #fcebed;
+      --code: #edf2f4;
+      --shadow: 0 15px 42px rgba(25,45,55,.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1417;
+        --paper: #151f23;
+        --ink: #edf3f4;
+        --muted: #adbbc0;
+        --faint: #8fa0a7;
+        --line: #2c3d43;
+        --line-strong: #465b63;
+        --blue: #68baf0;
+        --blue-soft: #173549;
+        --teal: #65d5c7;
+        --teal-soft: #163934;
+        --orange: #ffae73;
+        --orange-soft: #42291b;
+        --red: #ff929b;
+        --red-soft: #422127;
+        --code: #1c2a2f;
+        --shadow: 0 18px 42px rgba(0,0,0,.24);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 20px; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.7; font-size: 16px; }
+    button, input { font: inherit; color: inherit; }
+    button { touch-action: manipulation; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    code { background: var(--code); border-radius: 4px; padding: .12em .35em; font-size: .88em; }
+    a { color: var(--blue); }
+    .page { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 38px 0 90px; }
+    .masthead { border-top: 5px solid var(--ink); border-bottom: 1px solid var(--line-strong); padding: 34px 0 38px; }
+    .dayline { color: var(--blue); font: 700 .77rem ui-monospace, monospace; letter-spacing: .04em; }
+    h1 { margin: 18px 0 16px; font-size: clamp(2.65rem, 7vw, 5.4rem); letter-spacing: -.065em; line-height: .94; font-weight: 800; }
+    .subtitle { max-width: 680px; margin: 0; color: var(--muted); font-size: clamp(1.05rem, 2vw, 1.34rem); line-height: 1.55; }
+    .subtitle strong { color: var(--ink); }
+
+    .layout { display: grid; grid-template-columns: 205px minmax(0, 1fr); gap: 58px; align-items: start; margin-top: 34px; }
+    .toc { position: sticky; top: 20px; border-top: 3px solid var(--ink); padding-top: 10px; }
+    .toc .progress { height: 3px; background: var(--line); margin-bottom: 17px; }
+    .toc .progress span { display: block; width: 0; height: 100%; background: var(--blue); }
+    .toc strong { display: block; font: 700 .7rem ui-monospace, monospace; margin-bottom: 8px; }
+    .toc a { display: block; padding: 5px 0; color: var(--muted); text-decoration: none; font-size: .79rem; line-height: 1.25; }
+    .toc a.active, .toc a:hover { color: var(--blue); font-weight: 700; }
+    .content { min-width: 0; }
+    section { border-bottom: 1px solid var(--line); padding: 32px 0 48px; }
+    section:last-child { border: 0; }
+    .mode { color: var(--blue); font: 750 .75rem ui-monospace, monospace; letter-spacing: .05em; }
+    h2 { margin: 7px 0 9px; font-size: clamp(1.65rem, 3.6vw, 2.5rem); line-height: 1.12; letter-spacing: -.035em; }
+    h3 { margin: 26px 0 7px; font-size: 1.16rem; letter-spacing: -.015em; line-height: 1.3; }
+    p { max-width: 42rem; margin: 0 0 16px; }
+    .instruction { color: var(--muted); font-size: .94rem; margin-bottom: 24px; }
+    .lead { color: var(--muted); font-size: 1.07rem; }
+    .callout { max-width: 42rem; border-left: 4px solid var(--blue); background: var(--blue-soft); padding: 14px 17px; margin: 20px 0; }
+    .callout strong { display: block; }
+    .formula { max-width: 42rem; overflow-wrap: anywhere; background: var(--code); border: 1px solid var(--line); padding: 15px; margin: 18px 0; font: 500 .9rem/1.7 ui-monospace, monospace; }
+    .trade { color: var(--muted); }
+    .trade b { color: var(--ink); }
+
+    .latency { width: min(100%, 42rem); border-collapse: collapse; margin: 20px 0; font-size: .92rem; }
+    .latency th, .latency td { text-align: left; padding: 11px 10px; border-bottom: 1px solid var(--line); }
+    .latency th { color: var(--muted); font: 700 .72rem ui-monospace, monospace; }
+    .latency td:nth-child(2) { font-family: ui-monospace, monospace; font-weight: 700; color: var(--blue); white-space: nowrap; }
+    .bar { width: 100%; height: 7px; background: var(--line); }
+    .bar span { display: block; height: 100%; min-width: 3px; background: var(--blue); }
+
+    .widget { background: var(--paper); border: 1px solid var(--line-strong); box-shadow: var(--shadow); margin: 22px 0; }
+    .widget-head { padding: 17px 20px; border-bottom: 1px solid var(--line); }
+    .widget-head strong { display: block; font-size: .77rem; color: var(--blue); font-family: ui-monospace, monospace; letter-spacing: .04em; }
+    .widget-head p { margin: 3px 0 0; color: var(--muted); font-size: .9rem; }
+
+    .layer-grid { display: grid; grid-template-columns: repeat(5, 1fr); }
+    .layer-btn { min-height: 82px; padding: 13px 8px; background: transparent; border: 0; border-right: 1px solid var(--line); cursor: pointer; font-weight: 700; font-size: .8rem; line-height: 1.35; }
+    .layer-btn:last-child { border: 0; }
+    .layer-btn[aria-selected="true"] { background: var(--blue); color: #fff; }
+    .layer-detail { padding: 20px; background: var(--blue-soft); }
+    .layer-detail h3 { margin: 0 0 5px; }
+    .layer-detail p { margin: 0; }
+    .fact-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 15px; background: var(--line); border: 1px solid var(--line); }
+    .fact { background: var(--paper); padding: 12px; font-size: .84rem; }
+    .fact b { display: block; color: var(--faint); font: 700 .68rem ui-monospace, monospace; margin-bottom: 3px; }
+
+    .pattern-tabs { display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 1px solid var(--line); }
+    .pattern-tabs button { min-height: 53px; border: 0; border-right: 1px solid var(--line); background: transparent; padding: 9px 6px; cursor: pointer; font-size: .76rem; font-weight: 700; }
+    .pattern-tabs button:last-child { border: 0; }
+    .pattern-tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+    .pattern-panel { padding: 20px; }
+    .pattern-panel h3 { margin: 0; }
+    .pattern-panel > p { margin-top: 5px; }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 18px 0; }
+    .step { background: var(--code); border-top: 3px solid var(--line-strong); padding: 11px 9px; font-size: .78rem; min-width: 0; }
+    .step b { display: block; color: var(--blue); font-family: ui-monospace, monospace; }
+    .pattern-tradeoffs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+    .pattern-tradeoffs div { background: var(--bg); padding: 12px; font-size: .83rem; }
+    .pattern-tradeoffs b { display: block; font: 700 .68rem ui-monospace, monospace; color: var(--faint); }
+
+    .strategy-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; margin: 20px 0; }
+    .strategy { background: var(--paper); border: 1px solid var(--line); padding: 18px; }
+    .strategy h3 { margin: 0 0 6px; }
+    .strategy p { margin: 0; font-size: .92rem; color: var(--muted); }
+    .strategy .verdict { display: block; margin-top: 10px; color: var(--ink); font-size: .84rem; }
+
+    .lru-body { padding: 20px; }
+    .sequence { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+    .request { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--line-strong); font: 700 .82rem ui-monospace, monospace; background: var(--bg); }
+    .request.done { color: var(--muted); background: var(--code); }
+    .request.current { border-color: var(--orange); background: var(--orange-soft); color: var(--orange); box-shadow: inset 0 0 0 1px var(--orange); }
+    .slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 18px 0; }
+    .slot { min-height: 76px; display: grid; place-items: center; border: 1px dashed var(--line-strong); background: var(--bg); font: 800 1.25rem ui-monospace, monospace; position: relative; }
+    .slot::after { content: attr(data-age); position: absolute; bottom: 5px; font: 500 .62rem ui-monospace, monospace; color: var(--faint); }
+    .slot.filled { border-style: solid; background: var(--blue-soft); border-color: var(--blue); }
+    .lru-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .btn { border: 1px solid var(--ink); background: transparent; padding: 9px 14px; cursor: pointer; font-size: .82rem; font-weight: 750; min-height: 42px; }
+    .btn.primary { background: var(--ink); color: var(--bg); }
+    .status { margin-left: auto; font-family: ui-monospace, monospace; font-size: .78rem; }
+    .event { margin: 14px 0 0; min-height: 28px; color: var(--muted); font-size: .9rem; }
+
+    .timeline { list-style: none; padding: 0; max-width: 42rem; counter-reset: item; }
+    .timeline li { counter-increment: item; display: grid; grid-template-columns: 36px 1fr; gap: 10px; padding: 14px 0; border-top: 1px solid var(--line); }
+    .timeline li::before { content: counter(item, decimal-leading-zero); color: var(--red); font: 700 .75rem ui-monospace, monospace; }
+    .timeline b { display: block; }
+    .timeline p { margin: 2px 0 0; color: var(--muted); font-size: .91rem; }
+
+    .edge-key { border: 1px solid var(--line-strong); padding: 18px; background: var(--paper); margin: 20px 0; max-width: 42rem; }
+    .key-code { font: 600 .84rem ui-monospace, monospace; background: var(--code); padding: 13px; overflow-wrap: anywhere; margin: 10px 0; }
+    .include-exclude { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .include-exclude div { padding: 12px; background: var(--bg); font-size: .86rem; }
+    .include-exclude b { display: block; }
+    .include-exclude .yes b { color: var(--teal); }
+    .include-exclude .no b { color: var(--red); }
+
+    .numbers { display: grid; grid-template-columns: repeat(3, 1fr); max-width: 42rem; border: 1px solid var(--line); background: var(--line); gap: 1px; margin: 18px 0; }
+    .number { background: var(--paper); padding: 15px; }
+    .number span { display: block; color: var(--faint); font: 700 .67rem ui-monospace, monospace; }
+    .number b { display: block; margin-top: 3px; font: 700 1.25rem ui-monospace, monospace; color: var(--blue); }
+
+    details { max-width: 42rem; border-top: 1px solid var(--line-strong); }
+    details:last-of-type { border-bottom: 1px solid var(--line-strong); }
+    summary { cursor: pointer; list-style: none; padding: 18px 38px 18px 0; font-weight: 750; line-height: 1.45; position: relative; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; position: absolute; top: 14px; right: 5px; color: var(--blue); font: 400 1.4rem ui-monospace, monospace; }
+    details[open] summary::after { content: "−"; }
+    .answer { color: var(--muted); padding: 0 0 24px; }
+    .answer strong, .answer b { color: var(--ink); }
+    .answer p, .answer ol { max-width: 42rem; }
+    .answer ol { padding-left: 21px; }
+
+    .takeaways { list-style: none; padding: 0; max-width: 42rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+    .takeaways li { position: relative; padding: 11px 0 11px 27px; border-bottom: 1px solid var(--line); }
+    .takeaways li::before { content: "✓"; position: absolute; left: 0; color: var(--teal); font-weight: 800; }
+    .closing { max-width: 42rem; background: var(--ink); color: var(--bg); padding: 23px; margin-top: 26px; }
+    .closing strong { display: block; font-size: 1.1rem; }
+    .closing p { margin: 5px 0 0; opacity: .82; }
+
+    @media (max-width: 820px) {
+      .page { width: min(100% - 28px, 680px); padding-top: 14px; }
+      .masthead { padding: 26px 0 30px; }
+      .layout { display: block; margin-top: 0; }
+      .toc { display: none; }
+      section { padding: 32px 0 40px; }
+      .latency, .latency tbody, .latency tr, .latency td { display: block; }
+      .latency thead { display: none; }
+      .latency tr { display: grid; grid-template-columns: 1fr auto; padding: 9px 0; border-bottom: 1px solid var(--line); }
+      .latency td { border: 0; padding: 2px 0; }
+      .latency td:last-child { grid-column: 1 / -1; padding-top: 7px; }
+      .layer-grid { grid-template-columns: 1fr; }
+      .layer-btn { min-height: 48px; text-align: left; border-right: 0; border-bottom: 1px solid var(--line); padding-left: 15px; }
+      .layer-btn:last-child { border-bottom: 0; }
+      .fact-row, .pattern-tradeoffs, .strategy-grid, .numbers, .takeaways { grid-template-columns: 1fr; }
+      .pattern-tabs { grid-template-columns: 1fr 1fr; }
+      .pattern-tabs button { border-bottom: 1px solid var(--line); }
+      .pattern-tabs button:nth-child(2n) { border-right: 0; }
+      .steps { grid-template-columns: 1fr 1fr; }
+      .include-exclude { grid-template-columns: 1fr; }
+      .status { width: 100%; margin: 5px 0 0; }
+    }
+    @media (max-width: 430px) {
+      h1 { font-size: 2.75rem; }
+      .steps { grid-template-columns: 1fr; }
+      .slots { gap: 5px; }
+      .slot { min-height: 64px; }
+      .pattern-tabs { grid-template-columns: 1fr; }
+      .pattern-tabs button { border-right: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    @media print { .toc, .lru-controls { display: none; } details .answer { display: block; } body { background: white; color: black; } .page { width: 100%; } }
+  </style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <div class="dayline">TODAY’S FOCUS · PERFORMANCE & CONSISTENCY</div>
+    <h1>Caching Strategies</h1>
+    <p class="subtitle">Learn to place, populate, expire, and defend caches—and build the <strong>interview skill of making consistency, latency, and complexity trade-offs explicit.</strong></p>
+  </header>
+
+  <div class="layout">
+    <aside class="toc" aria-label="Lesson contents">
+      <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+      <strong>LEARN → INTERACT → TEST</strong>
+      <a href="#why">01 Why cache</a>
+      <a href="#layers">02 Where caches live</a>
+      <a href="#patterns">03 Request patterns</a>
+      <a href="#eviction">04 Eviction & LRU lab</a>
+      <a href="#invalidation">05 Invalidation</a>
+      <a href="#stampede">06 Stampedes</a>
+      <a href="#cdn">07 CDN edge cases</a>
+      <a href="#distributed">08 Distributed caches</a>
+      <a href="#sizing">09 Sizing example</a>
+      <a href="#quiz">10 Quiz yourself</a>
+      <a href="#takeaways">11 Takeaways</a>
+    </aside>
+
+    <main class="content">
+      <section id="why">
+        <div class="mode">READ · WHY CACHING MATTERS</div>
+        <h2>Read the latency ladder</h2>
+        <p class="instruction">Compare the orders of magnitude, then connect them to request latency.</p>
+        <p class="lead">Caching is often the highest-leverage performance tool because it replaces repeated expensive work with a nearby copy. The win is not 10%; crossing a storage or network boundary can cost 10× to 1,000,000× more.</p>
+        <table class="latency">
+          <thead><tr><th>OPERATION</th><th>ROUGH LATENCY</th><th>RELATIVE SCALE</th></tr></thead>
+          <tbody>
+            <tr><td>Memory access</td><td>~100 ns</td><td><div class="bar"><span style="width:.5%"></span></div></td></tr>
+            <tr><td>SSD access</td><td>~100 µs</td><td><div class="bar"><span style="width:3%"></span></div></td></tr>
+            <tr><td>Intra-data-center network</td><td>~1 ms</td><td><div class="bar"><span style="width:10%"></span></div></td></tr>
+            <tr><td>Typical database query</td><td>~1–20 ms</td><td><div class="bar"><span style="width:35%"></span></div></td></tr>
+            <tr><td>Cross-region round trip</td><td>~100 ms</td><td><div class="bar"><span style="width:100%"></span></div></td></tr>
+          </tbody>
+        </table>
+        <p>These are order-of-magnitude estimates, not service-level guarantees. A database query may include network delay, lock waits, disk reads, and CPU. At <code>50,000 reads/s</code>, a 95% cache hit ratio leaves only <code>2,500 reads/s</code> for the database. That can be the difference between one healthy primary and a costly fleet of replicas.</p>
+        <div class="callout"><strong>What a strong answer says</strong>Cache the measured bottleneck, not “the database” in the abstract. Name the expensive operation removed, the permitted staleness, and the safe path when the cache misses or fails.</div>
+        <p class="trade"><b>Trade-off stated out loud:</b> lower latency and origin load in exchange for stale copies, memory cost, and a new coordination problem.</p>
+      </section>
+
+      <section id="layers">
+        <div class="mode">TRY IT · WHERE CACHES LIVE</div>
+        <h2>Tap each layer from user to database</h2>
+        <p class="instruction">The closer a copy is to the user, the more network work it removes—and the less application control it may have.</p>
+        <div class="widget">
+          <div class="widget-head"><strong>CLICKABLE LAYER EXPLORER</strong><p>Tap a layer to see what it caches, what it saves, and what can go wrong.</p></div>
+          <div class="layer-grid" role="tablist" aria-label="Cache layers">
+            <button class="layer-btn" role="tab" aria-selected="true" data-layer="browser">Browser cache</button>
+            <button class="layer-btn" role="tab" aria-selected="false" data-layer="cdn">CDN edge</button>
+            <button class="layer-btn" role="tab" aria-selected="false" data-layer="proxy">Reverse proxy</button>
+            <button class="layer-btn" role="tab" aria-selected="false" data-layer="app">Application cache</button>
+            <button class="layer-btn" role="tab" aria-selected="false" data-layer="db">DB buffer pool</button>
+          </div>
+          <div class="layer-detail" aria-live="polite">
+            <h3 id="layerName"></h3><p id="layerDesc"></p>
+            <div class="fact-row"><div class="fact"><b>TYPICAL DATA</b><span id="layerData"></span></div><div class="fact"><b>REMOVES</b><span id="layerSaves"></span></div><div class="fact"><b>WATCH FOR</b><span id="layerRisk"></span></div></div>
+          </div>
+        </div>
+        <p>A <b>CDN</b> (content delivery network) is a geographically distributed set of edge servers. A reverse proxy such as Varnish or Nginx sits in front of application servers and can cache whole HTTP responses. Redis and Memcached are application-controlled network caches. A database buffer pool keeps frequently used data pages in memory, usually without the application knowing which pages are resident.</p>
+        <p>A two-level design often uses a process-local <code>L1</code> cache for microsecond access and a shared <code>L2</code> cache for coherence across instances. L1 should usually have a shorter lifetime because every application instance holds an independent copy.</p>
+      </section>
+
+      <section id="patterns">
+        <div class="mode">TRY IT · REQUEST PATTERNS</div>
+        <h2>Choose a pattern and trace the flow</h2>
+        <p class="instruction">Tap all five. For each, identify who loads the cache, when the database is updated, and which trade-off dominates.</p>
+        <div class="widget">
+          <div class="widget-head"><strong>CACHE-PATTERN EXPLORER</strong><p>Each tab shows the read/write sequence and a concrete selection rule.</p></div>
+          <div class="pattern-tabs" role="tablist" aria-label="Cache patterns">
+            <button role="tab" aria-selected="true" data-pattern="aside">Cache-aside</button>
+            <button role="tab" aria-selected="false" data-pattern="readthrough">Read-through</button>
+            <button role="tab" aria-selected="false" data-pattern="writethrough">Write-through</button>
+            <button role="tab" aria-selected="false" data-pattern="writebehind">Write-behind</button>
+            <button role="tab" aria-selected="false" data-pattern="refreshahead">Refresh-ahead</button>
+          </div>
+          <div class="pattern-panel" aria-live="polite">
+            <h3 id="patternName"></h3><p id="patternDesc"></p>
+            <div class="steps" id="patternSteps"></div>
+            <div class="pattern-tradeoffs"><div><b>PICK IT WHEN</b><span id="patternPick"></span></div><div><b>CONSISTENCY</b><span id="patternConsistency"></span></div><div><b>COST</b><span id="patternCost"></span></div></div>
+          </div>
+        </div>
+        <h3>Definitions to keep straight</h3>
+        <p><b>Cache-aside</b>, also called lazy loading, means the application fills the cache only after a miss. <b>Read-through</b> hides that loading behind a cache interface. <b>Write-through</b> updates the authoritative store before acknowledging success. <b>Write-back</b> or <b>write-behind</b> acknowledges at the cache and persists asynchronously, so durability and ordering become first-class requirements. <b>Refresh-ahead</b> renews a hot item before it expires.</p>
+        <div class="callout"><strong>Interview move</strong>Do not select a pattern by name alone. State read/write ratio, freshness target, acknowledgment semantics, miss behavior, and what happens during partial failure.</div>
+      </section>
+
+      <section id="eviction">
+        <div class="mode">READ + TRY IT · EVICTION</div>
+        <h2>Decide what leaves when memory is full</h2>
+        <p class="instruction">Read the four policies, then step through the fixed sequence to see least-recently-used eviction.</p>
+        <div class="strategy-grid">
+          <article class="strategy"><h3>TTL · time to live</h3><p>A per-entry lifetime after which the value expires. It bounds staleness and cleans forgotten keys, but it is not an admission or memory-pressure policy by itself.</p><span class="verdict"><b>Wins when:</b> freshness has a natural time bound.</span></article>
+          <article class="strategy"><h3>LRU · least recently used</h3><p>Evicts the key not accessed for the longest time. It adapts to changing locality but a large one-time scan can push useful keys out.</p><span class="verdict"><b>Wins when:</b> recent access predicts near-future access.</span></article>
+          <article class="strategy"><h3>LFU · least frequently used</h3><p>Evicts the key with the lowest access count, often with aging so old popularity fades. It protects stable hot items but adapts more slowly.</p><span class="verdict"><b>Wins when:</b> a persistent popular set dominates traffic.</span></article>
+          <article class="strategy"><h3>FIFO · first in, first out</h3><p>Evicts the oldest inserted key, regardless of reads. It is simple and predictable but can evict a heavily used old item.</p><span class="verdict"><b>Wins when:</b> simplicity matters and age approximates usefulness.</span></article>
+        </div>
+        <div class="widget">
+          <div class="widget-head"><strong>TRY IT — WATCH LRU EVICTION HAPPEN</strong><p>Tap “Next request.” The cache holds four keys; on a miss when full, the least recently used key is evicted.</p></div>
+          <div class="lru-body">
+            <div class="sequence" id="sequence" aria-label="Fixed request sequence"></div>
+            <div class="slots" id="slots" aria-label="Cache slots"></div>
+            <div class="lru-controls"><button class="btn primary" id="nextRequest">Next request</button><button class="btn" id="resetLru">Reset</button><div class="status" id="lruStatus">0 hits · 0 misses · hit ratio 0%</div></div>
+            <p class="event" id="lruEvent" aria-live="polite">Ready. The first request is A.</p>
+          </div>
+        </div>
+        <p class="trade"><b>Trade-off stated out loud:</b> eviction optimizes for a workload assumption. If your working set exceeds memory, repeated evictions can create churn: lower hit ratio → more fills → more writes and still more evictions. Admission policies that reject one-hit items can matter as much as eviction.</p>
+      </section>
+
+      <section id="invalidation">
+        <div class="mode">READ · INVALIDATION</div>
+        <h2>Choose how stale copies disappear</h2>
+        <p class="instruction">Compare the staleness window against implementation complexity.</p>
+        <p class="lead">Phil Karlton’s famous line says there are only two hard things in computer science: cache invalidation and naming things. Invalidation is hard because a write and every cached copy rarely change atomically.</p>
+        <div class="strategy-grid">
+          <article class="strategy"><h3>TTL expiry</h3><p>Let entries disappear after a fixed lifetime. Add random jitter so thousands of keys do not expire together.</p><span class="verdict"><b>Staleness:</b> up to the TTL. <b>Complexity:</b> low.</span></article>
+          <article class="strategy"><h3>Explicit invalidation on write</h3><p>Commit the database change, then delete affected keys. Deleting is safer than recomputing derived values in the write path.</p><span class="verdict"><b>Staleness:</b> event/operation delay. <b>Complexity:</b> medium; races remain.</span></article>
+          <article class="strategy"><h3>Versioned or stamped keys</h3><p>Use keys such as <code>price:42:v19</code>. Advancing the version makes old copies unreachable; TTL cleans them later.</p><span class="verdict"><b>Staleness:</b> version lookup delay. <b>Complexity:</b> medium; extra metadata and memory.</span></article>
+          <article class="strategy"><h3>Event-driven invalidation</h3><p>Publish changes through pub/sub or <b>CDC</b> (change data capture, a stream of database mutations). Consumers evict local and shared copies.</p><span class="verdict"><b>Staleness:</b> propagation lag. <b>Complexity:</b> high; delivery and replay matter.</span></article>
+        </div>
+        <h3>The cache-aside race</h3>
+        <div class="formula">T1 reader misses → reads old A<br>T2 writer commits B → deletes cache<br>T1 reader stores stale A after the delete</div>
+        <p>Mitigations include version checks before fill, immutable versioned keys, short TTLs, delayed double-delete, or a CDC event that arrives after the stale fill. For strict read-after-write, bypass the cache, read the primary, or carry a session version token that rejects older cached values.</p>
+      </section>
+
+      <section id="stampede">
+        <div class="mode">READ · STAMPEDE PROTECTION</div>
+        <h2>Protect the database from synchronized misses</h2>
+        <p class="instruction">Learn the failure shape, then match each mitigation to it.</p>
+        <p class="lead">A <b>cache stampede</b>, also called a <b>thundering herd</b>, happens when a hot key expires and thousands of requests hit the database at once. A cache intended to reduce load becomes the trigger for an origin overload.</p>
+        <ol class="timeline">
+          <li><div><b>Request coalescing / singleflight</b><p>Allow one in-flight load per key while other callers wait or receive stale data. Across machines, use a short lease with a unique owner token and expiry.</p></div></li>
+          <li><div><b>Probabilistic early refresh</b><p>As expiry approaches, each request has a small, increasing chance to refresh. Work spreads over time without a fixed refresh boundary.</p></div></li>
+          <li><div><b>Jittered TTLs</b><p>Add bounded randomness to expiration times so many unrelated keys do not expire simultaneously. This does not split one hot key.</p></div></li>
+          <li><div><b>Stale-while-revalidate</b><p>Serve a recently expired copy immediately while one worker refreshes it. This trades bounded staleness for predictable tail latency.</p></div></li>
+        </ol>
+        <p><b>p99 latency</b> is the latency below which 99% of requests complete; the slowest 1% is worse. Stampedes often look harmless in average latency while p99 and database queues explode. Also cap total and per-tenant fill concurrency: a per-key lock cannot protect the origin when 100,000 different keys miss.</p>
+      </section>
+
+      <section id="cdn">
+        <div class="mode">READ · CDN EDGE CASES</div>
+        <h2>Design the edge cache key before chasing hit ratio</h2>
+        <p class="instruction">Use the key example to separate variants that matter from dimensions that destroy reuse.</p>
+        <div class="edge-key">
+          <h3>Example CDN cache key</h3>
+          <div class="key-code">GET /products/42?currency=CAD · Accept-Language=en-CA</div>
+          <div class="include-exclude"><div class="yes"><b>INCLUDE WHEN OUTPUT CHANGES</b>Path, normalized relevant query parameters, host, encoding, and headers such as <code>Accept-Language</code>.</div><div class="no"><b>AVOID BY DEFAULT</b>Tracking parameters, header order, cookies, authorization headers, and user identity. They fragment the cache or risk leaks.</div></div>
+        </div>
+        <p>The HTTP <code>Vary</code> header tells a shared cache which request headers select different response variants—for example, <code>Vary: Accept-Language</code>. A missing variant can serve the wrong content; too many variants collapse hit ratio. Never cache a personalized response under a public key.</p>
+        <div class="strategy-grid">
+          <article class="strategy"><h3>Purge vs TTL</h3><p>A purge actively removes content, but propagation may take seconds and can fail. TTL is simpler and bounds forgotten invalidations. Strong designs often use both: purge for speed, TTL for repair.</p></article>
+          <article class="strategy"><h3>Stale controls</h3><p><code>stale-while-revalidate</code> serves stale content during refresh. <code>stale-if-error</code> serves stale content when the origin fails. Both require an explicit acceptable stale window.</p></article>
+          <article class="strategy"><h3>Origin shielding</h3><p>A shield cache sits between edge locations and the origin. Many edge misses collapse into one shield fill, reducing cross-region requests and protecting the origin.</p></article>
+          <article class="strategy"><h3>Personalization</h3><p>Cache a public shell and fetch personal fragments separately. Edge-side includes can assemble fragments, but add operational complexity and can leak data if fragment keys are wrong.</p></article>
+          <article class="strategy"><h3>Negative caching</h3><p>Briefly cache 404s and selected failures to stop repeated requests for missing objects. Keep TTLs short; never cache permission failures so broadly that one user’s denial affects another.</p></article>
+          <article class="strategy"><h3>Edge herd</h3><p>A global purge can make every point of presence miss together. Use shield layers, request coalescing, staggered expiry, and controlled prewarming for proven hot objects.</p></article>
+        </div>
+        <div class="callout"><strong>What a strong answer covers</strong>Key cardinality, personalization boundaries, cache-control directives, purge propagation, origin shielding, stale-on-error behavior, and protection against a synchronized global refill.</div>
+      </section>
+
+      <section id="distributed">
+        <div class="mode">READ · DISTRIBUTED CACHING</div>
+        <h2>Shard capacity without creating invisible skew</h2>
+        <p class="instruction">Connect partitioning, replication, and hot-key handling to concrete node limits.</p>
+        <p><b>Consistent hashing</b> maps both cache nodes and keys onto a logical ring so adding or removing a node remaps only a fraction of keys, instead of nearly all of them. Virtual nodes spread each physical node across many ring positions. It improves rebalancing, but does not solve replication, failover, or one disproportionately popular key.</p>
+        <div class="numbers"><div class="number"><span>EXAMPLE CLUSTER</span><b>10 nodes</b></div><div class="number"><span>EACH NODE</span><b>100k ops/s</b></div><div class="number"><span>HOT KEY</span><b>250k reads/s</b></div></div>
+        <p>Even though the cluster advertises roughly 1M ops/s, a single 250k-read/s key can overload the one node that owns it. Mitigate by replicating immutable values under several salted keys, adding a short local L1 cache, or splitting reducible aggregates. Ordinary sharding only places the hot key; it does not divide its traffic.</p>
+        <h3>Redis Cluster vs client-side sharding</h3>
+        <p><b>Redis Cluster</b> owns hash slots, membership, replica promotion, and redirection. Clients must understand cluster topology, and multi-key operations generally require keys in one slot. <b>Client-side sharding</b> lets the application hash keys across simpler nodes, but every client must converge on membership, retries, failover, and rebalancing. A managed clustered cache is usually the default unless the workload or infrastructure justifies owning the control plane.</p>
+        <p class="trade"><b>Trade-off stated out loud:</b> more nodes add capacity and availability, but create coordination, replication, rebalance traffic, and failure semantics. Design for one node unavailable and keep enough headroom to absorb its traffic.</p>
+      </section>
+
+      <section id="sizing">
+        <div class="mode">READ · BACK-OF-THE-ENVELOPE SIZING</div>
+        <h2>Estimate the working set and origin reduction</h2>
+        <p class="instruction">Follow the arithmetic, then name the hidden overheads.</p>
+        <p>Suppose a catalog receives <code>50,000 reads/s</code>. There are 10 million products, but the active one-hour working set is 1 million products. Each cached product serializes to 2 KB, and cache metadata plus allocator overhead adds an estimated 30%.</p>
+        <div class="formula">raw working set = 1,000,000 × 2 KB = 2 GB<br>with 30% overhead = 2.6 GB<br>with 2 replicas = 5.2 GB<br>at 70% target utilization ≈ 7.4 GB provisioned</div>
+        <p>At a <b>95% hit ratio</b>, the database sees the remaining 5%: <code>50,000 × 0.05 = 2,500 reads/s</code>. At 90%, it sees 5,000 reads/s—twice the load. Near high hit ratios, a few percentage points matter enormously.</p>
+        <p>Validate assumptions with the actual key distribution and value sizes. Include fragmentation, expiry indexes, network buffers, replication, failover headroom, and rebalancing. Track hit ratio by endpoint plus <b>cost-weighted hit ratio</b>: missing one 200 ms aggregation can cost more than missing 100 cheap lookups.</p>
+      </section>
+
+      <section id="quiz">
+        <div class="mode">QUIZ YOURSELF · FULL MODEL ANSWERS</div>
+        <h2>Answer first, then open the model</h2>
+        <p class="instruction">For each question, state requirements, choose a design, quantify it, and cover failure behavior before revealing the answer.</p>
+
+        <details><summary>1. Design caching for a product-catalog service. Which pattern do you choose, and why?</summary><div class="answer">
+          <p><strong>Model answer:</strong> I would split the response by freshness and personalization. Public product descriptions, images, and category metadata are read-heavy and tolerate seconds or minutes of staleness, so I would use cache-aside in a distributed cache and CDN caching for public HTTP responses. Price may use a shorter TTL and event-driven invalidation; checkout inventory must be revalidated against the inventory authority rather than trusted from cache.</p>
+          <ol><li><b>Key:</b> <code>tenant:product:id:schemaVersion:locale</code>; exclude user identity from public objects.</li><li><b>Read:</b> CDN → service L1 → distributed L2 → database on miss. One request fills a missing hot key; others wait briefly or receive bounded stale data.</li><li><b>Write:</b> commit the database, publish an outbox-backed product-changed event, and delete affected L2/L1/CDN keys. TTL plus jitter repairs missed invalidations.</li><li><b>Capacity:</b> at 50k reads/s and 95% hits, plan the database for at least 2.5k steady read/s plus a constrained miss wave. Do not allow full fall-through during cache failure.</li><li><b>Observe:</b> cost-weighted hit rate, p99, fill concurrency, invalidation lag, hot keys, evictions, stale-served count, and origin QPS.</li></ol>
+          <p>The choice favors low read latency and independent cache failure over perfectly immediate visibility. If price freshness must be sub-second, I would consider pushed invalidation/version stamps rather than simply shrinking every TTL.</p>
+        </div></details>
+
+        <details><summary>2. Compare cache-aside, read-through, and write-through. Choose one for user profiles.</summary><div class="answer">
+          <p><strong>Model answer:</strong> Cache-aside makes the application read the cache, fetch the database on miss, and fill it; it offers control and caches only demanded data, but callers own miss races. Read-through puts that miss logic behind the cache interface; it simplifies callers but couples cache infrastructure to the data loader. Write-through is a write policy: the cache path updates the authoritative store before acknowledging, increasing write latency but keeping the cached value warm.</p>
+          <p>For mostly-read user profiles with moderate write frequency, I would choose cache-aside: read by user ID, fill on miss, then commit profile updates and invalidate the key. It is easy to degrade to the database and avoids populating profiles nobody rereads. For read-after-write in the same session, return the committed value directly or carry a version token so an older cache entry is rejected. If many teams need identical loading semantics, I might wrap the same behavior behind read-through. I would choose write-through only if immediate cache warmth justifies adding cache and database latency to every write and I can define partial-failure semantics.</p>
+        </div></details>
+
+        <details><summary>3. A hot key expires and 10,000 requests hit the database at once. What happened, and how do you fix it?</summary><div class="answer">
+          <p><strong>Model answer:</strong> This is a cache stampede: the expiry created a synchronized miss, and all 10,000 callers attempted the same load. I would first cap origin concurrency so the database cannot be overwhelmed. Then I would add per-key singleflight: one caller gets a short refresh lease; others either wait within budget or receive a stale value. The lease has an expiry and unique owner token so a delayed worker cannot release a successor’s lease.</p>
+          <p>I would enable stale-while-revalidate for an explicitly bounded window, refresh proven hot keys before hard expiry, and add TTL jitter for unrelated keys. If one key itself exceeds a shard’s capacity, I would replicate or L1-cache that value; jitter alone cannot split one key. I would test cold start and cache outage, and alert on fill concurrency, lease contention, stale-served volume, database queue depth, and p99—not just hit ratio.</p>
+        </div></details>
+
+        <details><summary>4. How do you invalidate caches across many application servers when a price changes?</summary><div class="answer">
+          <p><strong>Model answer:</strong> I would make the database the authority and use the transactional outbox pattern: the price update and an event record commit together. A publisher sends <code>PriceChanged(productId, version)</code> to pub/sub; every app instance idempotently invalidates its local L1, while a consumer deletes or supersedes the distributed L2 key and triggers a CDN purge if the public response contains price.</p>
+          <p>The event carries a monotonically increasing version. Cache fills include that version, and consumers ignore older events, which handles duplicates and reordering. Versioned keys prevent a late stale fill from overwriting the new value. Short L1 TTLs and a longer L2 TTL provide bounded repair if an event is lost or delayed. For a user who just changed a price, I would read from the primary or require at least the committed version. I would measure outbox age, consumer lag, invalidation failures, and stale-price sightings; “pub/sub” alone is not a consistency guarantee.</p>
+        </div></details>
+
+        <details><summary>5. Your CDN hit ratio is 40%. Walk through improving it.</summary><div class="answer">
+          <p><strong>Model answer:</strong> I would segment the metric before changing TTLs: hit ratio by path, status, method, region, object size, and origin cost. Then I would inspect cache-status headers and sample keys to find fragmentation. Common causes are irrelevant query parameters, cookies, authorization headers, inconsistent parameter order, too many <code>Vary</code> dimensions, short TTLs, or responses marked private/no-store.</p>
+          <p>I would normalize the key to path plus only output-changing parameters and headers; strip tracking parameters; separate public content from personalized fragments; and set explicit cache-control directives. For safe content, extend TTL and pair purge-on-change with TTL as repair. Add stale-while-revalidate and stale-if-error, use an origin shield to coalesce misses across edge locations, and negative-cache eligible 404s briefly. I would prewarm only measured hot content, not the full catalog.</p>
+          <p>Finally, I would verify correctness with variant and authorization tests, then compare byte hit ratio, request hit ratio, origin offload, and p99. A higher hit ratio is not worth serving the wrong language, price, or user data.</p>
+        </div></details>
+      </section>
+
+      <section id="takeaways">
+        <div class="mode">TAKEAWAYS · REMEMBER THESE</div>
+        <h2>Use the senior-level checklist</h2>
+        <p class="instruction">Before ending a design, make each statement concrete for that system.</p>
+        <ul class="takeaways">
+          <li>The source of truth owns correctness.</li>
+          <li>Freshness is a requirement; TTL is a mechanism.</li>
+          <li>Every cache key is a data-isolation decision.</li>
+          <li>Protect the origin before optimizing hit ratio.</li>
+          <li>Singleflight fixes one-key stampedes; jitter spreads many expiries.</li>
+          <li>A hot key defeats ordinary sharding.</li>
+          <li>Purge quickly; TTL repairs missed purges.</li>
+          <li>Separate public content from personalization.</li>
+          <li>Size the working set, overhead, replicas, and failover headroom.</li>
+          <li>Measure cost-weighted hits and p99, not averages alone.</li>
+        </ul>
+        <div class="closing"><strong>The sentence to remember</strong><p>“Add a cache” is not the design. The design is where the copy lives, how fresh it must be, who updates it, and how the system survives when it disappears.</p></div>
+      </section>
+    </main>
+  </div>
+</div>
+<script>
+(function () {
+  var layers = {
+    browser: { name: 'Browser cache', desc: 'The user’s browser stores reusable HTTP responses under Cache-Control rules. A fresh hit avoids every network hop.', data: 'Static assets; immutable GET responses', saves: 'Edge, origin, and network latency', risk: 'Stale client copies; shared-device privacy' },
+    cdn: { name: 'CDN edge', desc: 'A content delivery network serves cached responses from a nearby point of presence, often in single-digit to tens of milliseconds.', data: 'Public images, pages, API responses', saves: 'Cross-region latency and origin traffic', risk: 'Wrong keys, purge lag, personalization leaks' },
+    proxy: { name: 'Reverse proxy', desc: 'Varnish or Nginx caches complete HTTP responses immediately in front of application servers.', data: 'Repeated endpoint responses', saves: 'Application compute and downstream calls', risk: 'Header/key mistakes; synchronized refill' },
+    app: { name: 'Application cache', desc: 'Redis, Memcached, or an in-process map stores objects and computed results under application-defined keys.', data: 'Objects, sessions, query results', saves: 'Database queries and expensive computation', risk: 'Hot keys, invalidation races, outages' },
+    db: { name: 'Database buffer pool', desc: 'The database keeps recently accessed index and table pages in memory so queries avoid storage reads.', data: 'Data and index pages', saves: 'SSD or disk I/O', risk: 'Opaque eviction; still pays query and network cost' }
+  };
+  function showLayer(key) {
+    var x = layers[key];
+    document.getElementById('layerName').textContent = x.name;
+    document.getElementById('layerDesc').textContent = x.desc;
+    document.getElementById('layerData').textContent = x.data;
+    document.getElementById('layerSaves').textContent = x.saves;
+    document.getElementById('layerRisk').textContent = x.risk;
+    document.querySelectorAll('[data-layer]').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.layer === key ? 'true' : 'false'); });
+  }
+  document.querySelectorAll('[data-layer]').forEach(function (b) { b.addEventListener('click', function () { showLayer(b.dataset.layer); }); });
+  showLayer('browser');
+
+  var patterns = {
+    aside: { name: 'Cache-aside · lazy loading', desc: 'The application owns the cache lookup and fills only after a miss. Writes commit to the source, then invalidate the cached copy.', steps: [['1','App reads cache'],['2','Miss reads DB'],['3','App fills cache'],['4','Return value']], pick: 'General read-heavy services; demand-driven objects.', consistency: 'Stale until invalidation or TTL; application handles races.', cost: 'Low write latency; first reader pays miss latency.' },
+    readthrough: { name: 'Read-through', desc: 'The application reads through a cache interface. On a miss, that cache abstraction invokes the backing-store loader and stores the result.', steps: [['1','App asks cache'],['2','Cache sees miss'],['3','Cache loads DB'],['4','Cache returns value']], pick: 'Many callers need one standardized loading policy.', consistency: 'Same as cache-aside; logic is centralized, not eliminated.', cost: 'Simple callers; tighter coupling between cache and loader.' },
+    writethrough: { name: 'Write-through', desc: 'The cache path writes the authoritative store before acknowledging success, then retains the newly written value for reads.', steps: [['1','App writes cache'],['2','Cache writes DB'],['3','Cache stores value'],['4','Acknowledge']], pick: 'Read-after-write matters and written data is likely to be read.', consistency: 'Good cache/source alignment if partial failures are explicit.', cost: 'Every write pays cache plus database latency.' },
+    writebehind: { name: 'Write-back · write-behind', desc: 'The cache acknowledges immediately and persists to the authoritative store asynchronously, often batching or coalescing writes.', steps: [['1','App writes cache'],['2','Cache acknowledges'],['3','Queue batches'],['4','Persist later']], pick: 'Very high write rate; values can be coalesced.', consistency: 'Origin lags. Cache loss may lose data without a durable log.', cost: 'Low write latency; highest ordering and recovery complexity.' },
+    refreshahead: { name: 'Refresh-ahead', desc: 'The system predicts which hot entries are near expiry and refreshes them before a reader encounters a miss.', steps: [['1','Observe hot key'],['2','Near-expiry trigger'],['3','Refresh in background'],['4','Readers stay hot']], pick: 'Predictably hot keys with expensive fills.', consistency: 'Can remain continuously fresh within a chosen threshold.', cost: 'Extra refresh work; wastes capacity if predictions are wrong.' }
+  };
+  function showPattern(key) {
+    var x = patterns[key];
+    document.getElementById('patternName').textContent = x.name;
+    document.getElementById('patternDesc').textContent = x.desc;
+    document.getElementById('patternSteps').innerHTML = x.steps.map(function (s) { return '<div class="step"><b>' + s[0] + '</b>' + s[1] + '</div>'; }).join('');
+    document.getElementById('patternPick').textContent = x.pick;
+    document.getElementById('patternConsistency').textContent = x.consistency;
+    document.getElementById('patternCost').textContent = x.cost;
+    document.querySelectorAll('[data-pattern]').forEach(function (b) { b.setAttribute('aria-selected', b.dataset.pattern === key ? 'true' : 'false'); });
+  }
+  document.querySelectorAll('[data-pattern]').forEach(function (b) { b.addEventListener('click', function () { showPattern(b.dataset.pattern); }); });
+  showPattern('aside');
+
+  var requests = ['A','B','C','D','A','E','B','F','A','C','D','E'];
+  var cache = [], position = 0, hits = 0, misses = 0;
+  var sequenceEl = document.getElementById('sequence'), slotsEl = document.getElementById('slots');
+  function renderLru(message) {
+    sequenceEl.innerHTML = requests.map(function (r, i) { return '<span class="request ' + (i < position ? 'done' : i === position ? 'current' : '') + '">' + r + '</span>'; }).join('');
+    var recent = cache.slice().reverse();
+    slotsEl.innerHTML = [0,1,2,3].map(function (i) { var key = recent[i]; return '<div class="slot ' + (key ? 'filled' : '') + '" data-age="' + (key ? (i === 0 ? 'most recent' : i === recent.length - 1 ? 'least recent' : '') : 'empty') + '">' + (key || '—') + '</div>'; }).join('');
+    var total = hits + misses, ratio = total ? Math.round(hits / total * 100) : 0;
+    document.getElementById('lruStatus').textContent = hits + ' hits · ' + misses + ' misses · hit ratio ' + ratio + '%';
+    document.getElementById('lruEvent').textContent = message || (position < requests.length ? 'Next request: ' + requests[position] + '.' : 'Sequence complete. Reset to run it again.');
+    document.getElementById('nextRequest').disabled = position >= requests.length;
+  }
+  document.getElementById('nextRequest').addEventListener('click', function () {
+    if (position >= requests.length) return;
+    var key = requests[position], idx = cache.indexOf(key), message;
+    if (idx !== -1) { hits++; cache.splice(idx, 1); cache.push(key); message = 'HIT: ' + key + ' moved to most recent.'; }
+    else { misses++; var evicted = cache.length === 4 ? cache.shift() : null; cache.push(key); message = 'MISS: loaded ' + key + (evicted ? ' and evicted least-recently-used ' + evicted + '.' : ' into an empty slot.'); }
+    position++; renderLru(message);
+  });
+  document.getElementById('resetLru').addEventListener('click', function () { cache = []; position = 0; hits = 0; misses = 0; renderLru('Ready. The first request is A.'); });
+  renderLru('Ready. The first request is A.');
+
+  var sections = Array.prototype.slice.call(document.querySelectorAll('main section'));
+  var links = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  function updateProgress() {
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    document.getElementById('progress').style.width = (max > 0 ? Math.min(100, Math.max(0, scrollY / max * 100)) : 0) + '%';
+    var current = sections[0] ? sections[0].id : '';
+    sections.forEach(function (s) { if (s.getBoundingClientRect().top < innerHeight * .34) current = s.id; });
+    links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + current); });
+  }
+  addEventListener('scroll', updateProgress, { passive: true }); updateProgress();
+})();
+</script>
+</body>
+</html>
