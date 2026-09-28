@@ -246,7 +246,7 @@
         <h2>Learn what a cache actually is</h2>
         <p class="instruction">Get the core idea and the four words this whole lesson runs on.</p>
         <p class="lead">A <strong>cache</strong> is a fast, limited store of <strong>copies</strong> of data that is expensive to produce or fetch. Instead of doing the expensive work every time, the system checks the fast copy first — and only does the real work when the copy isn't there.</p>
-        <p>Think of your kitchen. The grocery store is the <strong>database</strong>: full selection, far away, slow. Your fridge is the <strong>cache</strong>: limited space, nearby, fast. You restock the fridge from the store (populate), eat from the fridge when the food is there, and drive to the store when it isn't. Caching is that idea, applied to computers.</p>
+        <p>Picture a match. The fourth official needs a player’s details. On the touchline she has the <strong>team sheet</strong>: only today’s 18 players, right at hand — that is the <strong>cache</strong>. The club’s full registration <strong>database</strong> sits at league HQ: every player ever registered, but a phone call away — slow. She checks the team sheet first (<strong>hit</strong>); only when the player isn’t on it does she call HQ (<strong>miss</strong>), then scribbles the answer on her sheet so it’s there next time (<strong>fill</strong>). Caching is that idea, applied to computers.</p>
         <div class="callout"><strong>The four words that run this lesson</strong>
           <ul>
             <li><strong>Hit</strong> — the cache had the data. Fast, cheap, no origin work needed.</li>
@@ -296,15 +296,15 @@
             <div class="fact-row"><div class="fact"><b>TYPICAL DATA</b><span id="layerData"></span></div><div class="fact"><b>REMOVES</b><span id="layerSaves"></span></div><div class="fact"><b>WATCH FOR</b><span id="layerRisk"></span></div></div>
           </div>
         </div>
-        <p>A <b>CDN</b> (content delivery network) is a geographically distributed set of edge servers. A reverse proxy such as Varnish or Nginx sits in front of application servers and can cache whole HTTP responses. Redis and Memcached are application-controlled network caches. A database buffer pool keeps frequently used data pages in memory, usually without the application knowing which pages are resident.</p>
-        <p>A two-level design often uses a process-local <code>L1</code> cache for microsecond access and a shared <code>L2</code> cache for coherence across instances. L1 should usually have a shorter lifetime because every application instance holds an independent copy.</p>
+        <p>A <b>CDN</b> (content delivery network) is a geographically distributed set of edge servers — like the big screens around a stadium replaying a goal from a local feed, instead of every fan's phone streaming it from the broadcast truck. A reverse proxy such as Varnish or Nginx sits in front of application servers and can cache whole HTTP responses. Redis and Memcached are application-controlled network caches. A database buffer pool keeps frequently used data pages in memory, usually without the application knowing which pages are resident.</p>
+        <p>A two-level design often uses a process-local <code>L1</code> cache for microsecond access and a shared <code>L2</code> cache for coherence across instances — the physio's pitch-side bag (instant, small) versus the medical room (shared, bigger, a short walk away). L1 should usually have a shorter lifetime because every application instance holds an independent copy.</p>
       </section>
 
       <section id="patterns">
         <div class="mode">READ · REQUEST PATTERNS</div>
         <h2>See how each pattern moves data</h2>
         <p class="instruction">Follow one request through all five patterns. Each pattern answers a single question: when the app needs data, who talks to the cache, who talks to the database, and in what order?</p>
-        <p class="lead">The running example: a profile page for user 42. A <strong>read</strong> is loading that page; a <strong>write</strong> is user 42 changing their name. Every pattern handles the same two events — the only difference is who does what.</p>
+        <p class="lead">The running example: a football app's player page. During a live match, thousands of fans open the page for the number 10. A <strong>read</strong> is loading that page; a <strong>write</strong> is the number 10 scoring, updating his goal tally. Every pattern handles the same two events — the only difference is who does what.</p>
 
         <h3>1 · Cache-aside (lazy loading) — the app does the talking</h3>
         <p>The application checks the cache itself and fills it when it misses. This is the most common pattern, and the default you should reach for.</p>
@@ -356,13 +356,13 @@
         <h2>Decide what leaves when memory is full</h2>
         <p class="instruction">Read the four policies, then step through the fixed sequence to see least-recently-used eviction.</p>
         <div class="strategy-grid">
-          <article class="strategy"><h3>TTL · time to live</h3><p>A per-entry lifetime after which the value expires. It bounds staleness and cleans forgotten keys, but it is not an admission or memory-pressure policy by itself.</p><span class="verdict"><b>Wins when:</b> freshness has a natural time bound.</span></article>
-          <article class="strategy"><h3>LRU · least recently used</h3><p>Evicts the key not accessed for the longest time. It adapts to changing locality but a large one-time scan can push useful keys out.</p><span class="verdict"><b>Wins when:</b> recent access predicts near-future access.</span></article>
-          <article class="strategy"><h3>LFU · least frequently used</h3><p>Evicts the key with the lowest access count, often with aging so old popularity fades. It protects stable hot items but adapts more slowly.</p><span class="verdict"><b>Wins when:</b> a persistent popular set dominates traffic.</span></article>
-          <article class="strategy"><h3>FIFO · first in, first out</h3><p>Evicts the oldest inserted key, regardless of reads. It is simple and predictable but can evict a heavily used old item.</p><span class="verdict"><b>Wins when:</b> simplicity matters and age approximates usefulness.</span></article>
+          <article class="strategy"><h3>TTL · time to live</h3><p>A per-entry lifetime after which the value expires — like a shift that ends at the 90th minute no matter the scoreline. It bounds staleness and cleans forgotten keys, but it is not an admission or memory-pressure policy by itself.</p><span class="verdict"><b>Wins when:</b> freshness has a natural time bound.</span></article>
+          <article class="strategy"><h3>LRU · least recently used</h3><p>Subs off the key not accessed for the longest time — the player who hasn't touched the ball in ages. It adapts to changing locality but a large one-time scan can push useful keys out.</p><span class="verdict"><b>Wins when:</b> recent access predicts near-future access.</span></article>
+          <article class="strategy"><h3>LFU · least frequently used</h3><p>Subs off the key with the lowest access count — fewest touches all game — often with aging so old popularity fades. It protects stable hot items but adapts more slowly.</p><span class="verdict"><b>Wins when:</b> a persistent popular set dominates traffic.</span></article>
+          <article class="strategy"><h3>FIFO · first in, first out</h3><p>Subs off whoever has been on the pitch longest, regardless of touches. It is simple and predictable but can evict a heavily used old item.</p><span class="verdict"><b>Wins when:</b> simplicity matters and age approximates usefulness.</span></article>
         </div>
         <div class="widget">
-          <div class="widget-head"><strong>TRY IT — WATCH LRU EVICTION HAPPEN</strong><p>Tap “Next request.” The cache holds four keys; on a miss when full, the least recently used key is evicted.</p></div>
+          <div class="widget-head"><strong>TRY IT — WATCH LRU EVICTION HAPPEN</strong><p>Tap “Next request.” The cache holds four keys — four spots on the pitch. On a miss when full, the key that went longest without a touch is subbed off.</p></div>
           <div class="lru-body">
             <div class="sequence" id="sequence" aria-label="Fixed request sequence"></div>
             <div class="slots" id="slots" aria-label="Cache slots"></div>
@@ -377,15 +377,15 @@
         <div class="mode">READ · INVALIDATION</div>
         <h2>Choose how stale copies disappear</h2>
         <p class="instruction">Compare the staleness window against implementation complexity.</p>
-        <p class="lead">Phil Karlton’s famous line says there are only two hard things in computer science: cache invalidation and naming things. Invalidation is hard because a write and every cached copy rarely change atomically.</p>
+        <p class="lead">Phil Karlton’s famous line says there are only two hard things in computer science: cache invalidation and naming things. Invalidation is the late-injury problem: the team sheet is copied everywhere — apps, stadium screens, TV graphics — and a last-minute change must reach every copy before kickoff. It is hard because a write and every cached copy rarely change atomically.</p>
         <div class="strategy-grid">
           <article class="strategy"><h3>TTL expiry</h3><p>Let entries disappear after a fixed lifetime. Add random jitter so thousands of keys do not expire together.</p><span class="verdict"><b>Staleness:</b> up to the TTL. <b>Complexity:</b> low.</span></article>
           <article class="strategy"><h3>Explicit invalidation on write</h3><p>Commit the database change, then delete affected keys. Deleting is safer than recomputing derived values in the write path.</p><span class="verdict"><b>Staleness:</b> event/operation delay. <b>Complexity:</b> medium; races remain.</span></article>
-          <article class="strategy"><h3>Versioned or stamped keys</h3><p>Use keys such as <code>price:42:v19</code>. Advancing the version makes old copies unreachable; TTL cleans them later.</p><span class="verdict"><b>Staleness:</b> version lookup delay. <b>Complexity:</b> medium; extra metadata and memory.</span></article>
+          <article class="strategy"><h3>Versioned or stamped keys</h3><p>Use keys such as <code>lineup:match42:v19</code>. Advancing the version makes old copies unreachable; TTL cleans them later.</p><span class="verdict"><b>Staleness:</b> version lookup delay. <b>Complexity:</b> medium; extra metadata and memory.</span></article>
           <article class="strategy"><h3>Event-driven invalidation</h3><p>Publish changes through pub/sub or <b>CDC</b> (change data capture, a stream of database mutations). Consumers evict local and shared copies.</p><span class="verdict"><b>Staleness:</b> propagation lag. <b>Complexity:</b> high; delivery and replay matter.</span></article>
         </div>
         <h3>The cache-aside race</h3>
-        <div class="formula">T1 reader misses → reads old A<br>T2 writer commits B → deletes cache<br>T1 reader stores stale A after the delete</div>
+        <div class="formula">T1 fan's app misses → reads old lineup (no injury yet)<br>T2 club announces late injury → commits new lineup → deletes cache<br>T1 app stores the stale lineup after the delete — fans see the injured player starting</div>
         <p>Mitigations include version checks before fill, immutable versioned keys, short TTLs, delayed double-delete, or a CDC event that arrives after the stale fill. For strict read-after-write, bypass the cache, read the primary, or carry a session version token that rejects older cached values.</p>
       </section>
 
@@ -393,7 +393,7 @@
         <div class="mode">READ · STAMPEDE PROTECTION</div>
         <h2>Protect the database from synchronized misses</h2>
         <p class="instruction">Learn the failure shape, then match each mitigation to it.</p>
-        <p class="lead">A <b>cache stampede</b>, also called a <b>thundering herd</b>, happens when a hot key expires and thousands of requests hit the database at once. A cache intended to reduce load becomes the trigger for an origin overload.</p>
+        <p class="lead">A <b>cache stampede</b>, also called a <b>thundering herd</b>, happens when a hot key expires and thousands of requests hit the database at once — the full-time whistle in a cup final, every fan hitting refresh for the result at the same instant. A cache intended to reduce load becomes the trigger for an origin overload.</p>
         <ol class="timeline">
           <li><div><b>Request coalescing / singleflight</b><p>Allow one in-flight load per key while other callers wait or receive stale data. Across machines, use a short lease with a unique owner token and expiry.</p></div></li>
           <li><div><b>Probabilistic early refresh</b><p>As expiry approaches, each request has a small, increasing chance to refresh. Work spreads over time without a fixed refresh boundary.</p></div></li>
@@ -409,7 +409,7 @@
         <p class="instruction">Use the key example to separate variants that matter from dimensions that destroy reuse.</p>
         <div class="edge-key">
           <h3>Example CDN cache key</h3>
-          <div class="key-code">GET /products/42?currency=CAD · Accept-Language=en-CA</div>
+          <div class="key-code">GET /players/10 · Accept-Language=en</div>
           <div class="include-exclude"><div class="yes"><b>INCLUDE WHEN OUTPUT CHANGES</b>Path, normalized relevant query parameters, host, encoding, and headers such as <code>Accept-Language</code>.</div><div class="no"><b>AVOID BY DEFAULT</b>Tracking parameters, header order, cookies, authorization headers, and user identity. They fragment the cache or risk leaks.</div></div>
         </div>
         <p>The HTTP <code>Vary</code> header tells a shared cache which request headers select different response variants—for example, <code>Vary: Accept-Language</code>. A missing variant can serve the wrong content; too many variants collapse hit ratio. Never cache a personalized response under a public key.</p>
@@ -428,7 +428,7 @@
         <div class="mode">READ · DISTRIBUTED CACHING</div>
         <h2>Shard capacity without creating invisible skew</h2>
         <p class="instruction">Connect partitioning, replication, and hot-key handling to concrete node limits.</p>
-        <p><b>Consistent hashing</b> maps both cache nodes and keys onto a logical ring so adding or removing a node remaps only a fraction of keys, instead of nearly all of them. Virtual nodes spread each physical node across many ring positions. It improves rebalancing, but does not solve replication, failover, or one disproportionately popular key.</p>
+        <p><b>Consistent hashing</b> maps both cache nodes and keys onto a logical ring so adding or removing a node remaps only a fraction of keys, instead of nearly all of them — like assigning players to training groups by squad number: when a new coach arrives, only a few players change groups instead of everyone re-drawing lots. Virtual nodes spread each physical node across many ring positions. It improves rebalancing, but does not solve replication, failover, or one disproportionately popular key.</p>
         <div class="numbers"><div class="number"><span>EXAMPLE CLUSTER</span><b>10 nodes</b></div><div class="number"><span>EACH NODE</span><b>100k ops/s</b></div><div class="number"><span>HOT KEY</span><b>250k reads/s</b></div></div>
         <p>Even though the cluster advertises roughly 1M ops/s, a single 250k-read/s key can overload the one node that owns it. Mitigate by replicating immutable values under several salted keys, adding a short local L1 cache, or splitting reducible aggregates. Ordinary sharding only places the hot key; it does not divide its traffic.</p>
         <h3>Redis Cluster vs client-side sharding</h3>
@@ -440,7 +440,7 @@
         <div class="mode">READ · BACK-OF-THE-ENVELOPE SIZING</div>
         <h2>Estimate the working set and origin reduction</h2>
         <p class="instruction">Follow the arithmetic, then name the hidden overheads.</p>
-        <p>Suppose a catalog receives <code>50,000 reads/s</code>. There are 10 million products, but the active one-hour working set is 1 million products. Each cached product serializes to 2 KB, and cache metadata plus allocator overhead adds an estimated 30%.</p>
+        <p>Suppose a live-score app receives <code>50,000 reads/s</code> on a Champions League night. There are 10 million historical matches on record, but the active one-hour working set is 1 million match pages. Each cached page serializes to 2 KB, and cache metadata plus allocator overhead adds an estimated 30%.</p>
         <div class="formula">raw working set = 1,000,000 × 2 KB = 2 GB<br>with 30% overhead = 2.6 GB<br>with 2 replicas = 5.2 GB<br>at 70% target utilization ≈ 7.4 GB provisioned</div>
         <p>At a <b>95% hit ratio</b>, the database sees the remaining 5%: <code>50,000 × 0.05 = 2,500 reads/s</code>. At 90%, it sees 5,000 reads/s—twice the load. Near high hit ratios, a few percentage points matter enormously.</p>
         <p>Validate assumptions with the actual key distribution and value sizes. Include fragmentation, expiry indexes, network buffers, replication, failover headroom, and rebalancing. Track hit ratio by endpoint plus <b>cost-weighted hit ratio</b>: missing one 200 ms aggregation can cost more than missing 100 cheap lookups.</p>
