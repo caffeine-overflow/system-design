@@ -296,7 +296,7 @@
       <span class="progress-copy"><span id="progressNum">0</span>% explored</span>
       <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
       <div class="section-nav">
-        <a href="#mental-model">Start</a>
+        <a href="#what">Start</a>
         <a href="#lab">Try it</a>
         <a href="#toolkit">Explore</a>
         <a href="#numbers">Estimate</a>
@@ -323,16 +323,46 @@
     </header>
 
     <main>
+      <section id="what">
+        <div class="section-head">
+          <div><p class="eyebrow">01 / START HERE · READ</p><h2>What scalability actually means</h2></div>
+          <p>Read this first. It defines every word the rest of the lesson builds on.</p>
+        </div>
+        <div class="lesson-grid">
+          <article class="lesson wide accent">
+            <span class="lesson-number">THE CORE IDEA</span>
+            <h3>Same match, bigger crowd.</h3>
+            <p><strong>To scale</strong> means a system handles growing load — more users, more requests, more data — without getting slower or breaking. <strong>Load</strong> is simply the demand placed on the system: the size of the crowd.</p>
+            <p>Picture a football stadium. Hosting 500 fans for a match is easy: one gate, a few stewards. Hosting 50,000 for the same match is the same game, but you need more turnstiles, more stewards, wider concourses, and a plan for everyone leaving at full time. Cram 50,000 people through the 500-fan setup and queues explode — that is a system that does not scale.</p>
+          </article>
+          <article class="lesson">
+            <span class="lesson-number">SCALE UP · VERTICAL</span>
+            <h3>One bigger stadium</h3>
+            <p>Make the single machine stronger: more CPU, more RAM. Fast to do and easy to reason about. But there is a ceiling — you cannot build an infinitely big stadium — and one fire alarm still empties the whole place.</p>
+          </article>
+          <article class="lesson">
+            <span class="lesson-number">SCALE OUT · HORIZONTAL</span>
+            <h3>More turnstiles</h3>
+            <p>Add more identical machines and split the crowd across them. A <strong>load balancer</strong> is the head steward waving fans to the shortest open turnstile: software that distributes incoming requests across healthy servers. This is the default way systems scale.</p>
+          </article>
+          <article class="lesson wide">
+            <span class="lesson-number">THE WORDS YOU'LL NEED</span>
+            <h3>Throughput, latency, bottleneck — in one breath.</h3>
+            <p><strong>Throughput</strong> is how much work gets done: requests per second, or fans through the turnstiles per minute. <strong>Latency</strong> is how long one request takes: one fan's wait at the gate. A gate system that moves 10× the crowd but makes every fan wait five minutes did not scale — it just got bigger and worse. The <strong>bottleneck</strong> is the slowest part that caps everything else: the single narrow tunnel every fan must funnel through, no matter how many turnstiles you open.</p>
+          </article>
+        </div>
+      </section>
+
       <section id="mental-model">
         <div class="section-head">
-          <div><p class="eyebrow">01 / START HERE · READ</p><h2>Start with the shape of the problem</h2></div>
+          <div><p class="eyebrow">02 / READ · SHAPE OF THE PROBLEM</p><h2>Start with the shape of the problem</h2></div>
           <p>Read these four ideas first. Use them to name the bottleneck before you choose a scaling technique.</p>
         </div>
         <div class="lesson-grid">
           <article class="lesson wide accent">
             <span class="lesson-number">THE TWO SIGNALS</span>
             <h3>Throughput tells you how much. Latency tells you how well.</h3>
-            <p>A system that handles 10× traffic but takes five seconds per request did not scale—it just got bigger and worse. An average can hide the requests that feel painfully slow, so engineers also look at percentiles.</p>
+            <p>Think of the stadium again: throughput is fans through the turnstiles per minute; latency is one fan's wait at the gate. A system that handles 10× traffic but takes five seconds per request did not scale — it just got bigger and worse. And an average can hide the requests that feel painfully slow, so engineers also look at percentiles.</p>
             <div class="percentile-explainer">
               <strong>What does p99 mean?</strong>
               <p>Line up 100 requests from fastest to slowest. The p99 is the response time of request 99. If p99 is 800 ms, 99 of 100 requests finished within 800 ms; the slowest 1 took longer.</p>
@@ -346,24 +376,24 @@
           <article class="lesson">
             <span class="lesson-number">VERTICAL</span>
             <h3>Buy a faster barista</h3>
-            <p>More CPU and RAM. Fast to ship, easy to reason about, but expensive near the ceiling—and still one machine that can fail.</p>
+            <p>More CPU and RAM on one machine — one bigger stadium instead of a small one. Fast to ship, easy to reason about, but expensive near the ceiling — and still one machine that can fail.</p>
           </article>
           <article class="lesson">
             <span class="lesson-number">HORIZONTAL</span>
             <h3>Open more counters</h3>
-            <p>Add servers behind a load balancer. More coordination, but better headroom and survivability. This is your default interview posture.</p>
+            <p>Add servers behind a load balancer — more turnstiles for the same crowd. More coordination, but better headroom and survivability. This is your default interview posture.</p>
           </article>
           <article class="lesson wide">
             <span class="lesson-number">THE REAL DIVIDING LINE</span>
             <h3>Stateless servers are easy to copy.</h3>
-            <p>Keep sessions in Redis, files in object storage, and durable counters in a shared store. If important state lives on an app box, requests need sticky routing and failures lose state. Sticky sessions are a stopgap, not a destination.</p>
+            <p>Picture a turnstile operator who keeps the guest list in their head. They can't be swapped mid-shift, and if they walk away, the list walks away with them. Stateless servers are the opposite: keep sessions in a shared store like Redis, files in object storage, and durable counters in a shared database — so any server can handle any request, and losing one server loses nothing. <strong>Sticky routing</strong> (pinning each user to one server) is a stopgap for when you haven't done this yet, not a destination.</p>
           </article>
         </div>
       </section>
 
       <section id="lab">
         <div class="section-head">
-          <div><p class="eyebrow">02 / TRY IT · PRESSURE LAB</p><h2>Push traffic. Pull a lever.</h2></div>
+          <div><p class="eyebrow">03 / TRY IT · PRESSURE LAB</p><h2>Push traffic. Pull a lever.</h2></div>
           <p>Move the traffic slider, then try each architecture. Watch p99 and identify which component becomes the next bottleneck.</p>
         </div>
         <div class="lab">
@@ -397,7 +427,7 @@
 
       <section id="toolkit">
         <div class="section-head">
-          <div><p class="eyebrow">03 / EXPLORE · TOOLKIT</p><h2>Know the lever—and its bill</h2></div>
+          <div><p class="eyebrow">04 / EXPLORE · TOOLKIT</p><h2>Know the lever—and its bill</h2></div>
           <p>Open each technique and trace its diagram. Say the cost or trade-off out loud before moving on.</p>
         </div>
         <div class="toolkit">
@@ -408,7 +438,7 @@
 
       <section id="numbers">
         <div class="section-head">
-          <div><p class="eyebrow">04 / ESTIMATE · BACK-OF-THE-ENVELOPE</p><h2>Quantify before you draw</h2></div>
+          <div><p class="eyebrow">05 / ESTIMATE · BACK-OF-THE-ENVELOPE</p><h2>Quantify before you draw</h2></div>
           <p>Change the inputs to estimate peak RPS. Practice saying every assumption before you sketch the architecture.</p>
         </div>
         <div class="calc-grid">
@@ -425,7 +455,7 @@
           <aside class="formula-sheet">
             <h3>Say the assumptions</h3>
             <div class="formula"><code>avg rps = DAU × requests ÷ 86,400</code><p>Daily averages hide spikes, so never stop here.</p></div>
-            <div class="formula"><code>peak rps = avg × peak factor</code><p>Use 3–5× if the product has a strong daily usage curve.</p></div>
+            <div class="formula"><code>peak rps = avg × peak factor</code><p>Use 3–5× for products with a daily spike — a derby-day crowd is not an average-day crowd.</p></div>
             <div class="formula"><code>design rps = peak × headroom</code><p>Capacity without margin becomes an incident during retries or deploys.</p></div>
           </aside>
         </div>
@@ -433,7 +463,7 @@
 
       <section id="interview">
         <div class="section-head">
-          <div><p class="eyebrow">05 / QUIZ YOURSELF · INTERVIEW LAB</p><h2>Answer the question behind the question</h2></div>
+          <div><p class="eyebrow">06 / QUIZ YOURSELF · INTERVIEW LAB</p><h2>Answer the question behind the question</h2></div>
           <p>Answer each question aloud in 60 seconds, then open the model answer and compare your reasoning.</p>
         </div>
         <div class="interview-wrap">
@@ -456,7 +486,7 @@
 
       <section class="takeaways" id="takeaways" aria-labelledby="takeaways-title">
         <div class="section-head">
-          <div><p class="eyebrow">06 / FINISH HERE · REVIEW</p><h2 id="takeaways-title">Key takeaways</h2></div>
+          <div><p class="eyebrow">07 / FINISH HERE · REVIEW</p><h2 id="takeaways-title">Key takeaways</h2></div>
           <p>Review these five principles last. If one feels unclear, return to the matching section above.</p>
         </div>
         <div class="recap" aria-label="Five key scalability ideas">
@@ -486,12 +516,12 @@
       var traffic = document.getElementById('traffic');
       var mode = 'base';
       var configs = {
-        base: { cap: 8000, cost: 'Low', note: 'One app server is simple, but CPU saturates first. Once requests exceed capacity, queues form and p99 rises sharply.', nodes: ['Client', 'App', 'DB'] },
-        vertical: { cap: 22000, cost: '$$', note: 'A larger box buys immediate headroom with almost no code change. The ceiling still exists, and one failure still takes the service down.', nodes: ['Client', 'Big app', 'DB'] },
-        horizontal: { cap: 46000, cost: '$$', note: 'A load balancer spreads requests across stateless app servers and removes the app tier as a single point of failure. The database is now the likely wall.', nodes: ['Client', 'LB', 'Servers', 'DB'] },
-        cache: { cap: 76000, cost: '$$', note: 'Cache-aside removes repeated reads from the database. Great leverage—but choose a TTL or invalidation path, and protect against a thundering herd.', nodes: ['Client', 'LB', 'Cache', 'DB'] },
-        replica: { cap: 90000, cost: '$$$', note: 'Read replicas fan out read traffic. Replication lag means the newest write may not appear immediately, so plan for read-your-own-write.', nodes: ['Client', 'LB', 'Primary', 'Replicas'] },
-        queue: { cap: 100000, cost: '$$', note: 'A queue moves email, thumbnails, analytics, and indexing off the request path. During a spike, queue depth grows while the API stays responsive.', nodes: ['Client', 'API', 'Queue', 'Workers'] }
+        base: { cap: 8000, cost: 'Low', note: 'One app server is like a stadium with a single gate: simple, but once the crowd exceeds capacity, queues form and p99 rises sharply.', nodes: ['Client', 'App', 'DB'] },
+        vertical: { cap: 22000, cost: '$$', note: 'A bigger box buys immediate headroom with almost no code change — a bigger stadium with the same single gate. The ceiling still exists, and one failure still takes the service down.', nodes: ['Client', 'Big app', 'DB'] },
+        horizontal: { cap: 46000, cost: '$$', note: 'A load balancer spreads requests across stateless app servers — more turnstiles for the same crowd — and removes the app tier as a single point of failure. The database is now the likely wall.', nodes: ['Client', 'LB', 'Servers', 'DB'] },
+        cache: { cap: 76000, cost: '$$', note: 'Caching removes repeated reads from the database — the turnstile keeps a printed copy of the guest list instead of radioing the office for every fan. Great leverage — but choose a TTL or invalidation path, and protect against a stampede when the gates open.', nodes: ['Client', 'LB', 'Cache', 'DB'] },
+        replica: { cap: 90000, cost: '$$$', note: 'Read replicas fan out read traffic — extra ticket booths working from copies of the master guest list. Replication lag means the newest write may not appear immediately, so plan for read-your-own-write.', nodes: ['Client', 'LB', 'Primary', 'Replicas'] },
+        queue: { cap: 100000, cost: '$$', note: 'A queue moves email, thumbnails, analytics, and indexing off the request path. During a derby-day spike, queue depth grows while the API stays responsive.', nodes: ['Client', 'API', 'Queue', 'Workers'] }
       };
 
       function compact(n) { return n >= 1000 ? Math.round(n / 1000) + 'K' : String(n); }
@@ -532,12 +562,12 @@
       updateSim();
 
       var tools = [
-        { id: 'load', name: 'Load balancing', sub: 'distribute + fail over', title: 'Load balancing', lead: 'A load balancer makes horizontal scale real: it routes traffic across healthy servers and stops routing to dead ones.', patterns: [['Round robin', 'Simple rotation; assumes requests cost about the same.'], ['Least connections', 'Better when requests have uneven duration.'], ['L4', 'Fast TCP/UDP routing without HTTP awareness.'], ['L7', 'Routes by path, header, host, or cookie.']], cost: 'Horizontal scale buys headroom and fault tolerance, at the cost of service discovery, coordination, and harder debugging.' },
-        { id: 'cache', name: 'Caching', sub: 'highest-leverage read fix', title: 'Caching', lead: 'Stop asking the database the same question. Cache frequently read data close to the caller, then be explicit about staleness.', patterns: [['Cache-aside', 'App checks cache; on miss, it reads DB and populates.'], ['Write-through', 'Write cache and backing store together.'], ['Write-behind', 'Fast writes, but durability moves off the request path.'], ['CDN', 'Put static media and assets near users at the edge.']], cost: 'Every cache is a consistency decision. Name TTL versus explicit invalidation—and defend against stampedes with jitter, single-flight, or stale-while-revalidate.' },
-        { id: 'replication', name: 'Replication', sub: 'scale database reads', title: 'Read replication', lead: 'Keep one primary for writes and fan reads across replicas. This is usually the first database scaling move for read-heavy systems.', patterns: [['Primary', 'Accepts the authoritative writes.'], ['Replica', 'Copies primary data and serves reads.'], ['Routing', 'Send freshness-sensitive reads to primary.'], ['Failover', 'Promote a replica if the primary dies.']], cost: 'Replicas give cheap read scale, but replication lag introduces eventual consistency. Plan for the user who posts and immediately refreshes.' },
-        { id: 'sharding', name: 'Sharding', sub: 'scale writes—carefully', title: 'Sharding', lead: 'Split the dataset across independent databases when one primary can no longer hold the data or sustain the write volume.', patterns: [['Range key', 'Simple and queryable; vulnerable to hotspots.'], ['Hash key', 'Even distribution; range queries get harder.'], ['Directory', 'Flexible mapping; the directory is infrastructure too.'], ['Resharding', 'Move live data while preserving availability.']], cost: 'Sharding buys write scale but breaks easy joins, cross-shard transactions, and painless rebalancing. Exhaust replicas and caching first.' },
-        { id: 'async', name: 'Queues', sub: 'absorb spikes + async work', title: 'Queues & backpressure', lead: 'Move work that does not need to finish before the response—email, thumbnails, search indexing, analytics—to workers behind a queue.', patterns: [['Producer', 'Publishes a durable job or event.'], ['Queue', 'Buffers work during bursts.'], ['Consumer', 'Processes at a sustainable rate.'], ['Dead letter', 'Holds poison jobs for inspection.']], cost: 'Queues lower request latency and absorb spikes, but add eventual completion, retries, deduplication, and operational lag to reason about.' },
-        { id: 'state', name: 'Statelessness', sub: 'make servers replaceable', title: 'Stateless app servers', lead: 'Any request should be able to land on any server. Move durable state to shared systems and make app boxes disposable.', patterns: [['Sessions', 'Shared Redis or signed tokens—not local memory.'], ['Files', 'Object storage—not a server filesystem.'], ['Counters', 'Shared atomic store—not process memory.'], ['Deploys', 'Drain and replace servers without data loss.']], cost: 'Shared stores make horizontal scale possible, but they become dependencies. Protect them with timeouts, pooling, redundancy, and clear failure behavior.' }
+        { id: 'load', name: 'Load balancing', sub: 'distribute + fail over', title: 'Load balancing', lead: 'A load balancer makes horizontal scale real: it routes traffic across healthy servers and stops routing to dead ones — the head steward waving each fan to the shortest open turnstile.', patterns: [['Round robin', 'Simple rotation; assumes requests cost about the same.'], ['Least connections', 'Better when requests have uneven duration.'], ['L4', 'Fast TCP/UDP routing without HTTP awareness.'], ['L7', 'Routes by path, header, host, or cookie.']], cost: 'Horizontal scale buys headroom and fault tolerance, at the cost of service discovery, coordination, and harder debugging.' },
+        { id: 'cache', name: 'Caching', sub: 'highest-leverage read fix', title: 'Caching', lead: 'Stop asking the database the same question. Cache frequently read data close to the caller — keep a printed guest list at the turnstile instead of radioing the office for every fan — then be explicit about staleness.', patterns: [['Cache-aside', 'App checks cache; on miss, it reads DB and populates.'], ['Write-through', 'Write cache and backing store together.'], ['Write-behind', 'Fast writes, but durability moves off the request path.'], ['CDN', 'Put static media and assets near users at the edge.']], cost: 'Every cache is a consistency decision. Name TTL versus explicit invalidation — and defend against stampedes with jitter (randomized expiry times), single-flight (one request fetches while the rest wait), or stale-while-revalidate (serve the old copy while one request refreshes).' },
+        { id: 'replication', name: 'Replication', sub: 'scale database reads', title: 'Read replication', lead: 'Keep one primary for writes and fan reads across replicas — extra ticket booths working from copies of the master guest list. This is usually the first database scaling move for read-heavy systems.', patterns: [['Primary', 'Accepts the authoritative writes.'], ['Replica', 'Copies primary data and serves reads.'], ['Routing', 'Send freshness-sensitive reads to primary.'], ['Failover', 'Promote a replica if the primary dies.']], cost: 'Replicas give cheap read scale, but replication lag introduces eventual consistency. Plan for the user who posts and immediately refreshes.' },
+        { id: 'sharding', name: 'Sharding', sub: 'scale writes—carefully', title: 'Sharding', lead: 'Split the dataset across independent databases when one primary can no longer hold the data or sustain the write volume — one stadium can only hold so many fans.', patterns: [['Range key', 'Simple and queryable; vulnerable to hotspots.'], ['Hash key', 'Even distribution; range queries get harder.'], ['Directory', 'Flexible mapping; the directory is infrastructure too.'], ['Resharding', 'Move live data while preserving availability.']], cost: 'Sharding buys write scale but breaks easy joins, cross-shard transactions, and painless rebalancing. Exhaust replicas and caching first.' },
+        { id: 'async', name: 'Queues', sub: 'absorb spikes + async work', title: 'Queues & backpressure', lead: 'Move work that does not need to finish before the response — email, thumbnails, search indexing, analytics — to workers behind a queue, so the API stays responsive when the derby-day crowd arrives.', patterns: [['Producer', 'Publishes a durable job or event.'], ['Queue', 'Buffers work during bursts.'], ['Consumer', 'Processes at a sustainable rate.'], ['Dead letter', 'Holds poison jobs for inspection.']], cost: 'Queues lower request latency and absorb spikes, but add eventual completion, retries, deduplication, and operational lag to reason about.' },
+        { id: 'state', name: 'Statelessness', sub: 'make servers replaceable', title: 'Stateless app servers', lead: 'Any request should be able to land on any server — any turnstile operator can scan any ticket, because the guest list lives in a shared system instead of anyone’s head. Make app boxes disposable.', patterns: [['Sessions', 'Shared Redis or signed tokens—not local memory.'], ['Files', 'Object storage—not a server filesystem.'], ['Counters', 'Shared atomic store—not process memory.'], ['Deploys', 'Drain and replace servers without data loss.']], cost: 'Shared stores make horizontal scale possible, but they become dependencies. Protect them with timeouts, pooling, redundancy, and clear failure behavior.' }
       ];
       var toolFlows = {
         load: ['Client', 'Load balancer', 'Healthy server'],
@@ -585,14 +615,14 @@
       updateEstimate();
 
       var questions = [
-        ['Your API’s p99 spikes every day at 9am. How do you diagnose it?', 'Correlate request rate and latency first. Then walk the path: app CPU/GC, connection-pool saturation, database slow queries, cache hit rate, and downstream latency. A daily shape also suggests autoscaling lag or a cold cache after deploys.', 'They are testing whether you measure before prescribing—and whether you look at p99 instead of averages.'],
-        ['When would you choose vertical scaling over horizontal?', 'Use it for urgent relief, tiny systems where distributed complexity is unjustified, or stateful workloads such as a primary database before sharding is warranted. Then frame it as a bridge with a plan to go horizontal.', 'They want judgment, not a slogan that horizontal is always better.'],
-        ['Design a URL shortener for 100 million URLs.', 'Generate a collision-safe base62 code; store code → URL; make redirects read-optimized with replicas and a heavy cache. Shard by short-code hash when necessary. Send click analytics to an asynchronous pipeline so writes do not slow redirects.', 'They are testing key generation, read-heavy data access, and whether analytics stays off the hot path.'],
-        ['Users cannot see their own post immediately after posting. Why?', 'The write reached the primary, but the next read hit a replica that is behind. Route read-your-own-write traffic to the primary, use an optimistic UI, or pay the latency cost of synchronous replication for that path.', 'They want you to connect eventual consistency to a concrete UX failure.'],
-        ['A viral post expires from cache and the database falls over.', 'That is a thundering herd: thousands of simultaneous misses hit the database. Use request coalescing, jittered TTLs, probabilistic early refresh, or stale-while-revalidate.', 'Naming the failure mode is good; choosing a mitigation and its freshness cost is better.'],
-        ['How would you shard a messaging app?', 'Shard messages by conversation ID to preserve locality inside a thread. A user inbox then spans shards, so denormalize an inbox index per user. Huge group conversations can create hot shards and may need isolation.', 'The shard-key reasoning and the failure modes matter more than the specific key.'],
-        ['Scaling versus performance: what is the difference?', 'Performance is the speed of one request; scalability is how behavior changes under growing load. A distributed cache may improve throughput while making a cache miss slightly slower because it adds a lookup before the database.', 'They are checking whether you separate single-request latency from system capacity.'],
-        ['Design distributed rate limiting.', 'Put a token-bucket or sliding-window limiter at the API gateway and keep shared atomic counters in Redis. Define the key, refill rate, burst size, and failure policy. Fail open for availability-sensitive endpoints; fail closed for abuse or billing-sensitive paths.', 'They want stateless-server thinking plus an explicit fail-open versus fail-closed decision.']
+        ['Your API’s p99 spikes every day at 9am. How do you diagnose it?', 'I’d start by correlating request rate with latency, to confirm it’s load-driven and not a bad deploy. Then I’d walk the request path: app CPU and garbage collection, connection-pool saturation, database slow queries, cache hit rate, and downstream service latency. A daily 9am shape also points at autoscaling lag — new capacity arriving after the spike — or a cold cache after a deploy. I’d pin down the measurement first, then relieve one bottleneck at a time.', 'They are testing whether you measure before prescribing—and whether you look at p99 instead of averages.'],
+        ['When would you choose vertical scaling over horizontal?', 'I’d use vertical scaling for urgent relief, because it ships in minutes with no code change. I’d also use it for tiny systems where distributed complexity isn’t justified, or for stateful workloads like a primary database before sharding is warranted. But I’d frame it as a bridge, not a destination, with a plan to go horizontal once the ceiling approaches.', 'They want judgment, not a slogan that horizontal is always better.'],
+        ['Design a URL shortener for 100 million URLs.', 'First, key generation: I’d generate a collision-safe base62 code — random, not sequential, so codes can’t be enumerated — and store code → URL. Redirects are the hot path, so I’d make them read-optimized: replicas plus a heavy cache, and shard by short-code hash once one database can’t hold the data. Click analytics would go to an asynchronous pipeline, so counting clicks never slows down a redirect.', 'They are testing key generation, read-heavy data access, and whether analytics stays off the hot path.'],
+        ['Users cannot see their own post immediately after posting. Why?', 'The write reached the primary, but the user’s next read hit a replica that hadn’t caught up yet — that’s replication lag. I’d fix it by routing read-your-own-write traffic to the primary, or showing an optimistic UI update, or paying the latency cost of synchronous replication for that specific path. The point is to name the trade-off: freshness versus speed.', 'They want you to connect eventual consistency to a concrete UX failure.'],
+        ['A viral post expires from cache and the database falls over.', 'That’s a thundering herd: one hot key expired, and thousands of requests missed the cache at the same moment and hit the database together — like every fan rushing one gate when it opens. I’d defend with request coalescing, where one request fetches while the rest wait, plus jittered TTLs so keys don’t expire in lockstep, probabilistic early refresh, or stale-while-revalidate. Each mitigation buys safety at the price of some staleness, and I’d say which price I’m paying.', 'Naming the failure mode is good; choosing a mitigation and its freshness cost is better.'],
+        ['How would you shard a messaging app?', 'I’d shard messages by conversation ID, so everything in one thread lives on one shard — that keeps reads local. But a user’s inbox spans many conversations, so I’d denormalize: keep a per-user inbox index that points at the right shards. And I’d watch out for hot shards — a massive group conversation can overload one shard and may need to be isolated.', 'The shard-key reasoning and the failure modes matter more than the specific key.'],
+        ['Scaling versus performance: what is the difference?', 'Performance is how fast one request is. Scalability is how the system behaves as load grows. They can move in opposite directions: adding a distributed cache can improve throughput while making a cache miss slightly slower, because now there’s a lookup before the database. In an interview I’d always separate the two before proposing anything.', 'They are checking whether you separate single-request latency from system capacity.'],
+        ['Design distributed rate limiting.', 'I’d put a token-bucket or sliding-window limiter at the API gateway, with shared atomic counters in Redis so every gateway instance sees the same count. I’d define the key — per user, per IP, per API key — plus the refill rate and burst size. And I’d pick a failure policy deliberately: fail open for availability-sensitive endpoints, fail closed for abuse or billing-sensitive paths.', 'They want stateless-server thinking plus an explicit fail-open versus fail-closed decision.']
       ];
       var qList = document.getElementById('questionList');
       var answerToggle = document.getElementById('toggleAnswers');
