@@ -5,347 +5,293 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
   <link rel="icon" href="data:," />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <title>Scalability Basics</title>
   <style>
     :root {
       color-scheme: light dark;
-      --bg: #edf1ed;
+      --bg: #f6f8f9;
       --paper: #ffffff;
-      --paper-2: #f5f7f4;
-      --ink: #132322;
-      --muted: #4c5f5c;
-      --line: #cbd5d1;
-      --grid: #dde5e1;
-      --line-strong: #94a7a2;
-      --teal: #087f73;
-      --teal-soft: #d7f1ec;
-      --orange: #ef6c35;
-      --orange-soft: #ffdfcf;
-      --yellow: #f5c84c;
-      --red: #c84231;
-      --shadow: 0 12px 32px rgba(28, 49, 46, .10);
-      --radius-lg: 22px;
-      --radius-md: 14px;
+      --ink: #172126;
+      --muted: #52636b;
+      --faint: #74858c;
+      --line: #d7e0e3;
+      --line-strong: #b7c5ca;
+      --blue: #0b6ca8;
+      --blue-soft: #e5f2f9;
+      --teal: #087c70;
+      --teal-soft: #e2f3ef;
+      --orange: #a54c13;
+      --orange-soft: #fff0e3;
+      --red: #a22b36;
+      --red-soft: #fcebed;
+      --code: #edf2f4;
+      --shadow: 0 15px 42px rgba(25,45,55,.08);
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #0d1716;
-        --paper: #142321;
-        --paper-2: #1b2c29;
-        --ink: #f0f7f5;
-        --muted: #adbfba;
-        --line: #344945;
-        --grid: #1d2d2a;
-        --line-strong: #5e7570;
-        --teal: #4ed6c4;
-        --teal-soft: #173e38;
-        --orange: #ff8b56;
-        --orange-soft: #512c21;
-        --yellow: #ffd866;
-        --red: #ff7c69;
-        --shadow: 0 18px 44px rgba(0, 0, 0, .28);
+        --bg: #0d1417;
+        --paper: #151f23;
+        --ink: #edf3f4;
+        --muted: #adbbc0;
+        --faint: #8fa0a7;
+        --line: #2c3d43;
+        --line-strong: #465b63;
+        --blue: #68baf0;
+        --blue-soft: #173549;
+        --teal: #65d5c7;
+        --teal-soft: #163934;
+        --orange: #ffae73;
+        --orange-soft: #42291b;
+        --red: #ff929b;
+        --red-soft: #422127;
+        --code: #1c2a2f;
+        --shadow: 0 18px 42px rgba(0,0,0,.24);
       }
     }
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      background:
-        linear-gradient(var(--grid) 1px, transparent 1px),
-        linear-gradient(90deg, var(--grid) 1px, transparent 1px),
-        var(--bg);
-      background-size: 40px 40px;
-      color: var(--ink);
-      font-family: "Archivo", sans-serif;
-      font-size: 16px;
-      line-height: 1.65;
-      min-height: 100vh;
-    }
-    button, input { font: inherit; }
-    button { color: inherit; }
-    a { color: inherit; }
-    .shell { width: min(1080px, calc(100% - 32px)); margin: 0 auto; padding: 18px 0 72px; }
-    .topbar {
-      position: sticky;
-      top: 10px;
-      z-index: 20;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 24px;
-      padding: 10px 12px;
-      background: color-mix(in srgb, var(--paper) 92%, transparent);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
-      border-radius: 18px;
-    }
-    .progress-copy { font: 600 12px/1 "IBM Plex Mono", monospace; white-space: nowrap; color: var(--muted); }
-    .progress-track { height: 8px; flex: 1; overflow: hidden; background: var(--paper-2); border: 1px solid var(--line); border-radius: 100px; }
-    .progress-bar { height: 100%; width: 0; background: var(--orange); transition: width .25s ease; }
-    .section-nav { display: flex; gap: 6px; }
-    .section-nav a { text-decoration: none; font-size: 13px; font-weight: 700; padding: 7px 10px; border-radius: 10px; }
-    .section-nav a:hover, .section-nav a:focus-visible { background: var(--teal-soft); outline: none; }
+    html { scroll-behavior: smooth; scroll-padding-top: 20px; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.7; font-size: 16px; }
+    button, input { font: inherit; color: inherit; }
+    button { touch-action: manipulation; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    code { background: var(--code); border-radius: 4px; padding: .12em .35em; font-size: .88em; }
+    a { color: var(--blue); }
+    .page { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 38px 0 90px; }
+    .masthead { border-top: 5px solid var(--ink); border-bottom: 1px solid var(--line-strong); padding: 34px 0 38px; }
+    .dayline { color: var(--blue); font: 700 .77rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .04em; }
+    h1 { margin: 18px 0 16px; font-size: clamp(2.65rem, 7vw, 5.4rem); letter-spacing: -.065em; line-height: .94; font-weight: 800; }
+    .subtitle { max-width: 680px; margin: 0; color: var(--muted); font-size: clamp(1.05rem, 2vw, 1.34rem); line-height: 1.55; }
+    .numbers { display: grid; grid-template-columns: repeat(3, 1fr); max-width: 42rem; border: 1px solid var(--line); background: var(--line); gap: 1px; margin: 22px 0 0; }
+    .number { background: var(--paper); padding: 15px; }
+    .number span { display: block; color: var(--faint); font: 700 .67rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .number b { display: block; margin-top: 3px; font: 700 1.6rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--blue); }
+    .trade { color: var(--muted); }
+    .trade b { color: var(--ink); }
 
-    .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
-      gap: 22px;
-      align-items: stretch;
-      margin-bottom: 24px;
-    }
-    .hero-copy, .hero-board { border: 1px solid var(--line-strong); box-shadow: var(--shadow); }
-    .hero-copy { background: var(--paper); padding: clamp(28px, 5vw, 58px); border-radius: var(--radius-lg) 8px var(--radius-lg) 8px; }
-    .kicker { display: inline-flex; align-items: center; gap: 8px; color: var(--teal); font: 600 12px/1.2 "IBM Plex Mono", monospace; }
-    .pulse { width: 9px; height: 9px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 5px var(--teal-soft); }
-    h1 { max-width: 700px; margin: 22px 0 18px; font-size: clamp(40px, 6vw, 64px); line-height: 1; letter-spacing: -.045em; }
-    .hero-copy > p { max-width: 640px; margin: 0; font-size: clamp(17px, 2vw, 20px); line-height: 1.55; color: var(--muted); }
-    .hero-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
-    .tag { padding: 8px 11px; border: 1px solid var(--line); background: var(--paper-2); border-radius: 8px; font: 500 12px/1.1 "IBM Plex Mono", monospace; }
-    .hero-board { display: flex; flex-direction: column; justify-content: space-between; background: var(--ink); color: var(--paper); padding: 28px; border-radius: 8px var(--radius-lg) 8px var(--radius-lg); overflow: hidden; position: relative; }
-    @media (prefers-color-scheme: dark) { .hero-board { background: #dfeae7; color: #132322; } }
-    .hero-board::after { content: ""; position: absolute; right: -45px; bottom: -45px; width: 160px; height: 160px; border: 26px solid var(--orange); border-radius: 50%; opacity: .9; }
-    .terminal-line { position: relative; z-index: 1; font: 500 13px/1.7 "IBM Plex Mono", monospace; }
-    .terminal-line span { color: var(--orange); }
-    .big-number { position: relative; z-index: 1; margin-top: 56px; }
-    .big-number strong { display: block; font-size: clamp(56px, 9vw, 96px); line-height: .8; letter-spacing: -.07em; }
-    .big-number small { display: block; margin-top: 16px; font: 500 12px/1.4 "IBM Plex Mono", monospace; max-width: 180px; }
+    .layout { display: grid; grid-template-columns: 205px minmax(0, 1fr); gap: 58px; align-items: start; margin-top: 34px; }
+    .toc { position: sticky; top: 20px; border-top: 3px solid var(--ink); padding-top: 10px; }
+    .toc .progress { height: 3px; background: var(--line); margin-bottom: 10px; }
+    .toc .progress span { display: block; width: 0; height: 100%; background: var(--blue); }
+    .toc strong { display: block; font: 700 .7rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin-bottom: 4px; }
+    .progress-copy { display: block; font: 500 .72rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--faint); margin-bottom: 8px; }
+    .toc a { display: block; padding: 5px 0; color: var(--muted); text-decoration: none; font-size: .79rem; line-height: 1.25; }
+    .toc a.active, .toc a:hover { color: var(--blue); font-weight: 700; }
+    .content { min-width: 0; }
+    section { border-bottom: 1px solid var(--line); padding: 32px 0 48px; }
+    section:last-child { border: 0; }
+    .mode { color: var(--blue); font: 750 .75rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .05em; }
+    h2 { margin: 7px 0 9px; font-size: clamp(1.65rem, 3.6vw, 2.5rem); line-height: 1.12; letter-spacing: -.035em; }
+    h3 { margin: 26px 0 7px; font-size: 1.16rem; letter-spacing: -.015em; line-height: 1.3; }
+    p { max-width: 42rem; margin: 0 0 16px; }
+    .instruction { color: var(--muted); font-size: .94rem; margin-bottom: 24px; }
+    .lead { color: var(--muted); font-size: 1.07rem; }
+    .callout { max-width: 42rem; border-left: 4px solid var(--blue); background: var(--blue-soft); padding: 14px 17px; margin: 20px 0; }
 
-    section { scroll-margin-top: 90px; margin-top: 68px; }
-    .section-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, .48fr); gap: 32px; align-items: end; margin: 0 4px 22px; }
-    .section-head h2 { margin: 0; font-size: clamp(30px, 4vw, 44px); line-height: 1.05; letter-spacing: -.035em; }
-    .section-head p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
-    .eyebrow { margin: 0 0 10px; color: var(--orange); font: 600 12px/1 "IBM Plex Mono", monospace; }
+    .strategy-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; margin: 20px 0; }
+    .strategy { background: var(--paper); border: 1px solid var(--line); padding: 18px; }
+    .strategy.wide { grid-column: span 2; }
+    .strategy.accent { background: var(--blue-soft); }
+    .strategy .lesson-number { display: block; font: 700 .72rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--blue); letter-spacing: .04em; margin-bottom: 8px; }
+    .strategy h3 { margin: 0 0 6px; font-size: 1.05rem; }
+    .strategy p { margin: 0 0 12px; font-size: .94rem; color: var(--muted); }
+    .strategy p:last-child { margin-bottom: 0; }
+    .strategy strong { color: var(--ink); }
 
-    .lesson-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
-    .lesson { grid-column: span 4; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 24px; min-height: 210px; }
-    .lesson.wide { grid-column: span 8; }
-    .lesson.accent { background: var(--teal-soft); border-color: color-mix(in srgb, var(--teal) 42%, var(--line)); }
-    .lesson-number { color: var(--orange); font: 600 12px/1 "IBM Plex Mono", monospace; }
-    .lesson h3 { margin: 18px 0 10px; font-size: 22px; line-height: 1.2; }
-    .lesson p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.65; }
-    .percentile-explainer { margin-top: 18px; padding: 16px; border: 1px solid color-mix(in srgb, var(--teal) 48%, var(--line)); background: color-mix(in srgb, var(--paper) 72%, transparent); border-radius: 10px; }
+    .percentile-explainer { margin-top: 18px; padding: 16px; border: 1px solid var(--line); background: var(--paper); }
     .percentile-explainer strong { display: block; font-size: 15px; }
-    .percentile-explainer p { margin-top: 6px; color: var(--ink); font-size: 14px; line-height: 1.55; }
-    .percentile-visual { display: grid; grid-template-columns: 99fr minmax(32px, 1fr); min-height: 32px; margin-top: 12px; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 7px; font: 600 11px/1 "IBM Plex Mono", monospace; }
-    .percentile-visual span { display: grid; place-items: center; }
-    .percentile-visual .within { background: var(--teal); color: #fff; }
+    .percentile-explainer p { margin: 6px 0 0; color: var(--muted); font-size: .9rem; }
+    .percentile-visual { display: grid; grid-template-columns: 99fr minmax(32px, 1fr); min-height: 32px; margin-top: 12px; overflow: hidden; border: 1px solid var(--line-strong); font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .percentile-visual span { display: grid; place-items: center; padding: 0 6px; }
+    .percentile-visual .within { background: var(--blue); color: #fff; }
     .percentile-visual .slower { background: var(--orange); color: #fff; }
-    .mini-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-    .mini-compare div { padding: 12px; border: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 70%, transparent); border-radius: 10px; }
-    .mini-compare strong { display: block; font-size: 14px; }
-    .mini-compare span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .mini-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .mini-compare div { padding: 12px; border: 1px solid var(--line); background: var(--paper); }
+    .mini-compare strong { display: block; font-size: .9rem; }
+    .mini-compare span { display: block; margin-top: 5px; color: var(--muted); font-size: .82rem; }
 
-    .lab { background: var(--paper); border: 1px solid var(--line-strong); border-radius: 26px 9px 26px 9px; overflow: hidden; box-shadow: var(--shadow); }
-    .lab-header { padding: 18px 22px; background: var(--ink); color: var(--paper); display: flex; justify-content: space-between; align-items: center; gap: 14px; }
-    @media (prefers-color-scheme: dark) { .lab-header { background: #dfeae7; color: #132322; } }
-    .lab-header h3 { margin: 0; font-size: 18px; }
-    .lab-header span { font: 500 11px/1 "IBM Plex Mono", monospace; }
+    .lab { background: var(--paper); border: 1px solid var(--line-strong); box-shadow: var(--shadow); margin: 22px 0; }
+    .lab-header { padding: 17px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+    .lab-header h3 { margin: 0; font-size: 1.05rem; }
+    .lab-header span { font: 600 .72rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); }
     .lab-body { display: grid; grid-template-columns: minmax(250px, .75fr) minmax(0, 1.25fr); }
-    .controls { padding: 24px; border-right: 1px solid var(--line); background: var(--paper-2); }
-    .control-label { display: flex; justify-content: space-between; gap: 12px; font: 600 12px/1.2 "IBM Plex Mono", monospace; }
-    .control-label output { color: var(--orange); }
-    input[type="range"] { width: 100%; accent-color: var(--orange); margin: 15px 0 24px; }
+    .controls { padding: 24px; border-right: 1px solid var(--line); background: var(--bg); }
+    .control-label { display: flex; justify-content: space-between; gap: 12px; font: 600 .72rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); }
+    .control-label output { color: var(--blue); font-weight: 700; }
+    input[type="range"] { width: 100%; accent-color: var(--blue); margin: 15px 0 24px; }
     .choice-list { display: grid; gap: 8px; }
-    .choice-btn { display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: center; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--paper); padding: 11px 12px; border-radius: 10px; cursor: pointer; }
-    .choice-btn:hover, .choice-btn:focus-visible { border-color: var(--teal); outline: none; }
-    .choice-btn.active { border-color: var(--teal); background: var(--teal-soft); box-shadow: inset 4px 0 var(--teal); }
-    .choice-icon { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 7px; font: 600 12px/1 "IBM Plex Mono", monospace; }
-    .choice-btn strong { display: block; font-size: 14px; }
-    .choice-btn small { color: var(--muted); }
+    .choice-btn { display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: center; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--paper); padding: 11px 12px; cursor: pointer; }
+    .choice-btn:hover { border-color: var(--blue); }
+    .choice-btn.active { border-color: var(--blue); background: var(--blue-soft); box-shadow: inset 4px 0 var(--blue); }
+    .choice-icon { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); font: 600 .72rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); }
+    .choice-btn strong { display: block; font-size: .9rem; }
+    .choice-btn small { color: var(--muted); font-size: .8rem; }
     .sim { min-width: 0; padding: 24px; }
-    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--line); padding-bottom: 18px; }
-    .metric { padding: 0 14px; border-right: 1px solid var(--line); }
-    .metric:first-child { padding-left: 0; }
-    .metric:last-child { border-right: 0; }
-    .metric span { display: block; color: var(--muted); font: 500 11px/1.2 "IBM Plex Mono", monospace; }
-    .metric strong { display: block; margin-top: 6px; font-size: clamp(22px, 3vw, 32px); letter-spacing: -.04em; }
-    .architecture { min-height: 230px; padding: 26px 0 16px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); background: var(--line); gap: 1px; margin-bottom: 18px; }
+    .metric { background: var(--paper); padding: 14px; }
+    .metric span { display: block; color: var(--faint); font: 700 .67rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .metric strong { display: block; margin-top: 4px; font: 700 1.5rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--blue); letter-spacing: -.02em; }
+    .architecture { min-height: 220px; padding: 26px 0 16px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
     .flow { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; }
-    .node { min-width: 86px; padding: 13px 9px; border: 2px solid var(--ink); border-radius: 11px; background: var(--paper); text-align: center; font: 600 11px/1.3 "IBM Plex Mono", monospace; position: relative; }
+    .node { min-width: 86px; padding: 13px 9px; border: 2px solid var(--line-strong); background: var(--paper); text-align: center; font: 600 .7rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .node.db { border-radius: 50% / 18%; }
     .node.hot { border-color: var(--red); color: var(--red); }
     .server-stack { display: grid; gap: 5px; }
     .server-stack .node { padding: 8px; }
-    .arrow { color: var(--line-strong); font-size: 25px; }
-    .sim-note { display: flex; gap: 12px; align-items: flex-start; background: var(--orange-soft); padding: 14px; border-radius: 10px; }
-    .sim-note b { color: var(--orange); font: 700 14px/1.2 "IBM Plex Mono", monospace; }
-    .sim-note p { margin: 0; font-size: 14px; }
+    .arrow { color: var(--faint); font-size: 25px; }
+    .sim-note { border-left: 4px solid var(--blue); background: var(--blue-soft); padding: 14px 17px; display: flex; gap: 12px; align-items: flex-start; }
+    .sim-note b { color: var(--blue); font: 700 .8rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .sim-note p { margin: 0; font-size: .9rem; color: var(--muted); }
 
-    .toolkit { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 14px; }
+    .toolkit { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 14px; margin: 20px 0; }
     .tool-tabs { display: grid; align-content: start; gap: 7px; }
-    .tool-tab { border: 1px solid var(--line); background: var(--paper); padding: 15px; border-radius: 10px; text-align: left; cursor: pointer; font-weight: 700; }
-    .tool-tab small { display: block; margin-top: 3px; color: var(--muted); font: 400 11px/1.3 "IBM Plex Mono", monospace; }
-    .tool-tab:hover, .tool-tab:focus-visible { outline: none; border-color: var(--orange); }
-    .tool-tab.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-    @media (prefers-color-scheme: dark) { .tool-tab.active { background: #dfeae7; color: #132322; } }
-    .tool-panel { background: var(--paper); border: 1px solid var(--line); border-radius: 10px 24px 10px 24px; padding: clamp(24px, 4vw, 42px); min-height: 420px; }
-    .tool-panel h3 { margin: 0; font-size: clamp(28px, 4vw, 42px); line-height: 1; letter-spacing: -.04em; }
-    .tool-panel .lead { color: var(--muted); font-size: 17px; line-height: 1.65; max-width: 720px; }
-    .technique-flow { display: flex; align-items: center; gap: 8px; margin: 24px 0 4px; padding: 16px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; }
-    .flow-step { flex: 1; min-width: 0; padding: 10px 8px; background: var(--paper); border: 1px solid var(--line-strong); border-radius: 8px; text-align: center; font: 600 12px/1.35 "IBM Plex Mono", monospace; }
-    .flow-arrow { color: var(--orange); font: 700 18px/1 "IBM Plex Mono", monospace; }
-    .pattern-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 24px; }
-    .pattern { border-top: 2px solid var(--line); padding: 13px 2px; }
-    .pattern strong { display: block; font-size: 14px; }
-    .pattern span { color: var(--muted); font-size: 13px; }
-    .cost-callout { margin-top: 24px; padding: 17px 18px; background: var(--teal-soft); border-radius: 4px 14px 14px 4px; }
-    .cost-callout strong { font: 600 12px/1.2 "IBM Plex Mono", monospace; color: var(--teal); }
-    .cost-callout p { margin: 7px 0 0; }
+    .tool-tab { border: 1px solid var(--line); background: var(--paper); padding: 15px; text-align: left; cursor: pointer; font-weight: 700; font-size: .92rem; }
+    .tool-tab small { display: block; margin-top: 3px; color: var(--muted); font: 400 .72rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .tool-tab:hover { border-color: var(--blue); }
+    .tool-tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .tool-tab.active small { color: rgba(255, 255, 255, .82); }
+    .tool-panel { background: var(--paper); border: 1px solid var(--line-strong); box-shadow: var(--shadow); padding: clamp(20px, 3vw, 32px); min-height: 420px; min-width: 0; }
+    .eyebrow { color: var(--blue); font: 700 .72rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .04em; margin: 0 0 6px; }
+    .tool-panel h3 { margin: 0 0 6px; font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -.03em; }
+    .technique-flow { display: flex; align-items: center; gap: 8px; margin: 20px 0 4px; padding: 16px; background: var(--code); border: 1px solid var(--line); }
+    .flow-step { flex: 1; min-width: 0; padding: 10px 8px; background: var(--paper); border: 1px solid var(--line-strong); text-align: center; font: 600 .72rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .flow-arrow { color: var(--blue); font: 700 18px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .pattern-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 13px; margin-top: 20px; }
+    .pattern { background: var(--paper); border: 1px solid var(--line); padding: 14px; }
+    .pattern strong { display: block; font-size: .9rem; margin-bottom: 4px; }
+    .pattern span { color: var(--muted); font-size: .85rem; }
+    .cost-callout { margin-top: 20px; border-left: 4px solid var(--blue); background: var(--blue-soft); padding: 14px 17px; }
+    .cost-callout strong { font: 700 .72rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--blue); }
+    .cost-callout p { margin: 7px 0 0; font-size: .92rem; color: var(--muted); }
 
-    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .calculator, .formula-sheet { background: var(--paper); border: 1px solid var(--line); padding: 24px; border-radius: 18px 6px 18px 6px; }
-    .calculator h3, .formula-sheet h3 { margin: 0 0 18px; font-size: 22px; }
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 20px 0; }
+    .calculator, .formula-sheet { background: var(--paper); border: 1px solid var(--line-strong); box-shadow: var(--shadow); padding: 24px; }
+    .calculator h3, .formula-sheet h3 { margin: 0 0 18px; font-size: 1.25rem; letter-spacing: -.02em; }
     .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
-    .field label { display: block; margin-bottom: 6px; color: var(--muted); font: 500 11px/1.2 "IBM Plex Mono", monospace; }
-    .field input { width: 100%; padding: 11px; color: var(--ink); background: var(--paper-2); border: 1px solid var(--line); border-radius: 8px; }
-    .field input:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
-    .estimate { margin-top: 18px; padding: 18px; background: var(--ink); color: var(--paper); border-radius: 12px; }
-    @media (prefers-color-scheme: dark) { .estimate { background: #dfeae7; color: #132322; } }
-    .estimate strong { display: block; font-size: 34px; line-height: 1; letter-spacing: -.04em; }
-    .estimate span { display: block; margin-top: 7px; font: 400 11px/1.4 "IBM Plex Mono", monospace; }
-    .formula { padding: 13px 0; border-bottom: 1px solid var(--line); }
-    .formula:last-child { border-bottom: 0; }
-    .formula code { color: var(--orange); font: 600 13px/1.5 "IBM Plex Mono", monospace; }
-    .formula p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .field label { display: block; margin-bottom: 6px; color: var(--faint); font: 700 .68rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .field input { width: 100%; padding: 11px; color: var(--ink); background: var(--bg); border: 1px solid var(--line-strong); }
+    .field input:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+    .estimate { margin-top: 18px; padding: 18px; background: var(--blue-soft); border-left: 4px solid var(--blue); }
+    .estimate strong { display: block; font: 700 2rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--blue); letter-spacing: -.02em; }
+    .estimate span { display: block; margin-top: 7px; font: 400 .72rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); }
+    .formula-sheet .formula { padding: 13px 0; border-bottom: 1px solid var(--line); }
+    .formula-sheet .formula:last-child { border-bottom: 0; }
+    .formula-sheet .formula code { color: var(--blue); font: 600 .82rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .formula-sheet .formula p { margin: 5px 0 0; color: var(--muted); font-size: .85rem; }
 
-    .interview-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 14px; align-items: start; }
+    .interview-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 24px; align-items: start; margin: 20px 0; }
     .question-column { min-width: 0; }
     .answer-controls { display: flex; justify-content: flex-end; margin-bottom: 10px; }
-    .answer-toggle { border: 1px solid var(--line-strong); background: var(--paper); padding: 9px 12px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px; }
-    .answer-toggle:hover, .answer-toggle:focus-visible { border-color: var(--teal); outline: 2px solid var(--teal-soft); outline-offset: 2px; }
-    .question-list { display: grid; gap: 10px; }
-    .question { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-    .question button { width: 100%; border: 0; background: transparent; padding: 18px; display: grid; grid-template-columns: 36px 1fr auto; gap: 11px; align-items: center; text-align: left; cursor: pointer; }
-    .question button:hover, .question button:focus-visible { background: var(--paper-2); outline: none; }
-    .q-num { color: var(--orange); font: 600 12px/1 "IBM Plex Mono", monospace; }
-    .question button strong { font-size: 16px; }
-    .chev { transition: transform .2s ease; }
-    .question.open .chev { transform: rotate(45deg); }
-    .answer { display: none; padding: 2px 22px 22px 65px; }
+    .answer-toggle { border: 1px solid var(--ink); background: transparent; padding: 9px 14px; cursor: pointer; font-size: .82rem; font-weight: 750; min-height: 42px; }
+    .answer-toggle:hover { background: var(--ink); color: var(--bg); }
+    .question-list { display: grid; }
+    .question { border-top: 1px solid var(--line-strong); }
+    .question:last-child { border-bottom: 1px solid var(--line-strong); }
+    .question > button { width: 100%; border: 0; background: transparent; padding: 18px 38px 18px 0; display: grid; grid-template-columns: 36px 1fr auto; gap: 11px; align-items: center; text-align: left; cursor: pointer; position: relative; }
+    .q-num { color: var(--blue); font: 700 .72rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .question button strong { font-size: 1rem; line-height: 1.45; }
+    .chev { position: relative; width: 22px; color: transparent; user-select: none; }
+    .chev::after { content: "+"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--blue); font: 400 1.4rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .question.open .chev::after { content: "2"; }
+    .answer { display: none; color: var(--muted); padding: 0 0 24px; }
     .question.open .answer { display: block; }
-    .answer-label { display: block; margin-bottom: 8px; color: var(--teal); font: 700 11px/1.2 "IBM Plex Mono", monospace; }
-    .answer p { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.7; }
-    .answer .listen { margin-top: 14px; padding: 12px 14px; background: var(--teal-soft); border-radius: 8px; font-size: 13px; line-height: 1.55; color: var(--ink); }
-    .score-card { position: sticky; top: 88px; background: var(--ink); color: var(--paper); border-radius: 8px 22px 8px 22px; padding: 22px; }
-    @media (prefers-color-scheme: dark) { .score-card { background: #dfeae7; color: #132322; } }
-    .score-card h3 { margin: 0; font-size: 21px; }
-    .score-card p { color: color-mix(in srgb, currentColor 75%, transparent); font-size: 13px; }
-    .check-list { display: grid; gap: 9px; margin: 18px 0 0; padding: 0; list-style: none; }
-    .check-list li { display: grid; grid-template-columns: 22px 1fr; gap: 9px; align-items: start; font-size: 13px; }
-    .tick { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid currentColor; border-radius: 50%; font: 600 10px/1 "IBM Plex Mono", monospace; }
+    .answer-label { display: block; margin-bottom: 8px; color: var(--blue); font: 700 .7rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .04em; }
+    .answer p { margin: 0 0 12px; color: var(--muted); font-size: .95rem; }
+    .listen { margin-top: 14px; padding: 14px 17px; background: var(--blue-soft); border-left: 4px solid var(--blue); font-size: .88rem; color: var(--muted); }
+    .listen strong { color: var(--ink); }
+    .score-card { position: sticky; top: 20px; background: var(--paper); border: 1px solid var(--line-strong); box-shadow: var(--shadow); padding: 22px; }
+    .score-card h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .score-card p { color: var(--muted); font-size: .85rem; margin-bottom: 14px; }
+    .check-list { display: grid; margin: 0; padding: 0; list-style: none; }
+    .check-list li { display: grid; grid-template-columns: 28px 1fr; gap: 9px; align-items: start; font-size: .85rem; padding: 9px 0; border-bottom: 1px solid var(--line); }
+    .check-list li:last-child { border-bottom: 0; }
+    .tick { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid var(--blue); color: var(--blue); border-radius: 50%; font: 700 .62rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
-    .takeaways { margin-top: 56px; }
-    .takeaways .section-head { margin-bottom: 18px; }
-    .recap { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-    .recap div { min-height: 160px; padding: 18px; border: 1px solid var(--line); background: var(--paper); border-radius: 6px 14px; }
-    .recap b { display: block; color: var(--orange); font: 600 12px/1 "IBM Plex Mono", monospace; }
-    .recap strong { display: block; margin-top: 28px; line-height: 1.15; }
-    footer { margin-top: 22px; display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font: 500 11px/1.5 "IBM Plex Mono", monospace; }
+    .takeaways { list-style: none; padding: 0; margin: 20px 0 0; max-width: 42rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+    .takeaways li { position: relative; padding: 11px 0 11px 27px; border-bottom: 1px solid var(--line); font-size: .95rem; }
+    .takeaways li::before { content: "¹3"; position: absolute; left: 0; color: var(--teal); font-weight: 800; }
+    .takeaways li b { color: var(--blue); font: 700 .75rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin-right: 8px; }
+    footer { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; color: var(--faint); font: 500 .72rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
-    @media (max-width: 840px) {
-      .section-nav { display: none; }
-      .hero, .section-head, .lab-body, .toolkit, .calc-grid, .interview-wrap { grid-template-columns: 1fr; }
-      .hero-board { min-height: 310px; }
-      .lesson { grid-column: span 6; }
-      .lesson.wide { grid-column: span 12; }
+    @media (max-width: 820px) {
+      .page { width: min(100% - 28px, 680px); padding-top: 14px; }
+      .masthead { padding: 26px 0 30px; }
+      .layout { display: block; margin-top: 0; }
+      .toc { display: none; }
+      section { padding: 32px 0 40px; }
+      .toolkit, .calc-grid, .interview-wrap { grid-template-columns: 1fr; }
+      .lab-body { grid-template-columns: 1fr; }
       .controls { border-right: 0; border-bottom: 1px solid var(--line); }
-      .tool-tabs { grid-template-columns: repeat(3, 1fr); }
-      .tool-tab { padding: 11px; }
       .score-card { position: static; }
-      .recap { grid-template-columns: repeat(2, 1fr); }
-      .recap div:last-child { grid-column: span 2; }
+      .strategy-grid, .takeaways { grid-template-columns: 1fr; }
+      .strategy.wide { grid-column: auto; }
+      .numbers { grid-template-columns: 1fr; }
     }
     @media (max-width: 560px) {
-      .shell { width: min(100% - 20px, 1080px); padding-top: 10px; }
-      .topbar { top: 6px; }
-      .hero-copy { padding: 28px 22px; }
-      h1 { font-size: 46px; }
-      .hero-board { padding: 22px; }
-      .lesson, .lesson.wide { grid-column: span 12; }
-      .lab-header { align-items: flex-start; flex-direction: column; }
-      .metrics { grid-template-columns: 1fr; gap: 10px; }
-      .metric { padding: 0 0 10px; border-right: 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: end; }
-      .metric:last-child { border-bottom: 0; }
-      .metric strong { font-size: 24px; }
+      h1 { font-size: 2.75rem; }
+      .metrics { grid-template-columns: 1fr; }
       .flow { flex-direction: column; }
       .arrow { transform: rotate(90deg); }
       .server-stack { grid-template-columns: repeat(2, 1fr); }
       .tool-tabs { grid-template-columns: 1fr 1fr; }
-      .technique-flow { align-items: stretch; flex-direction: column; }
+      .technique-flow { flex-direction: column; align-items: stretch; }
       .flow-arrow { transform: rotate(90deg); align-self: center; }
-      .pattern-list, .field-grid { grid-template-columns: 1fr; }
-      .question button { grid-template-columns: 28px 1fr auto; padding: 15px; }
-      .answer { padding: 0 15px 18px 54px; }
-      .recap { grid-template-columns: 1fr; }
-      .recap div:last-child { grid-column: auto; }
+      .pattern-list, .field-grid, .mini-compare { grid-template-columns: 1fr; }
+      .question > button { grid-template-columns: 28px 1fr auto; padding: 15px 34px 15px 0; }
       footer { flex-direction: column; }
     }
-    @media (prefers-reduced-motion: reduce) {
-      html { scroll-behavior: auto; }
-      *, *::before, *::after { transition: none !important; }
-    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    @media print { .toc, .answer-controls { display: none; } .question .answer { display: block; } body { background: white; color: black; } .page { width: 100%; } }
+
   </style>
 </head>
 <body>
-  <div class="shell">
-    <nav class="topbar" aria-label="Learning progress">
-      <span class="progress-copy"><span id="progressNum">0</span>% explored</span>
-      <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
-      <div class="section-nav">
-        <a href="#what">Start</a>
-        <a href="#lab">Try it</a>
-        <a href="#toolkit">Explore</a>
-        <a href="#numbers">Estimate</a>
-        <a href="#interview">Quiz</a>
-        <a href="#takeaways">Review</a>
+  <div class="page">
+    <header class="masthead">
+      <div class="dayline">LESSON 01 · SCALABILITY</div>
+      <h1>Scale without the scramble.</h1>
+      <p class="subtitle">Learn what breaks first, which lever to pull next, and how to explain every trade-off like a senior engineer—not a box-drawing machine.</p>
+      <div class="numbers">
+        <div class="number"><span>THE TRAFFIC TEST</span><b>100×</b></div>
       </div>
-    </nav>
-
-    <header class="hero">
-      <div class="hero-copy">
-        <div class="kicker"><span class="pulse"></span> SYSTEM DESIGN FIELD GUIDE</div>
-        <h1>Scale without the scramble.</h1>
-        <p>Learn what breaks first, which lever to pull next, and how to explain every trade-off like a senior engineer—not a box-drawing machine.</p>
-        <div class="hero-meta">
-          <span class="tag">~25 min</span>
-          <span class="tag">interactive lab</span>
-          <span class="tag">8 interview prompts</span>
-        </div>
-      </div>
-      <aside class="hero-board" aria-label="Scale summary">
-        <div class="terminal-line"><span>$</span> request_rate ↑<br><span>→</span> bottleneck appears<br><span>→</span> measure before changing<br><span>→</span> trade-off out loud</div>
-        <div class="big-number"><strong>100×</strong><small>THE TRAFFIC TEST: WHAT BREAKS FIRST?</small></div>
-      </aside>
+      <p class="trade"><b>Scale mantra:</b> as request rate climbs, the bottleneck appears — measure before changing, and name the trade-off out loud.</p>
     </header>
 
-    <main>
+    <div class="layout">
+      <aside class="toc" aria-label="Lesson contents">
+        <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+        <strong>LEARN → INTERACT → TEST</strong>
+        <span class="progress-copy"><span id="progressNum">0</span>% explored</span>
+        <a href="#what">01 What scalability means</a>
+        <a href="#mental-model">02 Shape of the problem</a>
+        <a href="#lab">03 Pressure lab</a>
+        <a href="#toolkit">04 Scaling toolkit</a>
+        <a href="#numbers">05 Back-of-the-envelope</a>
+        <a href="#interview">06 Interview lab</a>
+        <a href="#takeaways">07 Key takeaways</a>
+      </aside>
+      <main class="content">
       <section id="what">
-        <div class="section-head">
-          <div><p class="eyebrow">01 / START HERE · READ</p><h2>What scalability actually means</h2></div>
-          <p>Read this first. It defines every word the rest of the lesson builds on.</p>
-        </div>
-        <div class="lesson-grid">
-          <article class="lesson wide accent">
+        <div class="mode">READ · WHAT SCALABILITY IS</div>
+        <h2>What scalability actually means</h2>
+        <p class="instruction">Read this first. It defines every word the rest of the lesson builds on.</p>
+        <div class="strategy-grid">
+          <article class="strategy wide accent">
             <span class="lesson-number">THE CORE IDEA</span>
             <h3>Same match, bigger crowd.</h3>
             <p><strong>To scale</strong> means a system handles growing load — more users, more requests, more data — without getting slower or breaking. <strong>Load</strong> is simply the demand placed on the system: the size of the crowd.</p>
             <p>Picture a football stadium. Hosting 500 fans for a match is easy: one gate, a few stewards. Hosting 50,000 for the same match is the same game, but you need more turnstiles, more stewards, wider concourses, and a plan for everyone leaving at full time. Cram 50,000 people through the 500-fan setup and queues explode — that is a system that does not scale.</p>
           </article>
-          <article class="lesson">
+          <article class="strategy">
             <span class="lesson-number">SCALE UP · VERTICAL</span>
             <h3>One bigger stadium</h3>
             <p>Make the single machine stronger: more CPU, more RAM. Fast to do and easy to reason about. But there is a ceiling — you cannot build an infinitely big stadium — and one fire alarm still empties the whole place.</p>
           </article>
-          <article class="lesson">
+          <article class="strategy">
             <span class="lesson-number">SCALE OUT · HORIZONTAL</span>
             <h3>More turnstiles</h3>
             <p>Add more identical machines and split the crowd across them. A <strong>load balancer</strong> is the head steward waving fans to the shortest open turnstile: software that distributes incoming requests across healthy servers. This is the default way systems scale.</p>
           </article>
-          <article class="lesson wide">
+          <article class="strategy wide">
             <span class="lesson-number">THE WORDS YOU'LL NEED</span>
             <h3>Throughput, latency, bottleneck — in one breath.</h3>
             <p><strong>Throughput</strong> is how much work gets done: requests per second, or fans through the turnstiles per minute. <strong>Latency</strong> is how long one request takes: one fan's wait at the gate. A gate system that moves 10× the crowd but makes every fan wait five minutes did not scale — it just got bigger and worse. The <strong>bottleneck</strong> is the slowest part that caps everything else: the single narrow tunnel every fan must funnel through, no matter how many turnstiles you open.</p>
@@ -354,12 +300,11 @@
       </section>
 
       <section id="mental-model">
-        <div class="section-head">
-          <div><p class="eyebrow">02 / READ · SHAPE OF THE PROBLEM</p><h2>Start with the shape of the problem</h2></div>
-          <p>Read these four ideas first. Use them to name the bottleneck before you choose a scaling technique.</p>
-        </div>
-        <div class="lesson-grid">
-          <article class="lesson wide accent">
+        <div class="mode">READ · SHAPE OF THE PROBLEM</div>
+        <h2>Start with the shape of the problem</h2>
+        <p class="instruction">Read these four ideas first. Use them to name the bottleneck before you choose a scaling technique.</p>
+        <div class="strategy-grid">
+          <article class="strategy wide accent">
             <span class="lesson-number">THE TWO SIGNALS</span>
             <h3>Throughput tells you how much. Latency tells you how well.</h3>
             <p>Think of the stadium again: throughput is fans through the turnstiles per minute; latency is one fan's wait at the gate. A system that handles 10× traffic but takes five seconds per request did not scale — it just got bigger and worse. And an average can hide the requests that feel painfully slow, so engineers also look at percentiles.</p>
@@ -373,17 +318,17 @@
               <div><strong>Latency</strong><span>How long one request takes. p50 = typical; p99 = nearly worst case.</span></div>
             </div>
           </article>
-          <article class="lesson">
+          <article class="strategy">
             <span class="lesson-number">VERTICAL</span>
             <h3>Buy a faster barista</h3>
             <p>More CPU and RAM on one machine — one bigger stadium instead of a small one. Fast to ship, easy to reason about, but expensive near the ceiling — and still one machine that can fail.</p>
           </article>
-          <article class="lesson">
+          <article class="strategy">
             <span class="lesson-number">HORIZONTAL</span>
             <h3>Open more counters</h3>
             <p>Add servers behind a load balancer — more turnstiles for the same crowd. More coordination, but better headroom and survivability. This is your default interview posture.</p>
           </article>
-          <article class="lesson wide">
+          <article class="strategy wide">
             <span class="lesson-number">THE REAL DIVIDING LINE</span>
             <h3>Stateless servers are easy to copy.</h3>
             <p>Picture a turnstile operator who keeps the guest list in their head. They can't be swapped mid-shift, and if they walk away, the list walks away with them. Stateless servers are the opposite: keep sessions in a shared store like Redis, files in object storage, and durable counters in a shared database — so any server can handle any request, and losing one server loses nothing. <strong>Sticky routing</strong> (pinning each user to one server) is a stopgap for when you haven't done this yet, not a destination.</p>
@@ -392,10 +337,9 @@
       </section>
 
       <section id="lab">
-        <div class="section-head">
-          <div><p class="eyebrow">03 / TRY IT · PRESSURE LAB</p><h2>Push traffic. Pull a lever.</h2></div>
-          <p>Move the traffic slider, then try each architecture. Watch p99 and identify which component becomes the next bottleneck.</p>
-        </div>
+        <div class="mode">TRY IT · PRESSURE LAB</div>
+        <h2>Push traffic. Pull a lever.</h2>
+        <p class="instruction">Move the traffic slider, then try each architecture. Watch p99 and identify which component becomes the next bottleneck.</p>
         <div class="lab">
           <div class="lab-header"><h3>Coffee API under load</h3><span id="statusText">STATUS: HEALTHY</span></div>
           <div class="lab-body">
@@ -426,10 +370,9 @@
       </section>
 
       <section id="toolkit">
-        <div class="section-head">
-          <div><p class="eyebrow">04 / EXPLORE · TOOLKIT</p><h2>Know the lever—and its bill</h2></div>
-          <p>Open each technique and trace its diagram. Say the cost or trade-off out loud before moving on.</p>
-        </div>
+        <div class="mode">TRY IT · SCALING TOOLKIT</div>
+        <h2>Know the lever—and its bill</h2>
+        <p class="instruction">Open each technique and trace its diagram. Say the cost or trade-off out loud before moving on.</p>
         <div class="toolkit">
           <div class="tool-tabs" role="tablist" aria-label="Scalability techniques" id="toolTabs"></div>
           <article class="tool-panel" id="toolPanel" role="tabpanel" tabindex="0"></article>
@@ -437,10 +380,9 @@
       </section>
 
       <section id="numbers">
-        <div class="section-head">
-          <div><p class="eyebrow">05 / ESTIMATE · BACK-OF-THE-ENVELOPE</p><h2>Quantify before you draw</h2></div>
-          <p>Change the inputs to estimate peak RPS. Practice saying every assumption before you sketch the architecture.</p>
-        </div>
+        <div class="mode">ESTIMATE · BACK OF THE ENVELOPE</div>
+        <h2>Quantify before you draw</h2>
+        <p class="instruction">Change the inputs to estimate peak RPS. Practice saying every assumption before you sketch the architecture.</p>
         <div class="calc-grid">
           <div class="calculator">
             <h3>Peak traffic estimator</h3>
@@ -462,10 +404,9 @@
       </section>
 
       <section id="interview">
-        <div class="section-head">
-          <div><p class="eyebrow">06 / QUIZ YOURSELF · INTERVIEW LAB</p><h2>Answer the question behind the question</h2></div>
-          <p>Answer each question aloud in 60 seconds, then open the model answer and compare your reasoning.</p>
-        </div>
+        <div class="mode">QUIZ YOURSELF · INTERVIEW LAB</div>
+        <h2>Answer the question behind the question</h2>
+        <p class="instruction">Answer each question aloud in 60 seconds, then open the model answer and compare your reasoning.</p>
         <div class="interview-wrap">
           <div class="question-column">
             <div class="answer-controls"><button class="answer-toggle" id="toggleAnswers" type="button">Show all model answers</button></div>
@@ -484,20 +425,20 @@
         </div>
       </section>
 
-      <section class="takeaways" id="takeaways" aria-labelledby="takeaways-title">
-        <div class="section-head">
-          <div><p class="eyebrow">07 / FINISH HERE · REVIEW</p><h2 id="takeaways-title">Key takeaways</h2></div>
-          <p>Review these five principles last. If one feels unclear, return to the matching section above.</p>
-        </div>
-        <div class="recap" aria-label="Five key scalability ideas">
-          <div><b>01</b><strong>Default to horizontal; use vertical as a bridge.</strong></div>
-          <div><b>02</b><strong>Push durable state out of app servers.</strong></div>
-          <div><b>03</b><strong>Scale reads before writes whenever you can.</strong></div>
-          <div><b>04</b><strong>Every cache is a consistency decision.</strong></div>
-          <div><b>05</b><strong>Name the trade-off, not just the component.</strong></div>
-        </div>
+      <section id="takeaways" aria-labelledby="takeaways-title">
+        <div class="mode">TAKEAWAYS · REMEMBER THESE</div>
+        <h2 id="takeaways-title">Key takeaways</h2>
+        <p class="instruction">Review these five principles last. If one feels unclear, return to the matching section above.</p>
+        <ul class="takeaways" aria-label="Five key scalability ideas">
+          <li><b>01</b>Default to horizontal; use vertical as a bridge.</li>
+          <li><b>02</b>Push durable state out of app servers.</li>
+          <li><b>03</b>Scale reads before writes whenever you can.</li>
+          <li><b>04</b>Every cache is a consistency decision.</li>
+          <li><b>05</b>Name the trade-off, not just the component.</li>
+        </ul>
       </section>
-    </main>
+      </main>
+    </div>
 
     <footer><span>Build the argument, not just the diagram.</span><span>Progress resets when this page reloads.</span></footer>
   </div>
