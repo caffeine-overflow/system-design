@@ -301,9 +301,38 @@
       </section>
 
       <section id="patterns">
-        <div class="mode">TRY IT · REQUEST PATTERNS</div>
-        <h2>Choose a pattern and trace the flow</h2>
-        <p class="instruction">Tap all five. For each, identify who loads the cache, when the database is updated, and which trade-off dominates.</p>
+        <div class="mode">READ · REQUEST PATTERNS</div>
+        <h2>See how each pattern moves data</h2>
+        <p class="instruction">Follow one request through all five patterns. Each pattern answers a single question: when the app needs data, who talks to the cache, who talks to the database, and in what order?</p>
+        <p class="lead">The running example: a profile page for user 42. A <strong>read</strong> is loading that page; a <strong>write</strong> is user 42 changing their name. Every pattern handles the same two events — the only difference is who does what.</p>
+
+        <h3>1 · Cache-aside (lazy loading) — the app does the talking</h3>
+        <p>The application checks the cache itself and fills it when it misses. This is the most common pattern, and the default you should reach for.</p>
+        <div class="formula">READ: app checks cache → miss → app reads database → app writes the result into the cache → app returns it<br>WRITE: app writes to the database → app deletes the cached copy, so the next read fetches fresh data</div>
+        <p><b>Why pick it:</b> only data someone actually asks for ever gets cached, and the cache stays "dumb." <b>The price:</b> every app repeats the same lookup-and-fill logic, and two readers racing on the same miss can both hit the database.</p>
+
+        <h3>2 · Read-through — the cache library does the talking</h3>
+        <p>The app never touches the database. It calls a cache library, and on a miss the library itself loads from the database and stores the result.</p>
+        <div class="formula">READ: app asks the cache library → miss → the library reads the database, stores the result, and returns it<br>WRITE: unchanged — the app writes to the database and invalidates, exactly like cache-aside</div>
+        <p><b>Why pick it:</b> one place owns the loading logic, so every team gets identical behavior. <b>The price:</b> the cache layer must know how to reach the database — a library bug can break loading for everyone.</p>
+
+        <h3>3 · Write-through — writes update both at once</h3>
+        <p>A write is not "done" until it lands in the cache <em>and</em> the database.</p>
+        <div class="formula">WRITE: app writes to the cache → the cache immediately writes to the database → both succeed → the app is told "done"<br>READ: always hits, because the last write already warmed the cache</div>
+        <p><b>Why pick it:</b> the cache and the database can never disagree right after a write. <b>The price:</b> every write is as slow as the slower of the two — and you need a plan for "cache succeeded, database failed."</p>
+
+        <h3>4 · Write-behind (write-back) — write now, persist later</h3>
+        <p>The app writes to the cache, is told "done" instantly, and the cache flushes to the database in the background.</p>
+        <div class="formula">WRITE: app writes to the cache → cache says "done" immediately → cache flushes to the database seconds later (often batched)<br>READ: always hits — the fresh value is already in the cache</div>
+        <p><b>Why pick it:</b> the fastest possible writes; ideal for bursty workloads like counters or session state. <b>The price:</b> if the cache dies before the flush, the write is gone — durability is weaker, and ordering writes across keys gets tricky.</p>
+
+        <h3>5 · Refresh-ahead — refill before the copy expires</h3>
+        <p>A background process watches hot keys and reloads them from the database just before their TTL runs out, so real users never take the miss.</p>
+        <div class="formula">BACKGROUND: watch a hot key → near expiry → reload from the database in the background<br>READ (by a user): always hits — the refill happened before expiry</div>
+        <p><b>Why pick it:</b> rock-steady latency for hot data; no user ever pays the miss penalty. <b>The price:</b> constant background refresh work — and if your "hot" prediction is wrong, you're refreshing keys nobody reads.</p>
+
+        <h3>Try it · Trace the flow yourself</h3>
+        <p class="instruction">Tap each tab. For each pattern, ask: who loads the cache, when is the database updated, and what breaks first?</p>
         <div class="widget">
           <div class="widget-head"><strong>CACHE-PATTERN EXPLORER</strong><p>Each tab shows the read/write sequence and a concrete selection rule.</p></div>
           <div class="pattern-tabs" role="tablist" aria-label="Cache patterns">
@@ -319,9 +348,7 @@
             <div class="pattern-tradeoffs"><div><b>PICK IT WHEN</b><span id="patternPick"></span></div><div><b>CONSISTENCY</b><span id="patternConsistency"></span></div><div><b>COST</b><span id="patternCost"></span></div></div>
           </div>
         </div>
-        <h3>Definitions to keep straight</h3>
-        <p><b>Cache-aside</b>, also called lazy loading, means the application fills the cache only after a miss. <b>Read-through</b> hides that loading behind a cache interface. <b>Write-through</b> updates the authoritative store before acknowledging success. <b>Write-back</b> or <b>write-behind</b> acknowledges at the cache and persists asynchronously, so durability and ordering become first-class requirements. <b>Refresh-ahead</b> renews a hot item before it expires.</p>
-        <div class="callout"><strong>Interview move</strong>Do not select a pattern by name alone. State read/write ratio, freshness target, acknowledgment semantics, miss behavior, and what happens during partial failure.</div>
+        <div class="callout"><strong>Interview move</strong>Do not pick a pattern by name alone. State the read/write ratio, the freshness target, and what happens during a partial failure. A strong answer for user profiles: "Cache-aside with explicit invalidation — profiles are read-heavy, writes are moderate, and invalidation bounds staleness to seconds."</div>
       </section>
 
       <section id="eviction">
@@ -431,7 +458,7 @@
         </div></details>
 
         <details><summary>2. Compare cache-aside, read-through, and write-through. Choose one for user profiles.</summary><div class="answer">
-          <p><strong>Model answer:</strong> Cache-aside makes the application read the cache, fetch the database on miss, and fill it; it offers control and caches only demanded data, but callers own miss races. Read-through puts that miss logic behind the cache interface; it simplifies callers but couples cache infrastructure to the data loader. Write-through is a write policy: the cache path updates the authoritative store before acknowledging, increasing write latency but keeping the cached value warm.</p>
+          <p><strong>Model answer:</strong> In cache-aside, the app checks the cache, reads the database on a miss, and stores the result itself — simple and demand-driven, but every app repeats that logic and racing misses can both hit the database. In read-through, a cache library does the loading on a miss, so callers are simpler — but the cache layer must know how to reach the database, which couples the two. Write-through is about writes: the cache doesn't confirm a write until the database has it too, so reads after a write always hit — at the cost of every write paying both latencies.</p>
           <p>For mostly-read user profiles with moderate write frequency, I would choose cache-aside: read by user ID, fill on miss, then commit profile updates and invalidate the key. It is easy to degrade to the database and avoids populating profiles nobody rereads. For read-after-write in the same session, return the committed value directly or carry a version token so an older cache entry is rejected. If many teams need identical loading semantics, I might wrap the same behavior behind read-through. I would choose write-through only if immediate cache warmth justifies adding cache and database latency to every write and I can define partial-failure semantics.</p>
         </div></details>
 
