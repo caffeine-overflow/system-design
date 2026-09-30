@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Database Sharding</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.58;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    svg { display: block; max-width: 100%; }
+    .page { max-width: 1180px; margin: 0 auto; padding: 0 28px 88px; }
+    .topline { height: 5px; margin: 0 -28px; background: linear-gradient(90deg, var(--accent) 0 34%, var(--blue) 34% 68%, var(--green) 68%); }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr);
+      gap: 56px;
+      align-items: end;
+      padding: 76px 0 54px;
+      border-bottom: 1px solid var(--line);
+    }
+    h1, h2, h3 { margin: 0; line-height: 1.08; text-wrap: balance; }
+    h1 { max-width: 820px; font-size: clamp(2.75rem, 7vw, 5.7rem); letter-spacing: -.055em; font-weight: 700; }
+    .hero p { margin: 24px 0 0; max-width: 700px; font-size: clamp(1.12rem, 2.2vw, 1.4rem); color: var(--muted); }
+    .hero-note { border-top: 2px solid var(--ink); padding-top: 18px; color: var(--muted); }
+    .hero-note strong { display: block; color: var(--ink); font-size: 1.05rem; margin-bottom: 5px; }
+    .hero-note code, .mono { font-family: "IBM Plex Mono", monospace; font-size: .85em; }
+    .section-nav {
+      position: sticky; top: 0; z-index: 10; margin: 0 -28px 56px; padding: 12px 28px;
+      background: color-mix(in srgb, var(--paper) 91%, transparent);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav-inner { max-width: 1124px; margin: auto; display: flex; gap: 9px; overflow-x: auto; scrollbar-width: none; }
+    .nav-inner::-webkit-scrollbar { display: none; }
+    .section-nav a { white-space: nowrap; color: var(--muted); text-decoration: none; font-size: .88rem; font-weight: 600; padding: 7px 10px; border-radius: 6px; }
+    .section-nav a:hover, .section-nav a:focus-visible { background: var(--surface-2); color: var(--ink); }
+    section { padding: 64px 0 20px; scroll-margin-top: 62px; }
+    .section-head { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 44px; align-items: start; margin-bottom: 32px; }
+    .section-num { font-family: "IBM Plex Mono", monospace; font-size: .84rem; color: var(--accent); font-weight: 600; }
+    h2 { font-size: clamp(2rem, 4vw, 3.5rem); letter-spacing: -.035em; }
+    h3 { font-size: 1.34rem; letter-spacing: -.015em; }
+    .lede { font-size: 1.15rem; color: var(--muted); margin: 14px 0 0; max-width: 760px; }
+    .content-offset { margin-left: 284px; }
+    .definition {
+      font-size: clamp(1.35rem, 2.6vw, 1.85rem); line-height: 1.38; padding: 28px 0 32px;
+      border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); margin-bottom: 32px;
+    }
+    .definition strong { color: var(--accent); }
+    .term-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+    .term { background: var(--surface); padding: 24px; }
+    .term dt { font-weight: 700; font-size: 1.05rem; }
+    .term dd { margin: 7px 0 0; color: var(--muted); }
+    .pitch {
+      margin-top: 32px; background: var(--blue-soft); padding: 24px 28px; display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start;
+    }
+    .pitch-mark { width: 42px; height: 42px; border: 2px solid var(--blue); border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: var(--blue); }
+    .pitch p { margin: 0; }
+    .pitch strong { color: var(--blue); }
+    .panel { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .panel-head { padding: 22px 24px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+    .panel-head p { margin: 4px 0 0; color: var(--muted); font-size: .94rem; }
+    .segmented { display: flex; gap: 4px; padding: 4px; background: var(--surface-2); border-radius: 9px; }
+    .segmented button, .chip {
+      border: 0; background: transparent; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: .91rem;
+    }
+    .segmented button[aria-pressed="true"] { background: var(--surface); color: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+    .shard-stage { padding: 28px 24px 18px; }
+    .shard-bars { display: grid; gap: 10px; margin: 22px 0 6px; }
+    .shard-row { display: grid; grid-template-columns: 130px 1fr 92px; gap: 12px; align-items: center; }
+    .shard-row .slabel { font-family: "IBM Plex Mono", monospace; font-size: .82rem; color: var(--muted); }
+    .sbar-track { height: 30px; background: var(--surface-2); border: 1px solid var(--line); position: relative; overflow: hidden; }
+    .sbar { height: 100%; background: var(--blue); transition: width .45s ease; }
+    .sbar.hot { background: var(--accent); }
+    .srush { position: absolute; top: 0; bottom: 0; right: 0; background: repeating-linear-gradient(45deg, rgba(216,74,47,.55) 0 8px, transparent 8px 16px); }
+    .sbar-track .sval { position: absolute; right: 8px; top: 4px; font-family: "IBM Plex Mono", monospace; font-size: .78rem; color: var(--ink); }
+    .shard-row .scount { font-family: "IBM Plex Mono", monospace; font-size: .82rem; text-align: right; }
+    .lab-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+    .primary, .secondary {
+      border: 1px solid var(--ink); border-radius: 7px; padding: 10px 15px; cursor: pointer; font-weight: 700;
+    }
+    .primary { background: var(--ink); color: var(--paper); }
+    .secondary { background: transparent; }
+    .secondary[aria-pressed="true"] { background: var(--amber-soft); border-color: var(--amber); }
+    .primary:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .secondary:hover { background: var(--surface-2); }
+    .event-log { margin-top: 20px; padding: 15px 18px; min-height: 54px; background: var(--code); color: var(--code-ink); font-family: "IBM Plex Mono", monospace; font-size: .82rem; }
+    .lab-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 18px; }
+    .metric { background: var(--surface); padding: 14px 16px; }
+    .metric span { display: block; color: var(--muted); font-size: .78rem; }
+    .metric strong { display: block; font-family: "IBM Plex Mono", monospace; margin-top: 3px; font-size: .95rem; }
+    .slider-wrap label { display: flex; justify-content: space-between; font-weight: 700; font-size: .95rem; margin-top: 18px; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); margin: 10px 0 4px; }
+    .result-banner { padding: 14px 16px; background: var(--amber-soft); color: var(--ink); margin-top: 16px; font-weight: 600; }
+    .result-banner.ok { background: var(--green-soft); }
+    .callout-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 28px; }
+    .callout { padding: 23px; border-top: 4px solid var(--line-strong); background: var(--surface); }
+    .callout.good { border-color: var(--green); }
+    .callout.warn { border-color: var(--amber); }
+    .callout.cost { border-color: var(--accent); }
+    .callout p { color: var(--muted); margin: 8px 0 0; }
+    .tradeoff-table { width: 100%; border-collapse: collapse; margin-top: 30px; background: var(--surface); }
+    .tradeoff-table th, .tradeoff-table td { padding: 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .tradeoff-table th { font-size: .86rem; color: var(--muted); font-weight: 600; }
+    .tradeoff-table tbody tr:last-child td { border-bottom: 0; }
+    .tradeoff-table td:first-child { font-weight: 700; }
+    .strategy-list { display: grid; gap: 12px; margin-top: 28px; }
+    .strategy { border: 1px solid var(--line); background: var(--surface); }
+    .strategy button { width: 100%; border: 0; background: transparent; padding: 18px 20px; display: flex; justify-content: space-between; gap: 14px; text-align: left; cursor: pointer; font-weight: 700; }
+    .strategy button span:last-child { color: var(--accent); }
+    .strategy-body { display: none; padding: 0 20px 20px; color: var(--muted); }
+    .strategy.open .strategy-body { display: block; }
+    .strategy-body p { margin: 0; }
+    .strategy-body p + p { margin-top: 12px; }
+    .strategy-body code { font-family: "IBM Plex Mono", monospace; font-size: .82em; color: var(--ink); }
+    .failure-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .failure { background: var(--surface); padding: 26px; border-top: 3px solid var(--accent); }
+    .failure p { color: var(--muted); }
+    .failure ul { padding-left: 20px; margin-bottom: 0; }
+    .sequence { margin-top: 24px; padding: 24px; background: var(--code); color: var(--code-ink); overflow-x: auto; }
+    .sequence pre { margin: 0; font-family: "IBM Plex Mono", monospace; font-size: .82rem; line-height: 1.8; }
+    .depth-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); }
+    .depth-card { background: var(--surface); padding: 26px; }
+    .depth-card p { color: var(--muted); margin-bottom: 0; }
+    .depth-card code { color: var(--accent); font-family: "IBM Plex Mono", monospace; font-size: .82em; }
+    .question { border-top: 1px solid var(--line); padding: 28px 0; }
+    .question:first-child { border-top: 2px solid var(--ink); }
+    .question-top { display: grid; grid-template-columns: 48px 1fr auto; gap: 16px; align-items: start; }
+    .qnum { font-family: "IBM Plex Mono", monospace; color: var(--accent); font-weight: 600; }
+    .reveal { border: 1px solid var(--line-strong); background: transparent; padding: 8px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; font-weight: 600; }
+    .reveal:hover { background: var(--surface-2); }
+    .answer { display: none; margin: 22px 0 0 64px; padding: 24px; background: var(--surface); border-left: 4px solid var(--green); }
+    .answer.open { display: block; }
+    .answer p:first-child { margin-top: 0; }
+    .answer p:last-child { margin-bottom: 0; }
+    .answer ol, .answer ul { padding-left: 22px; }
+    .drill-box { display: grid; grid-template-columns: minmax(0,1fr) 280px; gap: 24px; }
+    .drill-main { background: var(--surface); border: 1px solid var(--line); padding: 28px; }
+    .drill-progress { font-family: "IBM Plex Mono", monospace; color: var(--muted); font-size: .82rem; }
+    .drill-main h3 { margin-top: 15px; font-size: 1.65rem; }
+    .options { display: grid; gap: 10px; margin-top: 24px; }
+    .option { border: 1px solid var(--line); background: var(--surface); padding: 14px 16px; text-align: left; cursor: pointer; border-radius: 7px; }
+    .option:hover { border-color: var(--line-strong); background: var(--surface-2); }
+    .option.correct { border-color: var(--green); background: var(--green-soft); }
+    .option.wrong { border-color: var(--accent); background: var(--accent-soft); }
+    .feedback { min-height: 54px; margin-top: 16px; color: var(--muted); }
+    .drill-side { background: var(--ink); color: var(--paper); padding: 24px; align-self: start; }
+    .drill-side h3 { font-size: 1.1rem; }
+    .drill-side ul { padding-left: 20px; margin-bottom: 0; }
+    .recap { margin-top: 44px; border: 2px solid var(--ink); padding: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+    .recap h3 { font-size: 1.5rem; }
+    .recap ul { margin-bottom: 0; padding-left: 20px; }
+    .recap code { font-family: "IBM Plex Mono", monospace; color: var(--accent); }
+    .footer-note { margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); display: flex; justify-content: space-between; gap: 20px; font-size: .9rem; }
+    :focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+    @media (max-width: 820px) {
+      .page { padding: 0 18px 64px; }
+      .topline, .section-nav { margin-left: -18px; margin-right: -18px; }
+      .section-nav { padding-left: 14px; padding-right: 14px; }
+      .hero { grid-template-columns: 1fr; gap: 32px; padding: 54px 0 38px; }
+      .section-head { grid-template-columns: 1fr; gap: 8px; }
+      .nav-inner { flex-wrap: wrap; justify-content: flex-start; overflow: visible; }
+      .section-nav a { flex: 0 0 auto; }
+      .content-offset { margin-left: 0; }
+      .sequence { overflow: visible; }
+      .sequence pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+      .term-grid, .callout-row, .lab-stats { grid-template-columns: 1fr; }
+      .lab-grid, .failure-grid, .depth-grid, .drill-box, .recap { grid-template-columns: 1fr; }
+      .shard-row { grid-template-columns: 84px 1fr 64px; }
+      .question-top { grid-template-columns: 38px 1fr; }
+      .question-top .reveal { grid-column: 2; justify-self: start; }
+      .answer { margin-left: 0; }
+      .tradeoff-table, .tradeoff-table tbody, .tradeoff-table tr, .tradeoff-table td { display: block; }
+      .tradeoff-table thead { display: none; }
+      .tradeoff-table tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
+      .tradeoff-table td { border: 0; padding: 8px 16px; }
+      .tradeoff-table td::before { content: attr(data-label); display: block; color: var(--muted); font-size: .76rem; font-weight: 600; }
+      .footer-note { display: block; }
+    }
+    @media (max-width: 460px) {
+      body { font-size: 16px; }
+      h1 { font-size: 3rem; }
+      section { padding-top: 48px; }
+      .panel-head { align-items: flex-start; flex-direction: column; }
+      .segmented { width: 100%; }
+      .segmented button { flex: 1; padding: 8px 5px; }
+      .lab, .drill-main { padding: 20px; }
+      .pitch { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topline"></div>
+    <header class="hero">
+      <div>
+        <h1>Database sharding, from first principles</h1>
+        <p>When one database can no longer hold the data or survive the writes, split it into many small ones — and learn why the way you split decides whether the system stays fast.</p>
+      </div>
+      <aside class="hero-note">
+        <strong>The thread to follow</strong>
+        Every row needs a home. Ask <em>which field decides</em> the home, <em>what happens</em> when you add another home, and <em>who burns</em> when one home gets all the traffic.
+      </aside>
+    </header>
+
+    <nav class="section-nav" aria-label="Lesson sections">
+      <div class="nav-inner">
+        <a href="#what">What it is</a>
+        <a href="#keys">Shard keys</a>
+        <a href="#lab">Shard lab</a>
+        <a href="#hot">Hot shards</a>
+        <a href="#costs">Cross-shard costs</a>
+        <a href="#reshard">Resharding</a>
+        <a href="#depth">Senior depth</a>
+        <a href="#questions">Question lab</a>
+        <a href="#drills">Drills</a>
+      </div>
+    </nav>
+
+    <main>
+      <section id="what">
+        <div class="section-head">
+          <div class="section-num">01 / FOUNDATION</div>
+          <div><h2>What is database sharding?</h2></div>
+        </div>
+        <div class="content-offset">
+          <div class="definition"><strong>Database sharding</strong> is the practice of splitting one large database into smaller, independent databases called <strong>shards</strong>, where each shard owns a different slice of the data. Together the shards behave like one logical database; physically, each one is separate, and each can grow on its own hardware.</div>
+          <dl class="term-grid">
+            <div class="term"><dt>Shard</dt><dd>One of the smaller databases. It holds a slice of the data and serves the reads and writes for that slice. Losing one shard means losing one slice, not the whole system — so each shard is usually replicated too.</dd></div>
+            <div class="term"><dt>Shard key</dt><dd>The field (or combination of fields) used to decide which shard owns a row, for example <code class="mono">user_id</code> or <code class="mono">team_id</code>. Choosing it is the single most important sharding decision; everything else follows from it.</dd></div>
+            <div class="term"><dt>Partitioning</dt><dd>The general idea of splitting data. <em>Horizontal</em> partitioning splits rows across databases (this lesson — that is sharding). <em>Vertical</em> partitioning splits columns or whole tables onto different servers, like keeping a huge <code class="mono">photos</code> table apart from <code class="mono">users</code>.</dd></div>
+          </dl>
+          <div class="pitch">
+            <div class="pitch-mark">🏟</div>
+            <p><strong>Soccer model:</strong> a stadium holds 60,000 fans, and one turnstile gate cannot process them all. So the club shards the crowd: turnstile A takes ticket numbers 1–20,000, turnstile B takes 20,001–40,000, and so on. Each gate owns a slice of the fans, and each slice flows at its own speed. Sharding is the same move: when one database gate cannot process the crowd, open more gates and decide, for every fan, which gate is theirs.</p>
+          </div>
+          <div class="callout-row">
+            <article class="callout good"><h3>Writes scale out</h3><p>Replication adds read capacity, but every replica still replays <em>every</em> write. Sharding is what splits write throughput across machines: each shard's leader only orders the writes for its own slice.</p></article>
+            <article class="callout good"><h3>Datasets stay operable</h3><p>A table that will not fit on one machine — or whose backups and index rebuilds take a weekend — becomes several independent tables. Each shard is small enough to back up, restore, and reason about.</p></article>
+            <article class="callout cost"><h3>Complexity you pay daily</h3><p>Queries that touch several shards get slower and harder. Joins, transactions, and global aggregates all cross shard boundaries. You shard to survive, not for fun — never shard before you need to.</p></article>
+          </div>
+          <div class="pitch">
+            <div class="pitch-mark">🚦</div>
+            <p><strong>When to actually shard:</strong> when writes overwhelm one leader's capacity (CPU, I/O, or connection limits), when the dataset exceeds comfortable single-machine size, or when backup/recovery windows stop meeting the recovery objectives. Before that, the cheaper answers are: bigger machine (vertical scaling), read replicas, caching, and archiving cold data. Interviewers love candidates who say "I would not shard on day one" and can name the concrete signal that changes the answer.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="keys">
+        <div class="section-head">
+          <div class="section-num">02 / THE KEY DECISION</div>
+          <div>
+            <h2>Choose the shard key like your system depends on it</h2>
+            <p class="lede">The shard key is the field that decides which shard owns each row. It cannot be chosen lightly, because it is effectively immutable and it shapes every query you will ever write.</p>
+          </div>
+        </div>
+        <div class="content-offset">
+          <div class="definition">A good shard key has three properties: <strong>high cardinality</strong> (many distinct values, so the data can spread), <strong>even distribution</strong> (no single value dominates the traffic), and <strong>query isolation</strong> (most queries ask about one key value, so they touch one shard).</div>
+          <div class="pitch">
+            <div class="pitch-mark">🎫</div>
+            <p><strong>Soccer model:</strong> shard by <em>ticket number</em> (one per fan — high cardinality, beautifully even). Do not shard by <em>match result</em> — only three values (win, draw, loss), so one "shard" ends up holding every win. That is low cardinality, and it defeats the point. And do not shard by <em>player of the match</em>, because almost every fan's query — "what are his stats tonight?" — would fan out to every shard, since nobody remembers which shard a player landed on.</p>
+          </div>
+          <table class="tradeoff-table">
+            <thead><tr><th>Strategy</th><th>How rows map to shards</th><th>Strength</th><th>Weakness</th></tr></thead>
+            <tbody>
+              <tr><td data-label="Strategy">Range-based</td><td data-label="How rows map to shards"><code class="mono">user_id</code> 1–1M → shard 1, 1M–2M → shard 2</td><td data-label="Strength">Ordered ranges; range queries ("users 1–1000") hit one shard</td><td data-label="Weakness">Newest ranges fill first, so the newest shard absorbs all new writes — write hotspot by design</td></tr>
+              <tr><td data-label="Strategy">Hash-based (modulo)</td><td data-label="How rows map to shards"><code class="mono">hash(user_id) % N</code></td><td data-label="Strength">Even spread; any row lands somewhere balanced</td><td data-label="Weakness">Ordered queries scatter across shards; adding a shard remaps almost every row</td></tr>
+              <tr><td data-label="Strategy">Geo / composite</td><td data-label="How rows map to shards">Key includes region or tenant, e.g. <code class="mono">(region, user_id)</code></td><td data-label="Strength">Data lives near its users; regulations and locality are honored</td><td data-label="Weakness">Regions differ in size; a huge region becomes its own hotspot</td></tr>
+              <tr><td data-label="Strategy">Directory-based</td><td data-label="How rows map to shards">A lookup table maps each key value to a shard</td><td data-label="Strength">Total flexibility — any mapping, movable anytime</td><td data-label="Weakness">The directory is a new single point of contention; every query pays a lookup first</td></tr>
+            </tbody>
+          </table>
+          <div class="strategy-list">
+            <article class="strategy open">
+              <button type="button" aria-expanded="true"><span>1. Prefer the field your queries already carry</span><span>−</span></button>
+              <div class="strategy-body"><p>If 90% of requests are "show me this user's feed," shard by <code>user_id</code>. The router then computes the shard from a value the request already has, and the query stays on one shard. If queries mostly come with <code>team_id</code>, shard by that. Mismatch here is the most common sharding regret: every request becomes a scatter-gather across all shards because no request carries the shard key.</p></div>
+            </article>
+            <article class="strategy">
+              <button type="button" aria-expanded="false"><span>2. Cardinality must beat the shard count by orders of magnitude</span><span>+</span></button>
+              <div class="strategy-body"><p>With 8 shards, a key with 8 distinct values is a coin toss per shard; a key with millions of distinct values balances itself statistically. As a rule of thumb, want at least hundreds to thousands of distinct key values per shard. Low-cardinality keys (country, status, gender) are disqualifying on their own — combine them into a composite key if you must.</p></div>
+            </article>
+            <article class="strategy">
+              <button type="button" aria-expanded="false"><span>3. Respect query isolation: colocation beats cleverness</span><span>+</span></button>
+              <div class="strategy-body"><p>Related rows should live on the same shard. In a chat app, shard conversations and their messages by <code>conversation_id</code>, not by <code>message_id</code>: loading a thread is then one shard, not one shard per message. Sharding by the wrong grain turns a single-row read into a fan-out.</p></div>
+            </article>
+            <article class="strategy">
+              <button type="button" aria-expanded="false"><span>4. Assume the key never changes</span><span>+</span></button>
+              <div class="strategy-body"><p>Changing a row's shard key means moving the row — a cross-shard migration with delete, copy, and ordering hazards. Never choose a mutable field (username, email, team name) as the shard key. Use a stable surrogate key (an internal ID) instead, and let the mutable fields be ordinary columns.</p></div>
+            </article>
+          </div>
+          <div class="pitch">
+            <div class="pitch-mark">⚠️</div>
+            <p><strong>The re-shard-key rule:</strong> a shard key decision is a one-way door. Everything — application queries, the router, backfills, operational tooling — hardens around it. Interviewers probe this by asking "what if you chose wrong?" A strong answer names the migration cost explicitly: dual-writes, backfill, and a cutover, or in the worst case, a rewrite of every query's routing logic.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="lab">
+        <div class="section-head">
+          <div class="section-num">03 / SHARD LAB</div>
+          <div>
+            <h2>Shard the fans, then grow the stadium</h2>
+            <p class="lede">Add fans to the club database, pick a mapping strategy, then add a shard and watch what moving data actually costs.</p>
+          </div>
+        </div>
+        <div class="content-offset">
+          <div class="panel">
+            <div class="panel-head">
+              <div><h3>Sharding simulator</h3><p>Fans are rows. The strategy is the shard key mapping. "Add a shard" is resharding.</p></div>
+              <div class="segmented" role="group" aria-label="Sharding strategy">
+                <button type="button" data-strategy="hash" aria-pressed="true">Modulo hash</button>
+                <button type="button" data-strategy="range" aria-pressed="false">Range</button>
+                <button type="button" data-strategy="ring" aria-pressed="false">Consistent hash</button>
+              </div>
+            </div>
+            <div class="shard-stage">
+              <div class="slider-wrap">
+                <label for="shardCount"><span>Number of shards</span><span id="shardCountValue">4</span></label>
+                <input id="shardCount" type="range" min="2" max="8" step="1" value="4" />
+              </div>
+              <div class="shard-bars" id="shardBars"></div>
+              <div class="lab-controls">
+                <button class="primary" id="addFans" type="button">Add 120 fans</button>
+                <button class="secondary" id="addShard" type="button">Add a shard</button>
+                <button class="secondary" id="rushToggle" type="button" aria-pressed="false">🏆 Champions League final rush</button>
+                <button class="secondary" id="resetLab" type="button">Reset</button>
+              </div>
+              <div class="event-log" id="shardLog" aria-live="polite">Ready. Add fans, then try adding a shard under each strategy.</div>
+              <div class="lab-stats">
+                <div class="metric"><span>Fans stored</span><strong id="statFans">0</strong></div>
+                <div class="metric"><span>Hottest shard share</span><strong id="statHot">—</strong></div>
+                <div class="metric"><span>Rows moved on last reshard</span><strong id="statMoved">—</strong></div>
+                <div class="metric"><span>Strategy</span><strong id="statStrategy">Modulo hash</strong></div>
+              </div>
+              <div class="result-banner" id="shardBanner" hidden></div>
+            </div>
+          </div>
+          <div class="pitch">
+            <div class="pitch-mark">🔁</div>
+            <p><strong>What the lab is teaching:</strong> under <em>modulo hash</em> and <em>range</em> mappings, adding a shard reassigns nearly every row — a massive move. Under <em>consistent hashing</em>, the new shard only takes its fair share of rows from the existing ring, so most data stays put. That difference is the whole reason consistent hashing exists. Toggle the Champions League final rush to see the second lesson: even perfectly even row counts can become traffic hotspots when the <em>requests</em> concentrate.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="hot">
+        <div class="section-head">
+          <div class="section-num">04 / SKEW</div>
+          <div>
+            <h2>Hot shards: when one gate takes the whole crowd</h2>
+            <p class="lede">A <strong>hot shard</strong> is a shard receiving a disproportionate share of traffic. It is the failure mode of an otherwise balanced design.</p>
+          </div>
+        </div>
+        <div class="content-offset">
+          <div class="definition">Rows can be evenly spread while <strong>requests</strong> are not. One celebrity profile, one trending match thread, one launch-day tenant — a tiny fraction of keys can carry most of the traffic.</div>
+          <div class="failure-grid">
+            <article class="failure"><h3>Time-ordered keys</h3><p>Range-sharded <code class="mono">created_at</code> or auto-increment IDs route all new writes to the newest shard — the current minute's shard does all the work.</p><ul><li>Shard by hash of ID instead, or bucket time coarsely.</li><li>Expect this on write-heavy ingestion pipelines.</li></ul></article>
+            <article class="failure"><h3>Superstar keys</h3><p>A famous user, a final match, a viral post. Millions of requests target one key, hence one shard.</p><ul><li>No shard key choice fixes popularity; cache it or split it.</li><li>Detect by per-shard request share, not row count.</li></ul></article>
+            <article class="failure"><h3>Lumpy tenants</h3><p>Multi-tenant apps shard by tenant; one tenant grows 100× the others and saturates its shard.</p><ul><li>Split the big tenant across shards, or give it a dedicated shard.</li><li>Track per-tenant traffic, not just per-shard traffic.</li></ul></article>
+            <article class="failure"><h3>Sequential scans</h3><p>A reporting job or backfill walks a range that lives on one shard, starving live traffic there.</p><ul><li>Run heavy jobs on replicas, throttled.</li><li>Quarantine analytical traffic off the serving shards.</li></ul></article>
+          </div>
+          <div class="strategy-list">
+            <article class="strategy open">
+              <button type="button" aria-expanded="true"><span>1. Split the hot shard</span><span>−</span></button>
+              <div class="strategy-body"><p>Divide the hot shard's key range in two (range strategy) or move some of its virtual nodes to a new shard (consistent hashing). This is targeted resharding: move only the hot slice, not the whole cluster. It works when the heat comes from a key range, not a single key.</p></div>
+            </article>
+            <article class="strategy">
+              <button type="button" aria-expanded="false"><span>2. Cache the hot keys</span><span>+</span></button>
+              <div class="strategy-body"><p>When the heat is one key — the final's match page, the celebrity profile — absorb the reads in a cache in front of the shard. The shard still owns the truth; the cache owns the traffic. Watch cache stampedes when the key expires (the caching lesson's stampede mitigations apply directly).</p></div>
+            </article>
+            <article class="strategy">
+              <button type="button" aria-expanded="false"><span>3. Salt the key (suffixing)</span><span>+</span></button>
+              <div class="strategy-body"><p>Rewrite a hot key <code class="mono">match:final</code> as <code class="mono">match:final:0</code> … <code class="mono">match:final:9</code> and spread writes across the salted variants. Reads aggregate the variants. This deliberately trades read complexity for write distribution — use it for counters and vote tallies, not for data you query by the original key.</p></div>
+            </article>
+            <article class="strategy">
+              <button type="button" aria-expanded="false"><span>4. Offload with replicas or materialized views</span><span>+</span></button>
+              <div class="strategy-body"><p>Add read replicas to the hot shard so read traffic fans out while writes stay on one leader. Or precompute the expensive aggregation into a small read-optimized store. Both buy time, but neither fixes a write hotspot — writes must still land on one owner.</p></div>
+            </article>
+          </div>
+          <div class="pitch">
+            <div class="pitch-mark">🌡</div>
+            <p><strong>Measure heat, not size:</strong> dashboards should show per-shard request share (QPS), per-shard CPU and latency, and the top keys by traffic — not just row counts. A shard at 8% of rows and 60% of traffic is hot; a shard at 40% of rows and 10% of traffic is fine. Interviewers notice when candidates monitor requests, not storage.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="costs">
+        <div class="section-head">
+          <div class="section-num">05 / TRADE-OFFS</div>
+          <div>
+            <h2>What sharding takes away</h2>
+            <p class="lede">Every cross-shard operation is a distributed-systems problem in miniature. Name them before the interviewer does.</p>
+          </div>
+        </div>
+        <div class="content-offset">
+          <div class="depth-grid">
+            <article class="depth-card"><h3>Cross-shard joins disappear</h3><p>You cannot <code>JOIN</code> a users shard with an orders shard cheaply. Either denormalize (store a copy of the needed user fields with each order), accept scatter-gather queries, or rethink the shard key so related data is colocated.</p></article>
+            <article class="depth-card"><h3>Transactions get expensive</h3><p>Single-shard transactions stay cheap (each shard is a normal database). A write touching two shards needs two-phase commit — slow and fragile — or a <strong>Saga</strong>: a sequence of local transactions with compensating actions if one fails. Design to avoid cross-shard writes.</p></article>
+            <article class="depth-card"><h3>Global aggregates fan out</h3><p>"Count all users" or "top 100 products" must query every shard and merge results — a <strong>scatter-gather</strong>. Latency becomes the slowest shard's latency, and the merge logic lives in your application or proxy.</p></article>
+            <article class="depth-card"><h3>The router is new infrastructure</h3><p>Something must map shard keys to shards: application code, a proxy layer (like Vitess or ProxySQL), or a dedicated routing service with a shard map. It needs its own caching, failover, and versioning — it is a system you now own.</p></article>
+            <article class="depth-card"><h3>Unique constraints go local</h3><p>A <code>UNIQUE</code> constraint on email only works within one shard. Enforcing global uniqueness needs a separate coordination mechanism — a directory shard, a conditional write pattern, or accepting probabilistic enforcement.</p></article>
+            <article class="depth-card"><h3>Schema changes multiply</h3><p>A migration must run on every shard, in order, with rollback planned per shard. Expand-and-contract migrations (from the replication lesson) still apply — now orchestrated N times, and a stuck shard blocks the fleet.</p></article>
+          </div>
+          <table class="tradeoff-table">
+            <thead><tr><th>Question</th><th>Replication answers</th><th>Sharding answers</th></tr></thead>
+            <tbody>
+              <tr><td data-label="Question">Read volume grows</td><td data-label="Replication answers">Add followers — reads fan out, writes unchanged</td><td data-label="Sharding answers">Each shard keeps its read load; replicas per shard still help reads</td></tr>
+              <tr><td data-label="Question">Write volume grows</td><td data-label="Replication answers">Does not help — every replica replays every write</td><td data-label="Sharding answers">The core win — write throughput splits across shard leaders</td></tr>
+              <tr><td data-label="Question">Dataset grows</td><td data-label="Replication answers">Every node still stores everything</td><td data-label="Sharding answers">Each shard stores only its slice</td></tr>
+              <tr><td data-label="Question">One node fails</td><td data-label="Replication answers">Failover to a replica keeps the full dataset online</td><td data-label="Sharding answers">One slice is unavailable — shards need their own replication for durability</td></tr>
+              <tr><td data-label="Question">Query complexity</td><td data-label="Replication answers">Unchanged — any node answers any query</td><td data-label="Sharding answers">Cross-shard queries, joins, and global aggregates get harder</td></tr>
+            </tbody>
+          </table>
+          <div class="pitch">
+            <div class="pitch-mark">🤝</div>
+            <p><strong>They compose, they don't compete:</strong> real systems shard <em>and</em> replicate. Each shard gets its own leader and followers: sharding splits the data and the writes, replication copies each slice for read scale and failure recovery. If an interviewer asks "replication or sharding?", the senior answer is usually "sharding for the writes, replication inside each shard for everything else."</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="reshard">
+        <div class="section-head">
+          <div class="section-num">06 / GROWTH</div>
+          <div>
+            <h2>Resharding: growing without downtime</h2>
+            <p class="lede">Adding shards to a live cluster is the operation every sharded system eventually faces. The strategies differ in how much data moves and how long the cluster limps.</p>
+          </div>
+        </div>
+        <div class="content-offset">
+          <div class="definition"><strong>Resharding</strong> is changing the shard mapping on a live system — adding shards, splitting hot ones, or rebalancing. The hard part is doing it while reads and writes keep flowing.</div>
+          <div class="strategy-list">
+            <article class="strategy open">
+              <button type="button" aria-expanded="true"><span>1. Consistent hashing: move only what must move</span><span>−</span></button>
+              <div class="strategy-body"><p>Keys and shards share a hash ring; each key belongs to the nearest shard clockwise. Adding a shard means it takes over only the key ranges immediately before it on the ring — roughly <code>1/N</code> of the data moves, where <code>N</code> is the new shard count. <strong>Virtual nodes</strong> (each physical shard owning many small ring segments) smooth the distribution further, so one new shard takes small bites from many old ones instead of one big bite from a neighbor.</p><p>Trade-off: you give up ordered range queries, and the ring bookkeeping is real infrastructure. Dynamo-style systems (Cassandra, DynamoDB) live here.</p></div>
+            </article>
+            <article class="strategy">
+              <button type="button" aria-expanded="false"><span>2. Range split: halve the hot range</span><span>+</span></button>
+              <div class="strategy-body"><p>With range sharding, split the busiest shard's key range in two and move half to a new shard. Only the split range's data moves, and range queries stay efficient. This is the go-to for time-ordered or naturally ranged data — but you must detect the hot range and orchestrate the split.</p></div>
+            </article>
+            <article class="strategy">
+              <button type="button" aria-expanded="false"><span>3. Double-write migration: the safe but slow road</span><span>+</span></button>
+              <div class="strategy-body"><p>For changing the shard key itself or rebalancing wholesale: write every new change to both old and new shards, backfill historical data in the background, verify checksums, then flip reads to the new mapping and stop the old writes. Slow and storage-hungry, but it is the only approach that survives a wrong-key decision. This is the honest answer to "we chose the wrong shard key."</p></div>
+            </article>
+          </div>
+          <div class="sequence"><pre>controller → shard A : start split of range [500k, 1M)
+shard A    → shard B : copy snapshot of range
+shard A    → shard B : stream new writes (dual phase)
+controller → router  : publish new shard map (v42)
+router     → clients : route [500k, 750k) to B
+controller → shard A : drop moved range, reclaim space</pre></div>
+          <div class="pitch">
+            <div class="pitch-mark">🗺</div>
+            <p><strong>The shard map is a versioned contract:</strong> routers cache "key → shard" mappings, so publish map versions (v41, v42) and have routers cut over atomically. During migration, dual-read (prefer new, fall back to old) and dual-write keep the system correct across the boundary. Never let half your fleet route on an old map while the other half uses the new one — mixed mappings write the same key to two owners.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="depth">
+        <div class="section-head">
+          <div class="section-num">07 / SENIOR DEPTH</div>
+          <div>
+            <h2>What strong answers make explicit</h2>
+            <p class="lede">Move beyond "split the database." Name the routing, the failure boundary, the query plan, and the day-two operations.</p>
+          </div>
+        </div>
+        <div class="content-offset">
+          <div class="depth-grid">
+            <article class="depth-card"><h3>Shard-aware queries</h3><p>Every query must answer "which shard?" before it runs. Queries carrying the shard key are single-shard and fast; queries without it are scatter-gather. Audit your query patterns against the key <em>before</em> committing to it.</p></article>
+            <article class="depth-card"><h3>Scatter-gather math</h3><p>A fan-out query's latency is the <em>maximum</em> shard latency, not the average. One slow shard poisons every global query. Set per-shard timeouts, merge partial results explicitly, and say what "partial" means to the caller.</p></article>
+            <article class="depth-card"><h3>Failure domains</h3><p>Shards in the same rack or availability zone can fail together. Place shard leaders across zones, replicate each shard across zones, and make sure a zone loss degrades to some shards missing — not the whole dataset.</p></article>
+            <article class="depth-card"><h3>Backups per shard</h3><p>Each shard backs up independently, which means restore is per-shard too. A point-in-time restore of the whole cluster needs coordinated snapshots — decide what "consistent across shards" means for your recovery story.</p></article>
+            <article class="depth-card"><h3>Tenant isolation</h3><p>Noisy tenants get dedicated shards; small tenants share. This is sharding as a business tool: blast radius, per-tenant SLOs, and the option to physically relocate a customer all fall out of shard boundaries.</p></article>
+            <article class="depth-card"><h3>Ordering and IDs</h3><p>Auto-increment IDs stop working globally — two shards mint the same ID. Use UUIDs, Snowflake-style IDs (timestamp + shard ID + sequence), or a dedicated ID service. Each option trades size, sortability, and coordination cost.</p></article>
+            <article class="depth-card"><h3>Locality and compliance</h3><p>Geo-sharding keeps EU data in the EU and puts Asian users' data near Asia. It also means shard placement is now a legal decision, and cross-region queries inherit wide-area latency.</p></article>
+            <article class="depth-card"><h3>Start with more shards than you need</h3><p>Small shards are easier to split and move than huge ones, and empty headroom costs little. But do not shard prematurely — a dozen tiny shards add operational cost with no traffic to justify it. Right-size to your growth curve.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section id="questions">
+        <div class="section-head">
+          <div class="section-num">08 / QUESTION LAB</div>
+          <div>
+            <h2>Explain the decision, not just the pattern</h2>
+            <p class="lede">Try each prompt aloud. Then compare your answer with the model response.</p>
+          </div>
+        </div>
+        <div class="content-offset">
+          <div class="question-list">
+            <article class="question">
+              <div class="question-top"><div class="qnum">Q1</div><h3>Design the database layer for a global football fan platform: 50M fans, profiles, and a live match feed with huge write spikes during goals. Shard it.</h3><button class="reveal" type="button" aria-expanded="false">Show model answer</button></div>
+              <div class="answer"><p><strong>I would split by access pattern, not by one key for everything.</strong></p><ol><li>Shard fan profiles by <code>hash(user_id)</code>: cardinality is huge, distribution is even, and nearly every profile request carries <code>user_id</code>, so queries stay single-shard.</li><li>Shard match events by <code>match_id</code> with salting for the final: goal spikes concentrate on one match key, so I would suffix hot match keys (<code>match:final:0…9</code>) and aggregate reads. Alternatively, hash-shard the events stream and accept scatter-gather for per-match views.</li><li>Each shard gets its own leader plus async read replicas (sharding for writes, replication for reads and failover). Range queries I cannot avoid — "recent matches" — go to a small directory or a time-bucketed index shard.</li><li>Resharding plan: consistent hashing with virtual nodes, so adding shards moves ~1/N of the data; publish versioned shard maps and dual-write during migration.</li><li>Guardrails: per-shard QPS and top-key dashboards, per-shard timeouts on scatter-gather, and no cross-shard transactions — match events are append-only, so eventual aggregation is acceptable.</li></ol><p>The key trade-off: fan data shards cleanly by user, but live events are inherently hot around one key, so I salt the hot keys and absorb reads in cache rather than pretending hashing alone fixes popularity.</p></div>
+            </article>
+            <article class="question">
+              <div class="question-top"><div class="qnum">Q2</div><h3>We sharded users by <code>user_id</code> ranges, but shard 4 (the newest range) is at 95% CPU while the others idle. Diagnose and fix.</h3><button class="reveal" type="button" aria-expanded="false">Show model answer</button></div>
+              <div class="answer"><p>This is the classic range-sharding write hotspot: new users get the highest IDs, so all new-user writes land on the newest shard. Diagnosis is quick: compare per-shard write QPS against per-shard row counts — rows look balanced, writes do not.</p><p>Short term, split shard 4's range in two and move half to a new shard. Medium term, switch the mapping to <code>hash(user_id) % N</code> (or consistent hashing) via a double-write migration: write both mappings, backfill, verify, cut reads over, retire the old mapping. Long term, accept that ordered-ID range sharding concentrates recency, and never range-shard a monotonically growing key again unless range queries justify it.</p></div>
+            </article>
+            <article class="question">
+              <div class="question-top"><div class="qnum">Q3</div><h3>A teammate proposes sharding by country to "keep queries simple." When is that a good idea, and what breaks?</h3><button class="reveal" type="button" aria-expanded="false">Show model answer</button></div>
+              <div class="answer"><p>It is good when locality is the product requirement: data-residency laws, regional latency, or per-region operations. Country is then a composite key's prefix — <code>(country, user_id)</code> — so each country's data is further spreadable.</p><p>What breaks: cardinality is tiny (countries do not scale with users), distribution is lumpy (one country can hold half the users), and any feature that crosses countries — global leaderboards, cross-border follows, worldwide search — becomes scatter-gather across every shard. I would push back: use country as a placement policy for locality, but shard by a high-cardinality key inside each region.</p></div>
+            </article>
+            <article class="question">
+              <div class="question-top"><div class="qnum">Q4</div><h3>You need globally unique order IDs across 16 shards. Give three options and pick one, with the trade-off stated.</h3><button class="reveal" type="button" aria-expanded="false">Show model answer</button></div>
+              <div class="answer"><p>Option 1: UUIDs — no coordination, but 128 bits, unsortable, and unfriendly to indexes (random inserts fragment index pages and bloat storage). Option 2: Snowflake-style IDs — 64 bits encoding timestamp, shard/worker ID, and a per-millisecond sequence; roughly sortable and compact, but requires unique worker-ID assignment and clock discipline. Option 3: a dedicated ID service (or a single auto-increment table) — perfectly sequential, but a new single point of contention and a network hop per ID.</p><p>I would pick Snowflake-style IDs: they give global uniqueness without coordination, stay compact and roughly time-ordered for range scans, and the shard ID embedded in the key is itself a debugging gift — you can read which shard owns a row from the ID. I would reject the central service at high write rates and accept UUIDs only if sortability and index density truly do not matter.</p></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="drills">
+        <div class="section-head">
+          <div class="section-num">09 / PRACTICE DRILLS</div>
+          <div>
+            <h2>Test the edges of the model</h2>
+            <p class="lede">Four quick scenarios. Choose the strongest answer, then read why.</p>
+          </div>
+        </div>
+        <div class="content-offset">
+          <div class="drill-box">
+            <div class="drill-main">
+              <div class="drill-progress" id="drillProgress">DRILL 1 OF 4</div>
+              <h3 id="drillQuestion">Writes overwhelm a single leader, but reads are modest. Which move addresses the actual bottleneck?</h3>
+              <div class="options" id="drillOptions"></div>
+              <div class="feedback" id="drillFeedback" aria-live="polite">Pick an answer to reveal the reasoning.</div>
+              <button class="primary" id="nextDrill" type="button" hidden>Next drill</button>
+            </div>
+            <aside class="drill-side">
+              <h3>Answer frame</h3>
+              <ul><li>Name the user-visible symptom.</li><li>Name the mechanism that caused it.</li><li>State the guarantee that would prevent it.</li><li>Pay for that guarantee honestly.</li></ul>
+            </aside>
+          </div>
+          <div class="recap">
+            <div><h3>The 30-second summary</h3><p>Sharding splits one database into many, each owning a slice of the data. The shard key decides everything: it must be high-cardinality, evenly distributed, and carried by your queries. Hashing spreads rows evenly; consistent hashing makes growth cheap; range keeps order but concentrates recency. Hot shards come from traffic, not row counts — cache, salt, or split them. And each shard still needs replication, because sharding splits the data, not the failure.</p></div>
+            <div><h3>Five phrases worth keeping</h3><ul><li>“The shard key is a one-way door.”</li><li>“Replication scales reads; sharding scales writes.”</li><li>“Measure heat in requests, not rows.”</li><li>“Scatter-gather latency is the <em>max</em>, not the average.”</li><li>“A shard without replicas is a single point of failure.”</li></ul></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer-note"><span>Database Sharding · daily systems lesson</span><span>Choose the key. Own the skew. Plan the growth.</span></footer>
+  </div>
+
+  <script>
+    (function () {
+      var VNODES = 12;
+      var fans = [];
+      var nextId = 1;
+      var strategy = 'hash';
+      var shardCount = 4;
+      var rushOn = false;
+      var lastMoved = null;
+      var teams = ['A', 'B', 'C', 'D'];
+
+      var barsEl = document.getElementById('shardBars');
+      var logEl = document.getElementById('shardLog');
+      var bannerEl = document.getElementById('shardBanner');
+      var buttons = document.querySelectorAll('[data-strategy]');
+
+      function hashStr(s) {
+        var x = 5381;
+        for (var i = 0; i < s.length; i++) { x = (((x << 5) + x) + s.charCodeAt(i)) >>> 0; }
+        return x;
+      }
+      function vnodes(n) {
+        var nodes = [];
+        for (var s = 0; s < n; s++) {
+          for (var v = 0; v < VNODES; v++) nodes.push({ pos: hashStr('shard-' + s + '-v' + v), shard: s });
+        }
+        nodes.sort(function (a, b) { return a.pos - b.pos; });
+        return nodes;
+      }
+      function assign(fan, n, strat, ring) {
+        if (strat === 'range') {
+          var per = Math.ceil(1200 / n);
+          return Math.min(n - 1, Math.floor((fan.id - 1) / per));
+        }
+        if (strat === 'ring') {
+          var p = hashStr('fan-' + fan.id);
+          for (var i = 0; i < ring.length; i++) { if (ring[i].pos >= p) return ring[i].shard; }
+          return ring[0].shard;
+        }
+        return hashStr('fan-' + fan.id) % n;
+      }
+      function currentRing() { return vnodes(shardCount); }
+
+      function recompute(movesCounted) {
+        var ring = currentRing();
+        var counts = new Array(shardCount).fill(0);
+        var moved = 0;
+        fans.forEach(function (fan) {
+          var next = assign(fan, shardCount, strategy, ring);
+          if (movesCounted && fan.shard !== undefined && fan.shard !== next) moved++;
+          fan.shard = next;
+          counts[next]++;
+        });
+        return { counts: counts, moved: moved };
+      }
+
+      function render() {
+        var result = recompute(false);
+        var counts = result.counts;
+        var max = Math.max.apply(null, counts.concat([1]));
+        barsEl.innerHTML = '';
+        var hotIdx = 0;
+        counts.forEach(function (c, i) { if (c > counts[hotIdx]) hotIdx = i; });
+        counts.forEach(function (c, i) {
+          var row = document.createElement('div');
+          row.className = 'shard-row';
+          var label = document.createElement('div');
+          label.className = 'slabel';
+          label.textContent = 'Shard ' + (i + 1);
+          var track = document.createElement('div');
+          track.className = 'sbar-track';
+          var bar = document.createElement('div');
+          bar.className = 'sbar' + ((rushOn && i === hotIdx) ? ' hot' : '');
+          bar.style.width = (c / max * 100) + '%';
+          var val = document.createElement('span');
+          val.className = 'sval';
+          val.textContent = c + ' fans';
+          track.appendChild(bar);
+          if (rushOn && i === hotIdx) {
+            var rush = document.createElement('div');
+            rush.className = 'srush';
+            rush.style.width = '38%';
+            rush.title = 'Matchday rush traffic';
+            track.appendChild(rush);
+          }
+          track.appendChild(val);
+          var count = document.createElement('div');
+          count.className = 'scount';
+          count.textContent = c + ' rows';
+          row.appendChild(label); row.appendChild(track); row.appendChild(count);
+          barsEl.appendChild(row);
+        });
+        document.getElementById('statFans').textContent = fans.length;
+        var total = fans.length;
+        var hotShare = total ? Math.round(counts[hotIdx] / total * 100) : 0;
+        document.getElementById('statHot').textContent = total ? hotShare + '%' + (rushOn ? ' + rush' : '') : '—';
+        document.getElementById('statMoved').textContent = lastMoved === null ? '—' : lastMoved + ' rows';
+        var names = { hash: 'Modulo hash', range: 'Range', ring: 'Consistent hash' };
+        document.getElementById('statStrategy').textContent = names[strategy];
+        bannerEl.hidden = true;
+      }
+
+      buttons.forEach(function (b) {
+        b.addEventListener('click', function () {
+          strategy = b.dataset.strategy;
+          buttons.forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+          recompute(false);
+          var names = { hash: 'Modulo hash', range: 'Range', ring: 'Consistent hash' };
+          logEl.textContent = 'Strategy: ' + names[strategy] + '. Same fans, remapped by the new rule.';
+          render();
+        });
+      });
+
+      var slider = document.getElementById('shardCount');
+      slider.addEventListener('input', function () {
+        shardCount = Number(slider.value);
+        document.getElementById('shardCountValue').textContent = shardCount;
+        render();
+      });
+
+      document.getElementById('addFans').addEventListener('click', function () {
+        if (nextId > 1200) { logEl.textContent = 'Stadium full — 1,200 fans already. Reset to start over.'; return; }
+        var toAdd = Math.min(120, 1201 - nextId);
+        for (var i = 0; i < toAdd; i++) {
+          fans.push({ id: nextId++, team: teams[nextId % 4] });
+        }
+        logEl.textContent = 'Added ' + toAdd + ' fans (total ' + fans.length + '). Watch the distribution stay even.';
+        render();
+      });
+
+      document.getElementById('addShard').addEventListener('click', function () {
+        if (fans.length === 0) { logEl.textContent = 'Add fans first — there is nothing to move yet.'; return; }
+        if (shardCount >= 8) { logEl.textContent = 'Already at the maximum of 8 shards in this lab.'; return; }
+        shardCount++;
+        slider.value = shardCount;
+        document.getElementById('shardCountValue').textContent = shardCount;
+        var result = recompute(true);
+        lastMoved = result.moved;
+        var pct = Math.round(result.moved / fans.length * 100);
+        logEl.textContent = 'Added shard ' + shardCount + ': ' + result.moved + ' of ' + fans.length + ' rows (' + pct + '%) moved.';
+        bannerEl.hidden = false;
+        bannerEl.className = 'result-banner' + (strategy === 'ring' ? ' ok' : '');
+        bannerEl.textContent = strategy === 'ring'
+          ? 'Consistent hashing moved roughly 1/' + shardCount + ' of the data — the minimum possible. This is why rings exist.'
+          : 'Modulo/range remapping moved ' + pct + '% of all rows. On a real cluster, that is a full-table migration.';
+        render();
+      });
+
+      document.getElementById('rushToggle').addEventListener('click', function () {
+        rushOn = !rushOn;
+        var btn = document.getElementById('rushToggle');
+        btn.setAttribute('aria-pressed', String(rushOn));
+        if (rushOn) {
+          logEl.textContent = 'Champions League final: a huge share of reads now targets the shard holding the final\'s keys. Row counts are still even — the skew is in traffic, not rows.';
+        } else {
+          logEl.textContent = 'Rush over. Traffic is even again.';
+        }
+        render();
+      });
+
+      document.getElementById('resetLab').addEventListener('click', function () {
+        fans = []; nextId = 1; rushOn = false; lastMoved = null; shardCount = 4;
+        slider.value = 4;
+        document.getElementById('shardCountValue').textContent = '4';
+        document.getElementById('rushToggle').setAttribute('aria-pressed', 'false');
+        logEl.textContent = 'Ready. Add fans, then try adding a shard under each strategy.';
+        render();
+      });
+
+      document.querySelectorAll('.strategy button').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var card = button.parentElement;
+          var open = !card.classList.contains('open');
+          card.classList.toggle('open', open);
+          button.setAttribute('aria-expanded', String(open));
+          button.lastElementChild.textContent = open ? '−' : '+';
+        });
+      });
+
+      document.querySelectorAll('.reveal').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var answer = button.closest('.question').querySelector('.answer');
+          var open = !answer.classList.contains('open');
+          answer.classList.toggle('open', open);
+          button.setAttribute('aria-expanded', String(open));
+          button.textContent = open ? 'Hide model answer' : 'Show model answer';
+        });
+      });
+
+      var drills = [
+        {
+          q: 'Writes overwhelm a single leader, but reads are modest. Which move addresses the actual bottleneck?',
+          choices: ['Add read replicas', 'Shard the dataset across multiple leaders', 'Add a bigger cache in front'],
+          correct: 1,
+          why: 'Correct. Replicas replay every write, so they cannot absorb write throughput; a cache barely helps writes either. Splitting writes across shard leaders is the move that addresses the write bottleneck.'
+        },
+        {
+          q: 'You shard by hash(user_id) and need "the 100 most recent signups." What is true about this query?',
+          choices: ['It runs on exactly one shard', 'It must scatter-gather across all shards and merge', 'It is impossible on a sharded database'],
+          correct: 1,
+          why: 'Correct. Recency is not in the shard key, so no router can know which shard holds the newest users. The query fans out to every shard, and latency becomes the slowest shard’s latency.'
+        },
+        {
+          q: 'A team shards users into country shards. One country holds 60% of users and is melting. What is the root problem?',
+          choices: ['Countries are low-cardinality and unevenly sized', 'Hash functions are too slow', 'The shard count is a prime number'],
+          correct: 0,
+          why: 'Correct. Country has ~200 values with wildly unequal populations — low cardinality and lumpy distribution. A shard key must have many values that spread evenly; use (country, user_id) or hash(user_id) with country as placement policy instead.'
+        },
+        {
+          q: 'Under consistent hashing, you add one shard to a 4-shard cluster. Roughly how much data moves?',
+          choices: ['Nearly all of it — every key is rehashed', 'About 1/5 of it — the new shard takes its ring share', 'None — old shards keep everything'],
+          correct: 1,
+          why: 'Correct. Only the key ranges immediately preceding the new shard on the ring change ownership — roughly 1/N of the data for N new shards. That minimal movement is the whole point of the ring.'
+        }
+      ];
+      var drillIndex = 0;
+      var answered = false;
+      var optionWrap = document.getElementById('drillOptions');
+      var feedback = document.getElementById('drillFeedback');
+      var next = document.getElementById('nextDrill');
+      function renderDrill() {
+        answered = false;
+        var d = drills[drillIndex];
+        document.getElementById('drillProgress').textContent = 'DRILL ' + (drillIndex + 1) + ' OF ' + drills.length;
+        document.getElementById('drillQuestion').textContent = d.q;
+        feedback.textContent = 'Pick an answer to reveal the reasoning.';
+        optionWrap.innerHTML = '';
+        d.choices.forEach(function (choice, i) {
+          var b = document.createElement('button');
+          b.type = 'button'; b.className = 'option'; b.textContent = choice;
+          b.addEventListener('click', function () {
+            if (answered) return;
+            answered = true;
+            optionWrap.querySelectorAll('.option').forEach(function (node, idx) {
+              if (idx === d.correct) node.classList.add('correct');
+              else if (idx === i) node.classList.add('wrong');
+              node.disabled = true;
+            });
+            feedback.textContent = i === d.correct ? d.why : 'Not quite. ' + d.why;
+            next.hidden = false;
+            next.textContent = drillIndex === drills.length - 1 ? 'Restart drills' : 'Next drill';
+          });
+          optionWrap.appendChild(b);
+        });
+        next.hidden = true;
+      }
+      next.addEventListener('click', function () { drillIndex = (drillIndex + 1) % drills.length; renderDrill(); });
+      renderDrill();
+      render();
+    }());
+  </script>
+</body>
+</html>
