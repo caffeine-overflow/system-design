@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>CAP Theorem &amp; Consistency Models</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch .field-line {
+      position: absolute; border: 2px solid rgba(255,255,255,.5); border-radius: 4px;
+      pointer-events: none;
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .segmented { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 10px; overflow: hidden; }
+    .segmented button {
+      border: 0; background: var(--surface); padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .segmented button.on { background: var(--ink); color: var(--paper); }
+    .screen-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+    @media (max-width: 560px) { .screen-row { grid-template-columns: 1fr; } }
+    .screen {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 18px;
+      background: var(--paper); text-align: center; min-height: 190px;
+    }
+    .screen .node-name { font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .screen .score { font-family: "IBM Plex Mono", monospace; font-size: 2.6rem; font-weight: 600; margin: 6px 0; }
+    .screen .state { font-size: .92rem; margin-top: 8px; min-height: 2.6em; }
+    .screen .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 6px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.stale { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.frozen { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .badge.cut { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line-strong); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 220px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    @media (prefers-color-scheme: dark) { .log .t { color: var(--accent); } }
+    .quiz { display: grid; gap: 12px; margin: 18px 0; }
+    .quiz-item {
+      border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; background: var(--paper);
+    }
+    .quiz-item .q { font-weight: 700; margin-bottom: 10px; }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer h5 { margin: 14px 0 6px; font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .drill {
+      background: var(--purple-soft); border: 1px solid var(--purple);
+      border-radius: var(--radius); padding: 20px 22px; margin: 20px 0; max-width: 46rem;
+    }
+    .drill h4 { margin: 0 0 8px; }
+    .drill .rubric { border-top: 1px dashed var(--purple); padding-top: 12px; }
+    .verdict {
+      border: 2px solid var(--green); border-radius: var(--radius);
+      padding: 18px 22px; margin: 22px 0; max-width: 46rem; background: var(--green-soft);
+    }
+    .verdict h4 { margin: 0 0 8px; color: var(--green); }
+    .verdict p { max-width: none; margin: 6px 0; }
+    .nav-next {
+      display: block; margin-top: 60px; padding: 22px 24px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      text-decoration: none; color: inherit; box-shadow: var(--shadow);
+    }
+    .nav-next:hover { border-color: var(--ink); }
+    .nav-next .lbl { font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .nav-next .t { font-size: 1.2rem; font-weight: 700; margin-top: 4px; }
+    footer.page-foot { margin-top: 56px; color: var(--muted); font-size: .88rem; border-top: 1px solid var(--line); padding-top: 20px; }
+    .kicker { font-size: .82rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 30px 0 -8px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <nav class="crumbs"><a href="../index.html">All lessons</a> &rsaquo; Lesson 7</nav>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 7 &middot; Foundations</span>
+    <h1>CAP Theorem &amp; Consistency Models</h1>
+    <p class="whyline">Every distributed design is haunted by one question: <em>when the network splits, do you keep answering, or do you stay correct?</em> CAP names that trade-off, and consistency models describe exactly how correct you promise to be. Once you can place any system on this map, half of every "design X" discussion writes itself.</p>
+    <div class="meta">
+      <span>~25 min read</span>
+      <span>2 interactive labs</span>
+      <span>4 interview Q&amp;A with model answers</span>
+      <span>3 practice drills</span>
+    </div>
+  </header>
+
+  <div class="toc">
+    <h2>In this lesson</h2>
+    <ol>
+      <li><a href="#what-is-cap">What is CAP?</a> — the theorem defined from zero</li>
+      <li><a href="#the-tradeoff">The real trade-off: partitions are not optional</a></li>
+      <li><a href="#lab-partition">Lab: cut the fiber, choose your side</a></li>
+      <li><a href="#consistency-models">Consistency models: how correct, exactly?</a></li>
+      <li><a href="#lab-models">Lab: the consistency-model explorer</a></li>
+      <li><a href="#pacelc">PACELC: what happens when nothing breaks</a></li>
+      <li><a href="#real-systems">Where real systems sit on the map</a></li>
+      <li><a href="#interview-framing">How to use CAP in a design discussion</a></li>
+      <li><a href="#qa">Interview Q&amp;A with full model answers</a></li>
+      <li><a href="#drills">Practice drills</a></li>
+    </ol>
+  </div>
+  <section id="what-is-cap">
+    <div class="section-head"><span class="section-num">01</span><h2>What is CAP?</h2></div>
+    <p class="lede">The CAP theorem, published by Eric Brewer in 2000, says: <strong>a distributed data store can only guarantee two of three properties at the same time</strong> — Consistency, Availability, and Partition tolerance. Interviewers use it as a lens: "tell me how your design behaves when the network between your servers fails."</p>
+
+    <div class="definition">
+      <strong class="term">Distributed system</strong>
+      <p>A system whose data or logic runs on <strong>more than one machine</strong> (called <em>nodes</em>), and where those machines talk to each other over a network. The moment you add a replica of your database, a second app server, or a cache in another region, you have one. The price of having more than one machine is that the network between them can break.</p>
+    </div>
+
+    <h3>The three letters, from zero</h3>
+    <div class="definition">
+      <strong class="term">C — Consistency</strong>
+      <p>Every read sees the <strong>most recent write</strong> — no matter which node you ask. If a goal is recorded on one server, every other server's answer must include that goal, instantly. It is <em>not</em> about your database being tidy; it is specifically about <strong>all copies agreeing on the latest value</strong>.</p>
+    </div>
+    <div class="definition">
+      <strong class="term">A — Availability</strong>
+      <p>Every request gets a <strong>non-error answer</strong>. A node must reply — it may not hang, time out, or refuse. Note what this does <em>not</em> promise: the answer can be <strong>stale or wrong</strong>, and that still counts as "available." Availability is about <em>responsiveness</em>, not correctness.</p>
+    </div>
+    <div class="definition">
+      <strong class="term">P — Partition tolerance</strong>
+      <p>The system keeps working <strong>even when the network splits</strong> and nodes can't reach each other — a <em>partition</em>. Partitions happen for boring reasons: a cut fiber cable, a misconfigured firewall, a switch rebooting, a cloud region losing connectivity. You don't get to vote on whether partitions happen; the only question is how your system behaves <em>during</em> one.</p>
+    </div>
+
+    <div class="pitch">
+      <div class="field-line" style="top:18px;left:18px;right:18px;bottom:18px;"></div>
+      <span class="tag">⚽ The running example: the World Cup final scoreboard</span>
+      <h4>Two stadiums, one score</h4>
+      <p>Picture the World Cup final. The official score is kept on a server at <strong>Stadium East</strong>. A second copy runs at <strong>Stadium West</strong> across town, feeding the giant screens and the club app. The two copies sync over a fiber link. Tens of thousands of fans in each stadium stare at screens and ask, constantly: <em>"What's the score?"</em></p>
+      <p>In the 63rd minute, a striker scores. The write lands at Stadium East: <strong>1–0</strong>. Now, before the update can cross the fiber link, a construction crew <strong>cuts the cable</strong>. The network is partitioned. A fan in the West stadium looks up at the screen and the app asks the West server for the score. What should it say?</p>
+      <p>This question — <strong>0–0, or "please wait"?</strong> — is the entire CAP theorem. Keep this picture in your head; every idea in this lesson lands on it.</p>
+    </div>
+  </section>
+
+  <section id="the-tradeoff">
+    <div class="section-head"><span class="section-num">02</span><h2>The real trade-off: partitions are not optional</h2></div>
+    <p class="lede">The textbook version says "pick two of three." The working version is sharper: <strong>in a distributed system, P is not a choice — so the real choice is between C and A <em>during a partition</em></strong>. Once you internalize that, the theorem stops being trivia and starts being a design tool.</p>
+
+    <h3>Why "pick 2 of 3" is misleading</h3>
+    <p>Textbooks present CAP as a menu: choose C+P, A+P, or C+A. But "C+A" means <em>"give up partition tolerance"</em> — i.e., pretend the network never fails. A single machine with no replicas is C+A, and that's fine. The instant you have two machines holding copies of data, <strong>partitions become physically possible, and you must have a plan for them</strong>. So a distributed system never really chooses between three letters; it chooses:</p>
+    <ul>
+      <li><strong>During a partition:</strong> consistency or availability — never both.</li>
+      <li><strong>Outside a partition</strong> (network healthy, which is 99.9%+ of the time): you tune <strong>latency vs. consistency</strong> — a different trade-off entirely (see PACELC, section 6).</li>
+    </ul>
+
+    <h3>Walk through the partition, step by step</h3>
+    <p>Back to our stadiums. Fiber is cut. Score is 1–0 at East, still 0–0 at West. A West fan asks for the score. Two honest strategies:</p>
+    <div class="callout">
+      <h4>Strategy 1: stay consistent (CP — Consistency + Partition tolerance)</h4>
+      <p>The West screen <strong>refuses to answer</strong>: "Signal lost — verifying score." The fan gets no answer — that's <strong>unavailability</strong>. But nobody in the West stadium sees a wrong score. The system chose <strong>C over A</strong>.</p>
+      <p>The price: if the fiber stays cut for an hour, the West stadium has <strong>no scoreboard at all</strong> for an hour. Fans riot. Consistency is not free.</p>
+    </div>
+    <div class="callout">
+      <h4>Strategy 2: stay available (AP — Availability + Partition tolerance)</h4>
+      <p>The West screen <strong>keeps answering</strong>: "0–0". Every fan in the West stadium sees the <strong>wrong score</strong> — but the screens work, the app responds, nobody stares at a dead display. The system chose <strong>A over C</strong>.</p>
+      <p>The price: thousands of fans believe it's 0–0 when it's 1–0. When the fiber is repaired, West catches up and the screens flip to 1–0. Fans saw stale data for an hour. Availability is not free either.</p>
+    </div>
+
+    <div class="warn-box">
+      <p><strong>The interviewer trap: "So which is better, CP or AP?"</strong> There is no universal answer — the correct answer is always <em>"it depends on the workload."</em> Selling the last concert ticket twice (double-selling one seat) is catastrophic → lean CP. Showing a slightly stale like-count is harmless → lean AP. Saying "it depends" <em>with a concrete example of each</em> is what separates a senior answer from a memorized one.</p>
+    </div>
+
+    <h3>The consistency–availability choice is per-operation, not per-system</h3>
+    <p>Real systems don't pick one letter and wear it forever. They pick <strong>per feature</strong>:</p>
+    <ul>
+      <li>A concert-ticket platform is <strong>CP for seat inventory</strong> (never sell seat 14B twice) and <strong>AP for the "trending shows" feed</strong> (a stale trending list hurts nobody).</li>
+      <li>A bank is <strong>CP for balances</strong> (your money must be exactly right) and <strong>AP for the marketing banner</strong> on the login page.</li>
+    </ul>
+    <p>Saying "my system is CP" without naming <em>which operations</em> is a junior answer. The senior version: <em>"We're CP on the write path for inventory, AP on reads for the catalog."</em></p>
+  </section>
+  <section id="lab-partition">
+    <div class="section-head"><span class="section-num">03</span><h2>Lab: cut the fiber, choose your side</h2></div>
+    <p class="lede">Time to feel the trade-off instead of reading about it. Below is the two-stadium scoreboard. Cut the fiber, pick a strategy, then advance the match events and watch what each side of CAP actually costs.</p>
+
+    <div class="lab">
+      <h3>⚽ The partition simulator</h3>
+      <p class="howto"><strong>How to use it:</strong> (1) Choose a strategy — <em>Stay consistent</em> or <em>Stay available</em>. (2) Press <em>Cut the fiber</em> to partition the network. (3) Press <em>Advance match</em> to play the next event: a goal is recorded at Stadium East, then a fan at Stadium West asks for the score. (4) Press <em>Repair fiber</em> to heal the partition and see the aftermath. Reset anytime.</p>
+      <div class="controls">
+        <div class="segmented" role="group" aria-label="Strategy">
+          <button id="strat-cp" class="on" type="button">Stay consistent (CP)</button>
+          <button id="strat-ap" type="button">Stay available (AP)</button>
+        </div>
+      </div>
+      <div class="screen-row">
+        <div class="screen">
+          <div class="node-name">Stadium East (primary)</div>
+          <div class="score" id="score-east">0 – 0</div>
+          <div class="state" id="state-east">Connected. Showing the live score.</div>
+          <span class="badge ok" id="badge-east">In sync</span>
+        </div>
+        <div class="screen">
+          <div class="node-name">Stadium West (replica)</div>
+          <div class="score" id="score-west">0 – 0</div>
+          <div class="state" id="state-west">Connected. Showing the live score.</div>
+          <span class="badge ok" id="badge-west">In sync</span>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="btn-cut" type="button">✂️ Cut the fiber</button>
+        <button class="btn primary" id="btn-advance" type="button">▶ Advance match</button>
+        <button class="btn" id="btn-repair" type="button" disabled>🛠 Repair fiber</button>
+        <button class="btn" id="btn-reset" type="button">↺ Reset</button>
+      </div>
+      <div style="margin:10px 0;"><span class="badge cut" id="link-badge">Link: healthy</span></div>
+      <div class="log" id="cap-log" aria-live="polite"></div>
+    </div>
+    <script>
+    (function () {
+      var eastScore = 0, westScore = 0, westShown = 0;
+      var partitioned = false, cp = true, step = 0, frozen = false;
+      var $ = function (id) { return document.getElementById(id); };
+      function log(t, msg) {
+        var el = document.createElement('div');
+        el.innerHTML = '<span class="t">[' + t + ']</span> ' + msg;
+        $('cap-log').appendChild(el);
+        $('cap-log').scrollTop = $('cap-log').scrollHeight;
+      }
+      function setBadge(el, txt, cls) { el.textContent = txt; el.className = 'badge ' + cls; }
+      function render() {
+        $('score-east').textContent = eastScore + ' – 0';
+        if (partitioned && cp) {
+          $('score-west').textContent = '? – ?';
+          $('state-west').textContent = frozen ? 'Blocked: refusing to show a score it cannot verify.' : 'Signal lost. Verifying with East…';
+          setBadge($('badge-west'), 'Unavailable', 'frozen');
+          $('state-east').textContent = 'Connected internally. Still accepting writes.';
+        } else {
+          $('score-west').textContent = westShown + ' – 0';
+          if (partitioned) {
+            $('state-west').textContent = westShown === eastScore ? 'Showing latest known score (may be stale).' : 'Showing STALE score — the goal has not crossed the cut fiber.';
+            setBadge($('badge-west'), 'Stale (available)', 'stale');
+          } else {
+            $('state-west').textContent = 'Connected. Showing the live score.';
+            setBadge($('badge-west'), 'In sync', 'ok');
+          }
+        }
+        if (!partitioned) setBadge($('badge-east'), 'In sync', 'ok');
+        else setBadge($('badge-east'), 'Isolated (writes continue)', 'stale');
+        $('link-badge').textContent = partitioned ? 'Link: CUT — partition in progress' : 'Link: healthy';
+      }
+      function setStrat(isCp) {
+        cp = isCp;
+        $('strat-cp').classList.toggle('on', cp);
+        $('strat-ap').classList.toggle('on', !cp);
+        log('mode', isCp ? 'Strategy: STAY CONSISTENT (CP) — West will refuse to answer rather than risk a wrong score.' : 'Strategy: STAY AVAILABLE (AP) — West keeps answering with whatever it knows, even if stale.');
+      }
+      $('strat-cp').addEventListener('click', function () { setStrat(true); });
+      $('strat-ap').addEventListener('click', function () { setStrat(false); });
+      $('btn-cut').addEventListener('click', function () {
+        if (partitioned) return;
+        partitioned = true; frozen = cp;
+        $('btn-cut').disabled = true; $('btn-repair').disabled = false;
+        log('net', '⚠️ A construction crew cut the fiber between the stadiums. PARTITION STARTED. East and West can no longer talk.');
+        render();
+      });
+      $('btn-advance').addEventListener('click', function () {
+        step++;
+        if (step % 2 === 1) {
+          eastScore++;
+          log('match', '⚽ GOAL! Recorded at Stadium East. Official score is now ' + eastScore + '–0.');
+          if (!partitioned) { westScore = eastScore; westShown = eastScore; log('sync', 'Fiber healthy — West replica updated instantly.'); }
+          else log('sync', 'Fiber is cut — the update CANNOT reach West.');
+        } else {
+          log('fan', '🙋 A fan at Stadium West asks the screen: "What\'s the score?"');
+          if (!partitioned) log('west', 'West answers: ' + westShown + '–0. Correct, because the link is healthy.');
+          else if (cp) log('west', '❌ West REFUSES to answer ("verifying…"). The fan sees nothing. Consistency kept, availability sacrificed.');
+          else log('west', '⚠️ West answers: ' + westShown + '–0 — STALE. The fan celebrates a 0–0 that is not real. Availability kept, consistency sacrificed.');
+        }
+        render();
+      });
+      $('btn-repair').addEventListener('click', function () {
+        if (!partitioned) return;
+        partitioned = false; frozen = false;
+        $('btn-cut').disabled = false; $('btn-repair').disabled = true;
+        westShown = eastScore;
+        log('net', '🛠 Fiber repaired. West replica catches up: score flips to ' + eastScore + '–0.');
+        if (cp) log('after', 'Under CP, West fans saw NOTHING during the outage — correct, but useless.');
+        else log('after', 'Under AP, West fans saw a WRONG score during the outage — but the system never went dark. This "catching up later" is called convergence.');
+        render();
+      });
+      $('btn-reset').addEventListener('click', function () {
+        eastScore = 0; westShown = 0; step = 0; partitioned = false; frozen = false;
+        $('btn-cut').disabled = false; $('btn-repair').disabled = true;
+        $('cap-log').innerHTML = '';
+        log('init', 'Simulator reset. Pick a strategy, cut the fiber, advance the match.');
+        render();
+      });
+      log('init', 'Pick a strategy, then cut the fiber to start the partition.');
+      render();
+    })();
+    </script>
+
+    <div class="verdict">
+      <h4>What the lab just taught you</h4>
+      <p>There is no clever third option. Once the link is cut, the West node <strong>cannot know</strong> the true score — it must either <strong>guess</strong> (serve the stale 0–0 = availability) or <strong>stay silent</strong> (freeze = consistency). CAP is not a design preference; it is a <strong>physical fact about partitioned systems</strong>. Every real system just decides, in advance, which pain it would rather feel.</p>
+    </div>
+  </section>
+  <section id="consistency-models">
+    <div class="section-head"><span class="section-num">04</span><h2>Consistency models: how correct, exactly?</h2></div>
+    <p class="lede">CAP's "C" is a light switch — everyone agrees, instantly. Real systems need dimmer settings: <strong>consistency models</strong> are the formal promises a system makes about <em>what</em> readers can see and <em>when</em>. They run from "everyone sees everything instantly" down to "you'll see it… eventually." Each model below is defined from zero, with the same soccer scenario so you can compare them directly.</p>
+
+    <div class="pitch">
+      <span class="tag">⚽ The shared scenario</span>
+      <h4>The club app's transfer-news feed</h4>
+      <p>Your club's app shows transfer news, fed by two writers: the <strong>club reporter</strong> (posts official news) and a <strong>fan blogger</strong> (posts reactions). Two fans, <strong>Ada</strong> and <strong>Ben</strong>, read the feed from different phones hitting different replicas. Three posts happen in order: <em>P1: "Star striker injured in training"</em> → <em>P2: "Club signs replacement striker"</em> → <em>P3: "Replacement scores on debut"</em>.</p>
+      <p>Watch what Ada and Ben are allowed to see under each model.</p>
+    </div>
+
+    <h3>The spectrum, strongest first</h3>
+
+    <div class="definition">
+      <strong class="term">1. Strong consistency (linearizability)</strong>
+      <p><strong>Definition:</strong> every read sees the <strong>latest completed write</strong>, as if there were only one copy and all operations happened in a single global order. Once a write is acknowledged, <em>every</em> subsequent read anywhere returns it.</p>
+      <p><strong>Soccer:</strong> the moment the reporter hits "publish" on P2, Ada's and Ben's phones both show P2 — no exceptions, no delay you can observe.</p>
+      <p><strong>Cost:</strong> the most expensive model. Every write must be confirmed by enough replicas before it returns, which adds <strong>latency</strong> — and during a partition, writes must block (CP), because a replica can't be sure it's the latest. Used for money, inventory, locks, configuration.</p>
+    </div>
+
+    <div class="definition">
+      <strong class="term">2. Sequential consistency</strong>
+      <p><strong>Definition:</strong> all nodes see operations in the <strong>same order</strong>, and that order respects each writer's own program order — but the shared order doesn't have to match <em>real time</em>. Everyone agrees on the sequence of events; they just might all agree on a sequence that is a few seconds behind reality.</p>
+      <p><strong>Soccer:</strong> Ada and Ben both see P1, then P2, then P3 — never P2 before P1, and never a different order from each other. But both phones might still be showing P1 for a moment after P2 was published.</p>
+      <p><strong>Cost:</strong> slightly cheaper than strong (no real-time guarantee), but still requires global coordination. Rarely named as a product feature; mostly a textbook step on the ladder.</p>
+    </div>
+
+    <div class="definition">
+      <strong class="term">3. Causal consistency</strong>
+      <p><strong>Definition:</strong> operations that are <strong>causally related</strong> — one could have influenced the other — appear in order everywhere. Operations with <strong>no causal link</strong> may appear in any order. "Causally related" usually means: same writer, or a read-then-write chain (you saw X, then wrote Y <em>because of</em> X).</p>
+      <p><strong>Soccer:</strong> P2 ("signs replacement") was written <em>because of</em> P1 ("striker injured") — they're causally linked, so nobody ever sees P2 without P1. But the fan blogger's reaction post (unrelated to the reporter's news) can appear before or after P1 on different phones.</p>
+      <p><strong>Cost:</strong> much cheaper — replicas only need to track <em>cause-and-effect</em> chains (often via <strong>vector clocks</strong>, timestamps that record "who knew what when"), not a global order. A sweet spot for collaborative apps and social feeds.</p>
+    </div>
+
+    <div class="definition">
+      <strong class="term">4. Session guarantees: read-your-writes &amp; monotonic reads</strong>
+      <p><strong>Definition:</strong> these promise consistency <strong>within one user's session</strong>, not across the whole system. <em>Read-your-writes:</em> after you write something, your own subsequent reads always show it. <em>Monotonic reads:</em> once you've seen a value, you never see an <em>older</em> value again — time never runs backward for you.</p>
+      <p><strong>Soccer:</strong> the reporter publishes P2, then refreshes her own phone: she <strong>must</strong> see P2 (read-your-writes) — otherwise she'd think the publish failed and post it twice. Meanwhile Ben's phone might lag behind, as long as it never shows him P1 <em>after</em> already showing him P2 (monotonic reads).</p>
+      <p><strong>Cost:</strong> cheap to provide — usually done by <strong>sticky routing</strong> (sending the same user to the same replica) or by having clients remember a version token. This is why your own post always appears on your screen even when everyone else's feed is stale.</p>
+    </div>
+
+    <div class="definition">
+      <strong class="term">5. Eventual consistency</strong>
+      <p><strong>Definition:</strong> the weakest promise — <strong>if writes stop, all replicas will <em>eventually</em> agree</strong>. There is no bound on "eventually": it could be milliseconds or minutes. Readers may see old values, see updates in different orders, and temporarily disagree with each other.</p>
+      <p><strong>Soccer:</strong> after P3 is published, Ada might see P3 while Ben still sees P1 — and if Ben refreshes, he could briefly see <em>P1 again</em> (no monotonic-read guarantee either, unless added separately). Once the newsroom goes quiet, both phones converge to P1→P2→P3.</p>
+      <p><strong>Cost:</strong> the cheapest and most available model — writes succeed with a single replica, so the system stays up through partitions (AP). Used for like counts, view counts, product catalogs, DNS, and social feeds. The catch: your application must <strong>tolerate temporary disagreement</strong>.</p>
+    </div>
+
+    <h3>Compare them at a glance</h3>
+    <table class="cmp">
+      <tr><th>Model</th><th>Guarantee in one line</th><th>What a reader might see</th><th>Typical use</th></tr>
+      <tr><td><strong>Strong</strong></td><td>Everyone sees the latest write, instantly</td><td>Always the truth, never stale</td><td>Bank balances, seat inventory, locks</td></tr>
+      <tr><td><strong>Sequential</strong></td><td>Everyone sees the same order</td><td>Agreed order, possibly behind real time</td><td>Textbook model; total-order broadcast</td></tr>
+      <tr><td><strong>Causal</strong></td><td>Cause-and-effect order preserved</td><td>Related posts ordered; unrelated may shuffle</td><td>Social feeds, collaborative docs</td></tr>
+      <tr><td><strong>Session</strong></td><td><em>Your</em> reads are consistent with <em>your</em> writes</td><td>Your post always visible to you; others may lag</td><td>Sticky sessions, client version tokens</td></tr>
+      <tr><td><strong>Eventual</strong></td><td>Replicas converge <em>if writes stop</em></td><td>Stale, reordered, or conflicting views — temporarily</td><td>Likes, counters, catalogs, DNS</td></tr>
+    </table>
+
+    <div class="warn-box">
+      <p><strong>Common confusion: "eventual consistency" ≠ "no consistency."</strong> It is a precise, testable guarantee: <em>convergence</em>. What it does <strong>not</strong> guarantee is <em>when</em>. And a separate question: when two replicas accept conflicting writes during a partition (both stadiums record a goal at the same time), <strong>conflict resolution</strong> decides the winner — <em>last-write-wins</em> (by timestamp), <em>application merge</em> (the app reconciles), or <em>CRDTs</em> (data structures mathematically designed to merge without conflicts). You covered these in the replication lesson; they are the machinery that makes "eventually" actually happen.</p>
+    </div>
+  </section>
+  <section id="lab-models">
+    <div class="section-head"><span class="section-num">05</span><h2>Lab: the consistency-model explorer</h2></div>
+    <p class="lede">Pick a model and see exactly what it promises — the guarantee, the soccer example, where it's used, and what it costs. This is the mental card catalog to reach for when an interviewer asks "what consistency does this need?"</p>
+
+    <div class="lab">
+      <h3>🗂 Consistency models, one card at a time</h3>
+      <p class="howto"><strong>How to use it:</strong> tap a model on the left. The card shows its promise, a worked soccer example, where industry uses it, and the price you pay. Start at the top and walk down — each step relaxes one guarantee and buys back performance or availability.</p>
+      <div class="controls" id="model-tabs" role="group" aria-label="Consistency models"></div>
+      <div id="model-card" class="quiz-item" style="background:var(--surface);"></div>
+    </div>
+    <script>
+    (function () {
+      var models = [
+        { name: "Strong", color: "var(--accent)",
+          promise: "Every read returns the most recent completed write — everywhere, instantly. Equivalent to a single machine's behavior.",
+          soccer: "Reporter publishes P2 (\"signs replacement\"). Ada's and Ben's phones show P2 immediately — no lag any fan can observe.",
+          used: "Bank balances, inventory counts, distributed locks, leader election, configuration stores (etcd, ZooKeeper).",
+          price: "Highest latency on writes (must confirm with replicas first); writes block during partitions." },
+        { name: "Sequential", color: "var(--purple)",
+          promise: "All nodes observe the same order of operations, respecting each writer's program order — but the order may lag real time.",
+          soccer: "Ada and Ben both see P1 → P2 → P3, in that exact order, never shuffled. But both phones may show P1 for a few seconds after P2 is published.",
+          used: "Mostly a theoretical model; underlies total-order broadcast primitives used by consensus systems.",
+          price: "Still needs global coordination — expensive, rarely chosen as a product-level promise." },
+        { name: "Causal", color: "var(--blue)",
+          promise: "Causally related writes (same author, or read-then-write chains) appear in order everywhere. Unrelated writes may appear in any order.",
+          soccer: "Nobody sees P2 (\"signs replacement\") without P1 (\"striker injured\") first — P2 exists because of P1. But the fan blogger's unrelated reaction can land before or after P1 on different phones.",
+          used: "Social feeds, chat apps, collaborative editing — anywhere cause-and-effect is what users actually notice.",
+          price: "Moderate: replicas track causality (vector clocks), but no global ordering needed." },
+        { name: "Session", color: "var(--green)",
+          promise: "Read-your-writes + monotonic reads, but only within one user's session. Your own actions are always visible to you; time never runs backward for you.",
+          soccer: "The reporter always sees her own published P2 when she refreshes — she'd otherwise double-post. Ben may still lag, as long as his phone never shows him P1 after P2.",
+          used: "Sticky sessions, mobile apps with version tokens, any UX where 'I just did X and now it's gone' would destroy trust.",
+          price: "Cheap: route the user to the same replica, or have the client carry a version token." },
+        { name: "Eventual", color: "var(--amber)",
+          promise: "If writes stop, all replicas converge to the same state. No promise about when — milliseconds or minutes.",
+          soccer: "Ada sees P3 while Ben still sees P1. Refreshing, Ben might even see an older post again. Once the newsroom goes quiet, both phones settle on P1 → P2 → P3.",
+          used: "Like counts, view counters, product catalogs, DNS, timelines — anything where temporary disagreement is harmless.",
+          price: "Cheapest and most available; writes succeed on one replica. Your app must tolerate disagreement and resolve conflicts on merge." }
+      ];
+      var tabs = document.getElementById('model-tabs');
+      var card = document.getElementById('model-card');
+      function show(i) {
+        var m = models[i];
+        Array.prototype.forEach.call(tabs.children, function (b, j) {
+          b.classList.toggle('on', i === j);
+          b.style.borderColor = i === j ? m.color : '';
+        });
+        card.innerHTML =
+          '<div class="q" style="color:' + m.color + ';font-size:1.1rem;">' + m.name + ' consistency</div>' +
+          '<p><strong>The promise:</strong> ' + m.promise + '</p>' +
+          '<p><strong>⚽ In the club app:</strong> ' + m.soccer + '</p>' +
+          '<p><strong>Used for:</strong> ' + m.used + '</p>' +
+          '<p><strong>The price:</strong> ' + m.price + '</p>';
+      }
+      models.forEach(function (m, i) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn'; b.textContent = m.name;
+        b.addEventListener('click', function () { show(i); });
+        tabs.appendChild(b);
+      });
+      show(0);
+    })();
+    </script>
+  </section>
+
+  <section id="pacelc">
+    <div class="section-head"><span class="section-num">06</span><h2>PACELC: what happens when nothing breaks</h2></div>
+    <p class="lede">Here's CAP's blind spot: partitions are rare. Your system spends 99.9% of its life <em>not</em> partitioned — and CAP says nothing about that time. <strong>PACELC</strong> (by Daniel Abadi) completes the picture.</p>
+
+    <div class="definition">
+      <strong class="term">PACELC</strong>
+      <p><strong>If there is a Partition</strong>, choose between <strong>A</strong>vailability and <strong>C</strong>onsistency (that's CAP). <strong>Else</strong> (no partition — the normal case), choose between <strong>L</strong>atency and <strong>C</strong>onsistency.</p>
+    </div>
+
+    <p>Read that second half carefully, because it's where senior engineers spend their time. Even with a perfectly healthy network, you face a choice on <strong>every write</strong>:</p>
+    <ul>
+      <li><strong>Wait for replicas to confirm</strong> (synchronous replication) → stronger consistency, <strong>higher latency</strong>. The fan's "publish" button spins a little longer, but once it succeeds, every replica has it.</li>
+      <li><strong>Return as soon as one replica has it</strong> (asynchronous replication) → <strong>lower latency</strong>, weaker consistency. The button responds instantly, but a reader on another replica might not see the post yet.</li>
+    </ul>
+    <p>Back to the stadiums: with the fiber <em>healthy</em>, the club app team still decides — does the reporter's "publish" wait for the West stadium to confirm (EL: latency, EC: consistency)? Match-day traffic spikes might push them toward async (low latency), while the official match record might demand sync (consistency). <strong>Same system, two different ELC choices for two different features</strong> — exactly like the per-operation CAP choices in section 2.</p>
+
+    <div class="callout">
+      <h4>Why interviewers love PACELC</h4>
+      <p>Most candidates recite "pick two of three" and stop. Saying <em>"and under PACELC, when there's no partition we trade latency for consistency — so for the write path I'd use synchronous replication because seat inventory can't tolerate stale reads, accepting the extra ~20ms"</em> signals you think about the system as it runs <strong>99.9% of the time</strong>, not just during disasters. That's a senior-level sentence.</p>
+    </div>
+  </section>
+  <section id="real-systems">
+    <div class="section-head"><span class="section-num">07</span><h2>Where real systems sit on the map</h2></div>
+    <p class="lede">Theory is forgettable; placements are memorable. Here is where well-known systems land — and <em>why</em>, because the "why" is what interviewers probe.</p>
+
+    <table class="cmp">
+      <tr><th>System</th><th>CAP side</th><th>Why it chose that side</th></tr>
+      <tr><td><strong>ZooKeeper / etcd</strong></td><td>CP</td><td>They store <em>coordination</em> data — locks, leader election, config. A wrong answer here corrupts everything built on top, so they'd rather refuse than lie. During a partition the minority side stops serving.</td></tr>
+      <tr><td><strong>Cassandra / DynamoDB</strong></td><td>AP</td><td>Built for shopping carts and always-on writes. A partition must not stop checkouts; conflicting writes are merged later (timestamps / vector clocks). You can tune it toward C with quorum settings, but its soul is availability.</td></tr>
+      <tr><td><strong>MongoDB</strong></td><td>CP <em>(default)</em>, tunable</td><td>By default, writes go to the primary and the primary steps down if it can't reach a majority — choosing consistency. But you can relax read/write concerns per operation, sliding toward AP.</td></tr>
+      <tr><td><strong>PostgreSQL (single node)</strong></td><td>CA</td><td>One machine, no partition possible <em>inside</em> it: fully consistent and fully available. The moment you add replicas or failover, you're back in distributed land and CA evaporates.</td></tr>
+      <tr><td><strong>Google Spanner</strong></td><td>CP, with a twist</td><td>Uses atomic clocks (TrueTime) to give <em>external consistency</em> — strong consistency with real-time ordering — across the planet. It chose consistency and paid for it with extraordinary infrastructure.</td></tr>
+      <tr><td><strong>Redis Cluster</strong></td><td>AP <em>(default)</em></td><td>Async replication by default: fast, available, but a failover can lose acknowledged writes. Tunable toward CP with <code>WAIT</code>, but most deployments accept the risk for speed.</td></tr>
+      <tr><td><strong>Kafka</strong></td><td>CP <em>(typical config)</em></td><td>With <code>acks=all</code> and <code>min.insync.replicas</code>, a partition blocks producers rather than risk losing or duplicating committed messages. Relax those settings and it slides toward AP.</td></tr>
+    </table>
+
+    <div class="warn-box">
+      <p><strong>The "tunable" trap.</strong> Notice how many rows say <em>tunable</em>. Modern systems are rarely pure CP or AP — they expose <strong>knobs</strong> (quorum sizes, write concerns, ack levels) that slide along the spectrum <em>per operation</em>. If an interviewer asks "is Cassandra CP or AP?", the strong answer is: <em>"AP by default and by design philosophy, but with R + W &gt; N quorum reads/writes you can get strong consistency per operation — you just pay latency and lose availability during partitions for those operations."</em> That sentence demonstrates the replication lesson, the CAP lesson, and the per-operation thinking all at once.</p>
+    </div>
+  </section>
+
+  <section id="interview-framing">
+    <div class="section-head"><span class="section-num">08</span><h2>How to use CAP in a design discussion</h2></div>
+    <p class="lede">CAP is not a slide you present — it's a <strong>decision you announce, per component, with a reason</strong>. Here is the three-sentence pattern that works in any design interview:</p>
+
+    <div class="callout">
+      <h4>The pattern: name it, place it, justify it</h4>
+      <ol>
+        <li><strong>Name the data:</strong> "For seat inventory…", "For the trending feed…"</li>
+        <li><strong>Place it:</strong> "…I'll go CP / AP / strong / eventual…"</li>
+        <li><strong>Justify it with the cost of being wrong:</strong> "…because double-selling a seat is a refund and a lawsuit, while a stale trending list is invisible."</li>
+      </ol>
+      <p>Then add the PACELC kicker for the normal case: <em>"With no partition, I'll use synchronous replication on the inventory write path — I'll pay ~20ms of latency so reads never see a sold seat as available."</em></p>
+    </div>
+
+    <h3>A worked example: concert ticketing</h3>
+    <ul>
+      <li><strong>Seat inventory (CP, strong):</strong> two buyers must never hold the same seat. During a partition, the minority region <em>stops selling</em> rather than risk a double-sale. Users see "try again" — annoying, but the business survives.</li>
+      <li><strong>Order history (session consistency):</strong> after you buy, <em>your</em> "my tickets" page must show the ticket immediately (read-your-writes) — otherwise you'll buy twice. Nobody else needs to see it instantly.</li>
+      <li><strong>Trending shows feed (AP, eventual):</strong> a concert showing 9,999 vs 10,000 tickets sold changes nothing. Serve it from the nearest replica, reconcile later.</li>
+    </ul>
+    <p>Three components, three different answers, each with a one-line justification. That is what "knowing CAP" looks like in practice — not the triangle diagram, but <strong>the discipline of assigning consistency per feature based on the cost of being wrong</strong>.</p>
+  </section>
+  <section id="qa">
+    <div class="section-head"><span class="section-num">09</span><h2>Interview Q&amp;A — with full model answers</h2></div>
+    <p class="lede">Tap a question to reveal a complete model answer — the kind of answer that earns the follow-up question instead of a blank stare. Each one is written to be spoken aloud in about a minute.</p>
+
+    <div class="qa">
+      <div class="question">
+        <div class="qnum">Q1 · THE 60-SECOND ANSWER</div>
+        <div class="qtext">Explain the CAP theorem.</div>
+        <div class="context">The opener. Almost every distributed-systems interview starts here — they want the crisp version, then they'll probe.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <p>"CAP says a distributed data store can only guarantee two of three things <strong>at the same time</strong>: <strong>Consistency</strong> — every read sees the latest write; <strong>Availability</strong> — every request gets a non-error response; and <strong>Partition tolerance</strong> — the system keeps working when the network splits nodes apart.</p>
+          <p>The practical reading is sharper than 'pick two of three.' In a distributed system, <strong>partitions will happen</strong> — cables get cut, switches reboot — so P isn't really a choice. The real choice is what you do <strong>during a partition</strong>: stay <strong>consistent</strong> by refusing requests you can't verify, or stay <strong>available</strong> by answering with possibly stale data.</p>
+          <p>And per PACELC, there's a second trade-off when the network is <em>healthy</em>: <strong>latency vs. consistency</strong> on every write. So in a design I'd choose per component — CP with strong consistency for things like seat inventory where being wrong is expensive, AP with eventual consistency for things like like-counts where staleness is harmless."</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2 · APPLIED JUDGMENT</div>
+        <div class="qtext">You're designing a concert ticketing system. CP or AP — and where?</div>
+        <div class="context">They're testing whether you apply CAP per component instead of blessing the whole system with one letter.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <p>"It splits by component, based on <strong>the cost of being wrong</strong>:</p>
+          <ul>
+            <li><strong>Seat inventory — CP, strong consistency.</strong> Double-selling seat 14B means refunds, angry customers, possibly legal trouble. During a partition, the minority side <strong>stops selling</strong> rather than risk it. I'd use synchronous replication on the write path — pay ~20ms latency so no read ever sees a sold seat as available.</li>
+            <li><strong>Order history — session consistency.</strong> After buying, <em>your</em> 'my tickets' page must show the ticket immediately — read-your-writes — or you'll panic and buy twice. Other users don't need to see it instantly.</li>
+            <li><strong>Trending feed and seat maps — AP, eventual consistency.</strong> A concert showing 9,999 vs 10,000 tickets sold changes no decision. Serve from the nearest replica, reconcile in the background.</li>
+          </ul>
+          <p>So the honest answer isn't 'CP or AP' — it's <strong>CP where correctness has a price tag, AP where staleness is invisible</strong>, and I'd state that split explicitly in the design."</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3 · THE TRAP QUESTION</div>
+        <div class="qtext">Can a system be CA — consistent and available, giving up partition tolerance?</div>
+        <div class="context">Classic trap. They want to see if you understand that P is not optional in distributed systems.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <p>"Only if it's <strong>not really distributed</strong>. A single-node PostgreSQL is CA — one machine, no network between copies, so partitions can't happen <em>inside</em> it. It's consistent and available.</p>
+          <p>But the moment you add a replica, a failover standby, or a second region — the moment it's distributed — <strong>partitions become physically possible</strong>, and 'giving up P' just means 'having no plan for when the network fails,' which is not a plan. So CA exists, but only on a single box, and single boxes don't survive hardware failure — which is why we distribute in the first place.</p>
+          <p>The follow-up I'd add unprompted: <strong>PACELC</strong> covers the 99.9% of time when there's <em>no</em> partition, where the real trade-off is latency vs. consistency on the write path."</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4 · PRECISION</div>
+        <div class="qtext">What does eventual consistency actually guarantee? Give a concrete example where it's the right choice — and one where it would be dangerous.</div>
+        <div class="context">They're checking you know "eventual" is a real guarantee (convergence), not a shrug.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <p>"Eventual consistency guarantees <strong>convergence</strong>: <em>if writes stop</em>, all replicas will eventually agree on the same state. What it does <strong>not</strong> guarantee is <em>when</em> — it could be milliseconds or minutes — or what any individual read returns in the meantime. Readers may see stale, reordered, or conflicting values.</p>
+          <p><strong>Right choice:</strong> a video's view count on a streaming platform. If two viewers see 1.2M vs 1.21M for a minute, nobody is harmed, and the system stays fast and available through anything. The counter converges.</p>
+          <p><strong>Dangerous:</strong> a bank transfer ledger. If your balance reads $500 on one replica and $300 on another because a transfer hasn't converged, you might spend money twice — or be wrongly declined. Money needs strong consistency; the cost of being wrong is the money itself.</p>
+          <p>One more nuance I'd mention: eventual systems still need <strong>conflict resolution</strong> for writes that land on both sides of a partition — last-write-wins by timestamp, application-level merge, or CRDTs — because 'converge' has to mean <em>converge to the same thing</em>."</p>
+        </div></details>
+      </div>
+    </div>
+  </section>
+  <section id="drills">
+    <div class="section-head"><span class="section-num">10</span><h2>Practice drills</h2></div>
+    <p class="lede">Untimed — think like you're whiteboarding. Write your answer, then check the rubric.</p>
+
+    <div class="drill">
+      <h4>Drill 1 — Split the food-delivery app</h4>
+      <p>A food-delivery app has four features: <strong>(a)</strong> restaurant menu browsing, <strong>(b)</strong> placing an order (kitchen must not get two copies of the same order), <strong>(c)</strong> the courier's live location on your map, <strong>(d)</strong> your order history. Assign each a CAP side and consistency model, with a one-line justification each.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>(a) Menus — AP, eventual.</strong> A menu showing yesterday's price for a minute is harmless; browsing must never go down during a partition. (Full marks for "stale menu is invisible to the business.")</li>
+          <li><strong>(b) Order placement — CP, strong.</strong> A duplicated order means the kitchen cooks twice and the customer is charged twice — the cost of being wrong is real money. During a partition, refuse new orders on the minority side. (Full marks for naming the double-charge failure.)</li>
+          <li><strong>(c) Courier location — AP, eventual (or even weaker).</strong> Location data is stale by nature — it's always a few seconds old. Availability matters; precision doesn't. (Full marks for "location is inherently stale anyway.")</li>
+          <li><strong>(d) Order history — session consistency.</strong> <em>You</em> must see your just-placed order immediately (read-your-writes, or you'll reorder); nobody else cares. (Full marks for the per-user framing.)</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> the phrase <em>"the cost of being wrong"</em> applied per feature, plus explicitly stating what happens during a partition for the CP choice (refuse orders) rather than hand-waving.</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 2 — Classify and defend</h4>
+      <p>For each system, state its CAP side and one sentence of <em>why</em>: <strong>etcd</strong>, <strong>Cassandra</strong>, <strong>single-node PostgreSQL</strong>, <strong>Redis Cluster (default config)</strong>.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>etcd — CP.</strong> It stores coordination data (locks, leader election); a wrong answer corrupts everything above it, so the minority partition stops serving.</li>
+          <li><strong>Cassandra — AP.</strong> Designed for always-on writes (shopping carts); conflicts merge later via timestamps. Tunable toward C per operation with quorums.</li>
+          <li><strong>Single-node PostgreSQL — CA.</strong> One box, no internal partition possible — consistent and available until the hardware dies. Add a replica and CA is gone.</li>
+          <li><strong>Redis Cluster default — AP.</strong> Asynchronous replication: fast and available, but a failover can lose acknowledged writes. <code>WAIT</code> can slide it toward CP.</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> adding "tunable" where it applies (Cassandra quorums, Redis WAIT) instead of treating the labels as permanent tattoos.</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 3 — The PACELC sentence</h4>
+      <p>In one or two sentences, explain the trade-off your system makes <strong>when there is no partition</strong> — for the <em>write path of seat inventory</em> in a ticketing system. Mention latency explicitly.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <p>A strong answer sounds like: <em>"With no partition, I use synchronous replication on the inventory write path — the buyer's request waits for a quorum of replicas to confirm, costing roughly tens of milliseconds of latency, so that no read anywhere can ever see a sold seat as available."</em></p>
+        <p><strong>What earns top marks:</strong> naming the mechanism (sync replication / quorum), naming the price (latency, quantified even roughly), and tying it to the user-visible guarantee. Mentioning "PACELC" by name is a bonus, not a requirement.</p>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="takeaways">
+    <div class="section-head"><span class="section-num">✓</span><h2>Key takeaways</h2></div>
+    <ul>
+      <li><strong>CAP:</strong> during a partition, a distributed store chooses between consistency (refuse rather than lie) and availability (answer, possibly stale). Partitions aren't optional — so the choice isn't either.</li>
+      <li><strong>"Pick two of three" is the slogan; per-operation trade-offs are the job.</strong> Real systems are CP for inventory and AP for feeds, in the same codebase.</li>
+      <li><strong>Consistency models</strong> are the dimmer switch: strong → sequential → causal → session → eventual. Each step down buys performance or availability and sells certainty.</li>
+      <li><strong>Eventual consistency guarantees convergence</strong> — not speed. And it needs conflict resolution to converge to the <em>same</em> thing.</li>
+      <li><strong>PACELC</strong> covers the 99.9% healthy-network case: latency vs. consistency on the write path. This is where senior engineers actually spend their design time.</li>
+      <li><strong>In interviews:</strong> name the data, place it on the map, justify it with <em>the cost of being wrong</em> — one sentence per component.</li>
+    </ul>
+  </section>
+
+  <a class="nav-next" href="database-sharding.html">
+    <div class="lbl">Previous lesson · Lesson 6</div>
+    <div class="t">Database Sharding &amp; Partitioning →</div>
+  </a>
+
+  <footer class="page-foot">
+    Lesson 7 of the daily system design series · <a href="../index.html">All lessons</a>
+  </footer>
+</div>
+</body>
+</html>
