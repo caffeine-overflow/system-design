@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Database Indexing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch .field-line {
+      position: absolute; border: 2px solid rgba(255,255,255,.5); border-radius: 4px;
+      pointer-events: none;
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .segmented { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 10px; overflow: hidden; }
+    .segmented button {
+      border: 0; background: var(--surface); padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .segmented button.on { background: var(--ink); color: var(--paper); }
+    .screen-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+    @media (max-width: 560px) { .screen-row { grid-template-columns: 1fr; } }
+    .screen {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 18px;
+      background: var(--paper); text-align: center; min-height: 190px;
+    }
+    .screen .node-name { font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .screen .score { font-family: "IBM Plex Mono", monospace; font-size: 2.6rem; font-weight: 600; margin: 6px 0; }
+    .screen .state { font-size: .92rem; margin-top: 8px; min-height: 2.6em; }
+    .screen .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 6px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.stale { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.frozen { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .badge.cut { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line-strong); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 220px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    @media (prefers-color-scheme: dark) { .log .t { color: var(--accent); } }
+    .quiz { display: grid; gap: 12px; margin: 18px 0; }
+    .quiz-item {
+      border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; background: var(--paper);
+    }
+    .quiz-item .q { font-weight: 700; margin-bottom: 10px; }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer h5 { margin: 14px 0 6px; font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .drill {
+      background: var(--purple-soft); border: 1px solid var(--purple);
+      border-radius: var(--radius); padding: 20px 22px; margin: 20px 0; max-width: 46rem;
+    }
+    .drill h4 { margin: 0 0 8px; }
+    .drill .rubric { border-top: 1px dashed var(--purple); padding-top: 12px; }
+    .verdict {
+      border: 2px solid var(--green); border-radius: var(--radius);
+      padding: 18px 22px; margin: 22px 0; max-width: 46rem; background: var(--green-soft);
+    }
+    .verdict h4 { margin: 0 0 8px; color: var(--green); }
+    .verdict p { max-width: none; margin: 6px 0; }
+    .nav-next {
+      display: block; margin-top: 60px; padding: 22px 24px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      text-decoration: none; color: inherit; box-shadow: var(--shadow);
+    }
+    .nav-next:hover { border-color: var(--ink); }
+    .nav-next .lbl { font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .nav-next .t { font-size: 1.2rem; font-weight: 700; margin-top: 4px; }
+    footer.page-foot { margin-top: 56px; color: var(--muted); font-size: .88rem; border-top: 1px solid var(--line); padding-top: 20px; }
+    .kicker { font-size: .82rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 30px 0 -8px; }
+    .bar-wrap { margin: 14px 0; text-align: left; }
+    .bar-label { font-size: .82rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+    .bar-track { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; height: 26px; overflow: hidden; }
+    .bar-fill { height: 100%; width: 0%; border-radius: 7px; transition: width 1.1s ease; }
+    .bar-fill.scan { background: var(--accent); }
+    .bar-fill.idx { background: var(--green); }
+    .bar-num { font-family: "IBM Plex Mono", monospace; font-size: .85rem; font-weight: 600; margin-top: 4px; }
+    .ctrl-note { font-size: .85rem; color: var(--muted); margin: 2px 0 10px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <nav class="crumbs"><a href="../index.html">All lessons</a> &rsaquo; Lesson 8</nav>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 8 &middot; Foundations</span>
+    <h1>Database Indexing</h1>
+    <p class="whyline">Every "find the fast player" query is really a search problem: without an index, the database re-reads every row, every time. An index is the difference between scanning 100 million rows and touching 4 pages. This lesson covers how indexes work, how to design them, what they cost — and the one alternative structure every senior should know.</p>
+    <div class="meta">
+      <span>~25 min read</span>
+      <span>1 interactive lab</span>
+      <span>4 Q&amp;A with model answers</span>
+      <span>3 practice drills</span>
+    </div>
+  </header>
+
+  <div class="toc">
+    <h2>In this lesson</h2>
+    <ol>
+      <li><a href="#what-is-index">What is an index?</a> — the idea defined from zero</li>
+      <li><a href="#btree">How a B-tree index works</a> — pages, nodes, and why lookups stay fast at 100M rows</li>
+      <li><a href="#composite">Composite indexes &amp; column order</a> — the leftmost-prefix rule, worked with a soccer example</li>
+      <li><a href="#covering">Covering indexes &amp; index-only scans</a> — skipping the table entirely</li>
+      <li><a href="#write-cost">The write cost of indexes</a> — write amplification, bloat, and maintenance</li>
+      <li><a href="#lsm">LSM trees</a> — the write-optimized rival to the B-tree</li>
+      <li><a href="#lab">Lab: the index lookup simulator</a></li>
+      <li><a href="#qa">Q&amp;A — with full model answers</a></li>
+      <li><a href="#drills">Practice drills</a></li>
+      <li><a href="#cheatsheet">Cheat sheet: the 6 index-design decisions</a></li>
+    </ol>
+  </div>
+
+  <section id="what-is-index">
+    <div class="section-head"><span class="section-num">01</span><h2>What is an index?</h2></div>
+    <p class="lede">An <strong>index</strong> is a separate, sorted data structure that maps the values in one or more columns to the locations of the rows holding those values — so the database can find matching rows <strong>without reading the rows that don't match</strong>. It trades write speed and disk space for read speed.</p>
+
+    <div class="pitch">
+      <div class="field-line" style="top:18px;left:18px;right:18px;bottom:18px;"></div>
+      <span class="tag">⚽ The running example: the scouting database</span>
+      <h4>A table of 50,000 players</h4>
+      <p>You work for a club. Your database has a table <code>players</code> with <strong>50,000 rows</strong> — one per player scouted worldwide — and columns <code>player_id</code>, <code>name</code>, <code>team</code>, <code>position</code>, <code>goals</code>, <code>assists</code>, <code>minutes_played</code>. The app is full of queries like: <em>"Find the row for Bukayo Saka."</em> <em>"List every striker with more than 20 goals."</em> <em>"Show all Arsenal midfielders."</em></p>
+      <p>Every idea in this lesson lands on this table. Keep it in your head: 50,000 rows, 7 columns, and one very impatient scout.</p>
+    </div>
+
+    <h3>Life without an index: the full table scan</h3>
+    <div class="definition">
+      <strong class="term">Full table scan (sequential scan)</strong>
+      <p>Reading <strong>every row of the table</strong>, one by one, and checking whether each row matches the query's condition. The table itself — the rows as stored on disk — is called the <strong>heap</strong> in PostgreSQL (or the <strong>clustered data</strong> in MySQL/InnoDB).</p>
+    </div>
+    <p>For <code>SELECT * FROM players WHERE name = 'Bukayo Saka'</code> with no index, the database starts at row 1 and reads through all 50,000 rows, comparing each name, until it finds the match. It had to touch 50,000 rows to return 1. That's a <strong>full table scan</strong>: correct, simple, and linear — it costs <strong>O(n)</strong>, meaning the work doubles when the table doubles.</p>
+    <p>Rows live on disk in chunks called <strong>pages</strong> — typically 8 KB each in PostgreSQL and MySQL. A row of ~80 bytes means roughly 100 rows per page, so our 50,000-row table occupies about 500 pages. A scan reads <em>all 500 pages</em> to answer the Saka query.</p>
+
+    <h3>Life with an index</h3>
+    <div class="definition">
+      <strong class="term">Index</strong>
+      <p>An <strong>auxiliary data structure</strong> — separate from the table — that stores the indexed column's values in <strong>sorted order</strong>, each paired with a <strong>row pointer</strong> (the physical location of the row: which page, which slot). It answers one question fast: <em>"given this value, where are the rows?"</em></p>
+    </div>
+    <p>With an index on <code>name</code>, the database searches the <strong>sorted</strong> structure for "Bukayo Saka" — a search that costs <strong>O(log n)</strong>, not O(n) — gets the row pointer (say, <em>page 214, slot 7</em>), and reads exactly that page. It touched ~4 pages instead of 500. The index never replaces the table; it is a <strong>shortcut to it</strong>.</p>
+
+    <div class="callout">
+      <h4>⚽ The match-program analogy</h4>
+      <p>A full table scan is reading the <strong>match program front to back</strong> to find one player's profile. An index is the <strong>alphabetical player list at the back of the program</strong>: each name paired with a page number. You look up the name in the sorted list, jump straight to the page. The analogy even captures the cost: the club must <strong>reprint the index</strong> every time a player is added, removed, or renamed — just as a database must update the index on every write (section 5).</p>
+    </div>
+
+    <div class="warn-box">
+      <p><strong>Why not index everything, then?</strong> Three reasons, and they are the entire second half of this lesson: <strong>(1)</strong> every index must be <strong>updated on every write</strong> — inserts, updates, deletes all get slower; <strong>(2)</strong> each index <strong>consumes disk</strong>; <strong>(3)</strong> the query planner can be <strong>confused by too many choices</strong>. Index design is a budget: spend it where reads are expensive, never where writes dominate.</p>
+    </div>
+  </section>
+
+  <section id="btree">
+    <div class="section-head"><span class="section-num">02</span><h2>How a B-tree index works</h2></div>
+    <p class="lede">The default index in PostgreSQL and MySQL is a <strong>B-tree</strong> (specifically a B+tree, but everyone says B-tree). Understanding its shape — wide, shallow, sorted — explains <em>why</em> lookups cost O(log n), why inserts stay fast, and why the structure is built for disk, not RAM.</p>
+
+    <div class="definition">
+      <strong class="term">B-tree</strong>
+      <p>A <strong>balanced tree</strong> where each node holds <strong>many keys</strong> (hundreds), sorted, instead of the 1–2 keys of a classroom binary tree. <strong>Balanced</strong> means every path from the root to a leaf is the <strong>same length</strong>, so the worst-case lookup cost is predictable. The <strong>B</strong> is usually read as <em>"balanced"</em> — nobody agrees what Bayer originally meant.</p>
+    </div>
+
+    <div class="definition">
+      <strong class="term">Node: root, internal, leaf</strong>
+      <p>Each tree level is made of <strong>nodes</strong>, and one node = <strong>one disk page</strong> (8 KB). The <strong>root</strong> is the single top node. <strong>Internal nodes</strong> hold keys plus pointers <em>down</em> to child nodes. <strong>Leaf nodes</strong> (the bottom level) hold the actual index entries: key value + row pointer into the heap. Searching means: start at the root, follow the right child pointer at each level, land on the leaf.</p>
+    </div>
+
+    <h3>⚽ Walk through a lookup: "goals &gt; 20"</h3>
+    <p>The scouts constantly ask: <em>"Which players scored more than 20 goals this season?"</em> There's an index on <code>goals</code>. Here's the physical journey:</p>
+    <ol>
+      <li><strong>Root page:</strong> holds separator keys like <code>[5 → child A] [12 → child B] [21 → child C]</code>. "More than 20" points at child C.</li>
+      <li><strong>Internal page C:</strong> finer separators: <code>[21 → leaf 1] [24 → leaf 2] [28 → leaf 3]</code>. Pick leaf 1.</li>
+      <li><strong>Leaf page 1:</strong> holds the actual entries sorted by goals: <code>(21 → page 214 slot 7), (22 → page 88 slot 2), …</code>. Everything from here on matches the query — scan forward through the leaf pages.</li>
+      <li><strong>Heap fetch:</strong> for each entry, follow the row pointer and read the row from the table.</li>
+    </ol>
+    <p>Within each node, keys are <strong>sorted</strong>, so finding the right child is a <strong>binary search</strong> over a few hundred keys — ~9 comparisons per page, basically free. The expensive part is never the comparisons; it's the <strong>page reads</strong>. And a lookup touches exactly <strong>one page per level</strong>: root, internal, leaf — three pages, then the heap rows.</p>
+
+    <h3>Why O(log n) — from zero, with the time-complexity lesson</h3>
+    <div class="definition">
+      <strong class="term">Fanout</strong>
+      <p>The number of children each node points to — roughly the number of keys that fit in one 8 KB page. A <code>(goals, row-pointer)</code> entry is ~16 bytes, so a page holds about <strong>500 entries</strong>. Fanout ≈ 500. <strong>Height</strong> = how many levels the tree has.</p>
+    </div>
+    <p>From Lesson 4 (time complexity): <strong>logarithmic growth means the work increases by a fixed step each time the input <em>multiplies</em></strong>. With fanout 500, each new level multiplies capacity by 500:</p>
+    <ul>
+      <li>1 level (root only): 500 entries</li>
+      <li>2 levels: 500 × 500 = 250,000 entries</li>
+      <li>3 levels: 500³ = <strong>125 million</strong> entries</li>
+      <li>4 levels: 500⁴ = 62.5 <strong>billion</strong> entries</li>
+    </ul>
+    <p>So a table of <strong>100 million rows</strong> needs a tree just <strong>3 levels</strong> deep: a lookup reads 3 index pages. Double the table to 200M rows? Still 3 levels. Grow it <strong>500×</strong> to 50 billion rows? Only then do you need a 4th level. <strong>That's</strong> O(log n) — the height (and therefore the number of page reads) barely moves as data explodes. A lookup on 100M rows costs essentially the same as on 10K rows.</p>
+
+    <div class="callout">
+      <h4>⚽ Why not a binary tree? The stadium-seating version</h4>
+      <p>A binary tree has fanout 2: each node points to 2 children. For 100M rows its height is log₂(100M) ≈ <strong>27 levels</strong> — 27 random page reads per lookup. A B-tree with fanout 500 needs <strong>3</strong>. Think of finding a seat: a binary tree is like an usher who answers one yes/no question per page of the stadium map; a B-tree is an usher who hands you a <strong>whole section map</strong> (one page, hundreds of entries) at each step. Because disk reads happen in <strong>whole pages anyway</strong> — the drive won't read 16 bytes for you — packing hundreds of keys into each page-read is nearly free. <strong>B-trees exist because disk I/O is page-shaped.</strong></p>
+    </div>
+
+    <h3>Inserts: page splits keep the tree balanced</h3>
+    <p>What happens when the club signs a new player and a leaf page is already full? The database <strong>splits the page</strong>: it allocates a fresh page, moves half the entries over, and inserts a new separator key in the parent — recursively, up to the root if needed. The split keeps every root-to-leaf path the same length, which is exactly what "balanced" guarantees. Splits cost extra writes (another entry in the write-amplification story of section 5), and they leave pages <strong>half full</strong> — the first seed of <strong>fragmentation</strong>.</p>
+
+    <div class="green-box">
+      <p><strong>The one-paragraph mental model.</strong> A B-tree index is a <strong>sorted, page-shaped shortcut</strong> to your rows. Each level is one disk read; the tree is only 3–4 levels deep for any table you'll ever see; within a page, keys are binary-searched. Reads cost <strong>O(log n)</strong> page fetches, inserts cost O(log n) plus the occasional page split. Everything else in this lesson — composite keys, covering indexes, write costs, LSM trees — is a variation on, or a reaction to, this structure.</p>
+    </div>
+  </section>
+
+  <section id="composite">
+    <div class="section-head"><span class="section-num">03</span><h2>Composite indexes &amp; column order</h2></div>
+    <p class="lede">Most real queries filter on <strong>more than one column</strong>. A <strong>composite index</strong> (one index on several columns) is the tool for that — but <strong>column order decides which queries it can serve</strong>. Get the order wrong and the index is dead weight.</p>
+
+    <div class="definition">
+      <strong class="term">Composite index</strong>
+      <p>A single index built on <strong>two or more columns</strong>, e.g. <code>CREATE INDEX ON players (team, position, goals)</code>. Entries are sorted by the <strong>first</strong> column; rows tied on the first are sorted by the <strong>second</strong>; ties on the second by the <strong>third</strong> — like words in a dictionary sorted letter by letter.</p>
+    </div>
+
+    <h3>⚽ The worked example: (team, position, goals)</h3>
+    <p>The match-analysis app runs these queries all day:</p>
+<pre>Q1: SELECT * FROM players WHERE team = 'Arsenal';
+Q2: SELECT * FROM players WHERE team = 'Arsenal' AND position = 'FW';
+Q3: SELECT * FROM players WHERE team = 'Arsenal' AND position = 'FW' AND goals > 20;
+Q4: SELECT * FROM players WHERE position = 'FW';
+Q5: SELECT * FROM players WHERE goals > 20;</pre>
+    <p>An index on <code>(team, position, goals)</code> sorts all 50,000 entries: first by team, then within each team by position, then within each team+position by goals. Picture the sorted list:</p>
+<pre>Arsenal   | FW |  8   → row…
+Arsenal   | FW | 21   → row…
+Arsenal   | FW | 27   → row…
+Arsenal   | MF |  3   → row…
+…
+Chelsea   | FW | 19   → row…</pre>
+
+    <div class="definition">
+      <strong class="term">Leftmost-prefix rule</strong>
+      <p>A composite index <strong>(a, b, c)</strong> can serve any query that filters on a <strong>leftmost prefix</strong> of its columns: <code>a</code> alone, <code>a + b</code>, or <code>a + b + c</code>. It <strong>cannot</strong> efficiently serve queries on <code>b</code> alone, <code>c</code> alone, or <code>b + c</code> — because entries are only sorted by <code>b</code> <em>within</em> each value of <code>a</em>.</p>
+    </div>
+    <p>Against our five queries:</p>
+    <ul>
+      <li><strong>Q1 (team)</strong> ✅ — <code>team</code> is the leftmost column; binary-search straight to the Arsenal block.</li>
+      <li><strong>Q2 (team + position)</strong> ✅ — full prefix; jumps to the Arsenal/FW block.</li>
+      <li><strong>Q3 (team + position + goals)</strong> ✅ — the whole key; lands exactly on Arsenal forwards with 20+ goals.</li>
+      <li><strong>Q4 (position alone)</strong> ❌ — "FW" entries are <strong>scattered</strong>: one FW block per team. The index can't jump to "all FWs" because it's sorted by team first. (MySQL/Postgres might still scan the whole index if that's cheaper than the heap — but it's no better than a scan.)</li>
+      <li><strong>Q5 (goals alone)</strong> ❌ — same problem, worse: <code>goals</code> is only sorted within each team+position group.</li>
+    </ul>
+    <p><strong>The phone-book intuition:</strong> a phone book sorted by (last name, first name) finds "all Smiths" instantly and "John Smith" instantly — but "everyone named John" still requires reading the whole book. Last name is the leftmost prefix; first name alone is not.</p>
+
+    <h3>Which column goes first? Selectivity and the equality rule</h3>
+    <div class="definition">
+      <strong class="term">Cardinality &amp; selectivity</strong>
+      <p><strong>Cardinality</strong> = the number of <strong>distinct values</strong> a column has. <code>player_id</code> has cardinality 50,000 (every row distinct); <code>position</code> has cardinality ~4 (GK, DF, MF, FW). <strong>Selectivity</strong> = how much a filter <strong>narrows the search</strong>: the fraction of rows a condition matches. <code>team = 'Arsenal'</code> matches ~1,000 of 50,000 rows (selectivity 2%) — highly selective. <code>position = 'MF'</code> matches ~20,000 rows (40%) — barely selective.</p>
+    </div>
+    <p>The rule of thumb for ordering a composite index:</p>
+    <ol>
+      <li><strong>Equality columns first, range columns last.</strong> In Q3, <code>team =</code> and <code>position =</code> are <em>equality</em> conditions, <code>goals &gt; 20</code> is a <em>range</em>. The index can only use columns <strong>up to the first range condition</strong> for seeking — after the range on <code>goals</code>, deeper columns (if any) would only filter, not seek. So ranges go last.</li>
+      <li><strong>Among equality columns, most selective first</strong> — the column that eliminates the most rows narrows the search fastest. <code>team</code> (2% of rows) before <code>position</code> (25% of rows).</li>
+    </ol>
+    <p>This is a rule of thumb, not physics: if Q4 (<code>position</code> alone) were the app's hottest query, you'd build a <strong>separate</strong> index on <code>(position)</code> — or reconsider the composite as <code>(position, team, goals)</code>. <strong>Index design starts from the query workload, not the table.</strong></p>
+
+    <h3>Index intersection vs. one good composite</h3>
+    <div class="definition">
+      <strong class="term">Index intersection</strong>
+      <p>When a query filters on columns covered by <strong>separate</strong> indexes, the database can scan each index, collect matching row pointers, and <strong>intersect</strong> the sets (often as bitmaps) before touching the heap. It works — but it's plan B.</p>
+    </div>
+    <p>For Q2, intersecting an index on <code>(team)</code> with one on <code>(position)</code> requires <strong>two</strong> index traversals plus a bitmap AND. One composite on <code>(team, position)</code> needs <strong>one</strong> traversal and lands directly on the matching block. Intersection is a fine fallback the planner finds on its own; a composite is what you <strong>design deliberately</strong> for a known hot query.</p>
+
+    <div class="warn-box">
+      <p><strong>The trap: indexing for Q5 with the composite.</strong> A junior move is creating <code>(team, position, goals)</code> and assuming "goals is in the index, so <code>WHERE goals &gt; 20</code> is covered." It isn't — the leftmost-prefix rule kills it. If "top scorers across all teams" is a real query pattern, it needs its <strong>own</strong> index on <code>(goals)</code>. Always test an index against <em>each</em> query you expect it to serve, left to right.</p>
+    </div>
+  </section>
+
+  <section id="covering">
+    <div class="section-head"><span class="section-num">04</span><h2>Covering indexes &amp; index-only scans</h2></div>
+    <p class="lede">The most expensive step in an indexed lookup is usually <strong>not</strong> the index traversal — it's the <strong>heap fetch</strong>: jumping from the index to random pages of the table to read full rows. A <strong>covering index</strong> removes that step entirely.</p>
+
+    <div class="definition">
+      <strong class="term">Covering index &amp; index-only scan</strong>
+      <p>An index <strong>covers</strong> a query when it contains <strong>every column the query needs</strong> — in its key or in <code>INCLUDE</code>d payload columns. The database then performs an <strong>index-only scan</strong>: it answers the query from the index pages alone and <strong>never touches the heap</strong>.</p>
+    </div>
+
+    <h3>⚽ The worked example: the top-scorers leaderboard</h3>
+    <p>The app's most-hit query powers a leaderboard widget:</p>
+<pre>SELECT name, team, goals
+FROM players
+WHERE goals > 20
+ORDER BY goals DESC;</pre>
+    <p>An index on <code>(goals)</code> finds the right <em>entries</em> fast — but then must fetch each player's <code>name</code> and <code>team</code> from the heap: dozens of random page reads for what is logically a tiny answer. The index <em>locates</em> but doesn't <em>answer</em>.</p>
+    <p>Now create the index as:</p>
+<pre>CREATE INDEX ON players (goals) INCLUDE (name, team);</pre>
+    <div class="definition">
+      <strong class="term">INCLUDE columns</strong>
+      <p>Extra columns stored in the index's <strong>leaf pages only</strong> — they are <strong>not part of the sort key</strong>, so they don't affect ordering or seek behavior; they just ride along as payload. (PostgreSQL syntax; MySQL achieves the same by adding columns to the key, at the cost of a wider sort key.)</p>
+    </div>
+    <p>Now the leaf entry for a 27-goal striker holds <code>(27, "Erling Haaland", "Man City", → row pointer)</code>. The query walks the sorted leaf pages, reads name/team/goals directly, and <strong>never visits the heap</strong>. This is an index-only scan, and it's typically <strong>several times faster</strong> than the same query with heap fetches — because index leaf pages are <strong>narrow</strong> (few columns), they pack far more entries per page, so the whole answer may fit in a handful of pages.</p>
+
+    <h3>Why index-only scans are so much faster: the math of page density</h3>
+    <p>A heap page holds ~100 <strong>full rows</strong> (all 7 columns). An index leaf page for <code>(goals) INCLUDE (name, team)</code> holds ~500 <strong>narrow entries</strong>. To list 400 top scorers: the heap version touches ~400 scattered rows across maybe 300+ pages; the covering version reads <strong>one or two</strong> dense leaf pages. Same answer, two orders of magnitude less I/O. <strong>Covering indexes win by making the data the query needs physically denser.</strong></p>
+
+    <div class="callout">
+      <h4>The visibility-map caveat (PostgreSQL)</h4>
+      <p>Postgres still needs to confirm each row is <strong>visible</strong> to your transaction (not deleted by a concurrent one). It checks a small <strong>visibility map</strong> — one bit per heap page. If the map says "all rows on this heap page are visible," no heap visit is needed and the scan is truly index-only. If recent writes left the map stale, Postgres falls back to heap fetches for those pages. In practice: <strong>index-only scans shine on read-mostly tables</strong> (the map stays clean) and degrade gracefully on write-heavy ones. MySQL/InnoDB has no such map — its covering scans are index-only unconditionally.</p>
+    </div>
+
+    <div class="warn-box">
+      <p><strong>Don't INCLUDE the kitchen sink.</strong> Every INCLUDEd column <strong>widens every leaf entry</strong>, lowering page density and making the index bigger, slower to scan, and more expensive to maintain. Cover the columns your <strong>hottest queries</strong> select — typically 1–3 — not all seven. A covering index is a precision tool, not a second copy of the table.</p>
+    </div>
+  </section>
+
+  <section id="write-cost">
+    <div class="section-head"><span class="section-num">05</span><h2>The write cost of indexes</h2></div>
+    <p class="lede">Indexes are not free. Every index on a table is a <strong>second structure that must be kept in sync on every write</strong> — and that tax compounds with each index you add. Senior engineers design indexes with the write path in mind, not just the read path.</p>
+
+    <div class="definition">
+      <strong class="term">Write amplification</strong>
+      <p>One logical write turning into <strong>multiple physical writes</strong>. Inserting one player row with 5 indexes means: 1 heap write + 5 index writes (each an O(log n) traversal, possibly with a page split) = <strong>6 physical writes for 1 logical insert</strong>. The amplification factor ≈ 1 + (number of indexes).</p>
+    </div>
+
+    <h3>What each write type costs</h3>
+    <ul>
+      <li><strong>INSERT:</strong> the new row goes to the heap, and <strong>every</strong> index gets a new entry — each an O(log n) descent plus possible page splits. ⚽ Every new signing is filed into the heap <em>and</em> into the alphabetical list, the goals-sorted list, the team list…</li>
+      <li><strong>UPDATE of an indexed column:</strong> the old entry must be <strong>removed</strong> and the new one <strong>inserted</strong> (the key moved in sort order) — roughly double the cost of an insert into that index. ⚽ A player transfers from Arsenal to Chelsea: the (team, …) index entries are deleted under "Arsenal" and re-inserted under "Chelsea."</li>
+      <li><strong>UPDATE of a non-indexed column:</strong> heap only — the indexes don't care. (Postgres can even do this as a <strong>HOT update</strong> — <em>Heap-Only Tuple</em> — reusing the same page without touching any index at all.)</li>
+      <li><strong>DELETE:</strong> the heap row is marked dead and <strong>every</strong> index entry is removed.</li>
+    </ul>
+    <p>The practical rule: <strong>a table with N indexes pays roughly N index-maintenance operations per write</strong>. A scouting table that ingests 10,000 new player reports a day with 8 indexes performs ~90,000 index writes for those 10,000 inserts. That is why write-heavy tables (event logs, clickstreams) carry <strong>few or no</strong> secondary indexes.</p>
+
+    <h3>Fragmentation, bloat, and maintenance</h3>
+    <div class="definition">
+      <strong class="term">Fragmentation / bloat</strong>
+      <p>Over time, page splits leave index pages <strong>half empty</strong>, and updates/deletes leave <strong>dead entries</strong> behind. The index grows physically larger than the live data it holds — this wasted space is <strong>bloat</strong>. A bloated index reads more pages per lookup and fits less of itself in RAM.</p>
+    </div>
+    <p>How databases fight it:</p>
+    <ul>
+      <li><strong>Autovacuum (PostgreSQL):</strong> a background process that reclaims dead heap rows and dead index entries, and refreshes the visibility map (which keeps index-only scans fast). It runs automatically — but on very write-heavy tables it can fall behind, and DBAs tune it to be more aggressive.</li>
+      <li><strong>REINDEX / index rebuild:</strong> rewriting an index from scratch into compact, dense pages. The heavy hammer for severe bloat — in Postgres 12+, <code>REINDEX CONCURRENTLY</code> does it without locking out writes.</li>
+      <li><strong>Fillfactor:</strong> deliberately leaving free space (e.g. 85% full) in each page at build time, so future inserts and updates land in existing pages instead of triggering splits. A tuning knob for write-heavy indexes.</li>
+      <li><strong>MySQL/InnoDB:</strong> merges half-empty pages automatically during operation and offers <code>OPTIMIZE TABLE</code> (rebuild) for the rest.</li>
+    </ul>
+
+    <div class="callout">
+      <h4>⚽ The match-program analogy, continued</h4>
+      <p>The club's printed program has three indexes: alphabetical, by team, by goals. After the January transfer window — 40 signings, 25 departures, a dozen renames — someone has to <strong>re-typeset all three lists</strong> (write amplification), the lists are now printed with <strong>gaps and crossed-out names</strong> (bloat), and eventually the club <strong>reprints a clean edition</strong> (REINDEX). Nobody questions that the program needs its indexes — the readers (queries) far outnumber the editors (writes). But a program reprinted <em>daily</em> would spend more effort on its indexes than on its content. <strong>That</strong> is the write-heavy table with too many indexes.</p>
+    </div>
+
+    <div class="verdict">
+      <h4>The index-budget rule</h4>
+      <p><strong>Every index must earn its keep in reads.</strong> Before adding one, ask: (1) Is there a real, frequent query this serves? (2) Does the table's write volume make the maintenance tax painful? (3) Would a <strong>composite or covering</strong> index serve two queries with one structure? Indexes you can't justify against the workload are not "harmless extras" — they are a <strong>permanent tax on every write</strong> and disk space you'll never get back.</p>
+    </div>
+  </section>
+
+  <section id="lsm">
+    <div class="section-head"><span class="section-num">06</span><h2>LSM trees: the write-optimized rival</h2></div>
+    <p class="lede">B-trees are read-optimized: they update data <strong>in place</strong>, keeping lookups at O(log n) — but every write is a random page touch plus possible splits. <strong>LSM trees</strong> (Log-Structured Merge trees) flip the priority: they make <strong>writes blazingly fast</strong> by never updating in place, at the cost of slower, more complex reads. If the workload is write-heavy, this is the structure senior engineers reach for.</p>
+
+    <div class="definition">
+      <strong class="term">LSM tree (Log-Structured Merge tree)</strong>
+      <p>A storage structure that <strong>buffers writes in memory</strong> and periodically flushes them to disk as <strong>immutable, sorted files</strong>, merging those files in the background. Writes are sequential appends (fast); reads may need to check several files (slower). Used by Cassandra, RocksDB, LevelDB, and Bigtable-derived systems.</p>
+    </div>
+
+    <h3>How it works: three moving parts</h3>
+    <div class="definition">
+      <strong class="term">Memtable</strong>
+      <p>An <strong>in-memory sorted structure</strong> (usually a skip list) that absorbs all writes. Inserts, updates, and deletes all land here first — in RAM, at memory speed. Every write is also appended to a <strong>write-ahead log</strong> on disk first, so nothing is lost if the machine crashes before the flush.</p>
+    </div>
+    <div class="definition">
+      <strong class="term">SSTable (Sorted String Table)</strong>
+      <p>When the memtable fills up, it is <strong>flushed to disk as one immutable, sorted file</strong> — an SSTable — and a fresh empty memtable takes over. Immutability is the key trick: because files are never modified in place, writing one is a <strong>pure sequential write</strong>, the fastest thing a disk does. Over time, many SSTables accumulate, each holding a newer-or-older slice of the data.</p>
+    </div>
+    <div class="definition">
+      <strong class="term">Compaction</strong>
+      <p>A <strong>background merge</strong> of SSTables: it reads several overlapping files, merges their sorted contents (newer values win, deleted keys are dropped), and writes out fewer, larger, cleaner files. Compaction is what keeps read costs bounded — without it, reads would check an ever-growing pile of files.</p>
+    </div>
+
+    <h3>⚽ Reading a player's record in an LSM world</h3>
+    <p>The scouts' app now logs <strong>every touch of every match</strong> — millions of events per day — into a Cassandra-style store. To read <em>"Haaland's latest stats"</em>, the database must check: the <strong>memtable</strong> first, then <strong>SSTables from newest to oldest</strong>, stopping at the first file that has the key. If Haaland's record was updated yesterday and again today, both copies exist; the newest wins.</p>
+    <p>To avoid opening files that can't possibly contain the key, each SSTable carries a <strong>Bloom filter</strong> — a tiny probabilistic structure that answers <em>"definitely not here"</em> or <em>"maybe here"</em> in a few bytes. Bloom filters make the multi-file check affordable — but the read still touches <strong>more</strong> structures than a B-tree's single root-to-leaf descent.</p>
+
+    <h3>The trade-off, precisely: write amplification vs. read amplification</h3>
+    <div class="definition">
+      <strong class="term">Read amplification</strong>
+      <p>One logical read turning into <strong>multiple physical reads</strong> — the read-side mirror of write amplification. In an LSM tree, a single key lookup may check the memtable plus several SSTables: <strong>1 logical read → several physical reads</strong>.</p>
+    </div>
+    <p>Here's the fundamental tension, stated once and remembered forever:</p>
+    <ul>
+      <li><strong>B-tree:</strong> writes update in place → <strong>high write amplification</strong> (random page writes, splits, one per index) — but reads are surgical: <strong>low read amplification</strong> (one root-to-leaf path).</li>
+      <li><strong>LSM tree:</strong> writes are sequential appends → <strong>low write amplification</strong> (memory-speed ingest) — but reads fan out across files: <strong>high read amplification</strong> (memtable + several SSTables + compaction I/O in the background).</li>
+    </ul>
+    <p>⚽ Back to the club: the <strong>scouting report database</strong> (analysts querying player histories all day, moderate writes) wants a B-tree — reads dominate. The <strong>match event stream</strong> (every pass, tackle, and sprint logged live, written far more than read) wants an LSM tree — writes dominate. <strong>The workload picks the structure.</strong></p>
+
+    <h3>B-tree vs. LSM at a glance</h3>
+    <table class="cmp">
+      <tr><th></th><th>B-tree</th><th>LSM tree</th></tr>
+      <tr><td><strong>Write path</strong></td><td>In-place updates: random page writes, page splits</td><td>Memtable (RAM) → sequential SSTable flush; no in-place updates</td></tr>
+      <tr><td><strong>Write amplification</strong></td><td>High — every write touches heap + each index</td><td>Low — sequential appends; compaction adds background I/O later</td></tr>
+      <tr><td><strong>Read path</strong></td><td>One root-to-leaf descent per index: O(log n) pages</td><td>Memtable + newest-to-oldest SSTables (Bloom filters prune)</td></tr>
+      <tr><td><strong>Read amplification</strong></td><td>Low — single precise path</td><td>Higher — several structures per lookup</td></tr>
+      <tr><td><strong>Range scans</strong></td><td>Excellent — leaves are linked, sequential leaf walk</td><td>Good — merge across sorted files; compaction keeps it tidy</td></tr>
+      <tr><td><strong>Space behavior</strong></td><td>Bloat from splits/dead entries; REINDEX to compact</td><td>Obsolete copies linger until compaction merges them away</td></tr>
+      <tr><td><strong>Best for</strong></td><td>Read-heavy OLTP: the classic app database</td><td>Write-heavy ingest: event streams, time series, messaging</td></tr>
+      <tr><td><strong>Real systems</strong></td><td>PostgreSQL, MySQL/InnoDB (default indexes)</td><td>Cassandra, RocksDB, LevelDB, ScyllaDB</td></tr>
+    </table>
+
+    <div class="callout">
+      <h4>Why this matters even if you only use Postgres</h4>
+      <p>Two reasons. First, modern architectures <strong>mix</strong> both: Postgres (B-tree) for the transactional core, Cassandra or a Kafka-backed store (LSM) for the event firehose — and design discussions expect you to place each workload on the right side. Second, the <strong>amplification vocabulary</strong> — write amplification vs. read amplification — is how senior engineers compare <em>any</em> storage choice. Saying <em>"I'd take the LSM here because the workload is 100:1 writes-to-reads, and I accept the read amplification"</em> is a complete, defensible design sentence.</p>
+    </div>
+  </section>
+
+  <section id="lab">
+    <div class="section-head"><span class="section-num">07</span><h2>Lab: the index lookup simulator</h2></div>
+    <p class="lede">Feel the O(n) vs. O(log n) gap instead of reading about it. Run the same query — <em>"find Bukayo Saka's row"</em> — as a full table scan and as a B-tree lookup, at three table sizes, and watch the work diverge.</p>
+
+    <div class="lab">
+      <h3>⚽ Scan vs. index: the Saka lookup</h3>
+      <p class="howto"><strong>How to use it:</strong> (1) Pick a table size — how many player rows the table holds. (2) Press <em>Run lookup</em>. The simulator runs the same query both ways — a full table scan and a B-tree index lookup — and reports rows compared, pages read, and estimated I/O time side by side. The event log narrates each strategy's journey.</p>
+
+      <p class="ctrl-note"><strong>Control 1 — Table size:</strong> the number of rows in the <code>players</code> table. Watch how the scan's work grows with the table while the index's barely moves.</p>
+      <div class="controls">
+        <div class="segmented" role="group" aria-label="Table size">
+          <button id="size-10k" type="button">10,000 rows</button>
+          <button id="size-1m" class="on" type="button">1,000,000 rows</button>
+          <button id="size-100m" type="button">100,000,000 rows</button>
+        </div>
+      </div>
+
+      <p class="ctrl-note"><strong>Control 2 — Run lookup:</strong> executes the query <code>WHERE name = 'Bukayo Saka'</code> using both strategies and animates the results below. Assumptions: 100 rows per 8 KB heap page, ~500 entries per 8 KB index page, one page read ≈ 0.1 ms on SSD.</p>
+      <div class="controls">
+        <button class="btn primary" id="btn-run" type="button">▶ Run lookup</button>
+        <button class="btn" id="btn-lab-reset" type="button">↺ Reset</button>
+      </div>
+
+      <div class="screen-row">
+        <div class="screen">
+          <div class="node-name">Full table scan</div>
+          <div class="score" id="scan-pages">–</div>
+          <div class="state">pages read</div>
+          <div class="bar-wrap">
+            <div class="bar-label">Rows compared (log scale — see note)</div>
+            <div class="bar-track"><div class="bar-fill scan" id="scan-bar"></div></div>
+            <div class="bar-num" id="scan-rows">–</div>
+          </div>
+          <div class="state" id="scan-time">Estimated I/O time: –</div>
+          <span class="badge stale" id="scan-badge">O(n) — work grows with the table</span>
+        </div>
+        <div class="screen">
+          <div class="node-name">B-tree index lookup</div>
+          <div class="score" id="idx-pages">–</div>
+          <div class="state">pages read</div>
+          <div class="bar-wrap">
+            <div class="bar-label">Rows compared (log scale — see note)</div>
+            <div class="bar-track"><div class="bar-fill idx" id="idx-bar"></div></div>
+            <div class="bar-num" id="idx-rows">–</div>
+          </div>
+          <div class="state" id="idx-time">Estimated I/O time: –</div>
+          <span class="badge ok" id="idx-badge">O(log n) — ~3 levels at any scale</span>
+        </div>
+      </div>
+      <p class="ctrl-note"><strong>Reading the bars:</strong> both bars use a <em>logarithmic</em> scale. On a linear scale the scan's bar would be millions of times wider than the index's — it wouldn't fit on your screen, which is exactly the point.</p>
+      <div class="log" id="idx-log" aria-live="polite"></div>
+    </div>
+    <script>
+    (function () {
+      var N = 1000000;
+      var ROWS_PER_PAGE = 100, IDX_PER_PAGE = 500, MS_PER_PAGE = 0.1;
+      var $ = function (id) { return document.getElementById(id); };
+      var sizes = { 'size-10k': 10000, 'size-1m': 1000000, 'size-100m': 100000000 };
+      function fmt(n) { return n.toLocaleString('en-US'); }
+      function fmtTime(ms) {
+        if (ms < 1) return (ms * 1000).toFixed(0) + ' µs';
+        if (ms < 1000) return ms.toFixed(1) + ' ms';
+        return (ms / 1000).toFixed(1) + ' s';
+      }
+      function log(t, msg) {
+        var el = document.createElement('div');
+        el.innerHTML = '<span class="t">[' + t + ']</span> ' + msg;
+        $('idx-log').appendChild(el);
+        $('idx-log').scrollTop = $('idx-log').scrollHeight;
+      }
+      function btreeHeight(n) {
+        var h = 1, cap = IDX_PER_PAGE;
+        while (cap < n) { cap *= IDX_PER_PAGE; h++; }
+        return h;
+      }
+      Object.keys(sizes).forEach(function (id) {
+        $(id).addEventListener('click', function () {
+          Object.keys(sizes).forEach(function (k) { $(k).classList.toggle('on', k === id); });
+          N = sizes[id];
+          log('size', 'Table size set to ' + fmt(N) + ' rows. Press "Run lookup".');
+        });
+      });
+      $('btn-run').addEventListener('click', function () {
+        $('idx-log').innerHTML = '';
+        var scanRows = N, scanPages = Math.ceil(N / ROWS_PER_PAGE);
+        var h = btreeHeight(N);
+        var idxPages = h + 1; /* h index levels + 1 heap page for the row */
+        var idxRows = h * 9 + 1; /* ~9 binary-search comparisons per page + final match */
+        log('query', 'Query: SELECT * FROM players WHERE name = \'Bukayo Saka\' — worst case (Saka is the last row).');
+        log('scan', 'Full table scan: reading page 1 of ' + fmt(scanPages) + '… row 1: not Saka. Row 2: not Saka. …');
+        log('scan', 'Scanned all ' + fmt(scanRows) + ' rows across ' + fmt(scanPages) + ' heap pages. Found Saka on the last page.');
+        log('index', 'B-tree: root page → binary search → child pointer (1 page read).');
+        if (h > 2) log('index', 'B-tree: internal page(s) → binary search → leaf pointer (' + (h - 1) + ' more page reads).');
+        log('index', 'B-tree: leaf page → entry found: "Bukayo Saka → heap page 214, slot 7" (' + h + ' index pages total).');
+        log('index', 'B-tree: heap page 214 read → 1 row returned. Done after ' + idxPages + ' pages.');
+        var maxLog = Math.log10(scanRows);
+        $('scan-bar').style.width = '0%'; $('idx-bar').style.width = '0%';
+        $('scan-pages').textContent = fmt(scanPages);
+        $('idx-pages').textContent = fmt(idxPages);
+        $('scan-rows').textContent = fmt(scanRows) + ' rows';
+        $('idx-rows').textContent = '≈ ' + fmt(idxRows) + ' comparisons';
+        $('scan-time').textContent = 'Estimated I/O time: ' + fmtTime(scanPages * MS_PER_PAGE);
+        $('idx-time').textContent = 'Estimated I/O time: ' + fmtTime(idxPages * MS_PER_PAGE);
+        setTimeout(function () {
+          $('scan-bar').style.width = '100%';
+          $('idx-bar').style.width = Math.max(2, (Math.log10(idxRows) / maxLog) * 100) + '%';
+        }, 60);
+        log('result', 'Scan: ' + fmt(scanPages) + ' pages (' + fmtTime(scanPages * MS_PER_PAGE) + ') vs index: ' + idxPages + ' pages (' + fmtTime(idxPages * MS_PER_PAGE) + '). Ratio: ~' + fmt(Math.round(scanPages / idxPages)) + '×.');
+      });
+      $('btn-lab-reset').addEventListener('click', function () {
+        $('idx-log').innerHTML = '';
+        ['scan-pages', 'idx-pages'].forEach(function (id) { $(id).textContent = '–'; });
+        ['scan-rows', 'idx-rows'].forEach(function (id) { $(id).textContent = '–'; });
+        $('scan-time').textContent = 'Estimated I/O time: –';
+        $('idx-time').textContent = 'Estimated I/O time: –';
+        $('scan-bar').style.width = '0%'; $('idx-bar').style.width = '0%';
+        log('init', 'Pick a table size, then run the lookup.');
+      });
+      log('init', 'Pick a table size, then press "Run lookup" to race the two strategies.');
+    })();
+    </script>
+
+    <div class="verdict">
+      <h4>What the lab just taught you</h4>
+      <p>At 100M rows the scan reads <strong>a million pages</strong> (~100 seconds of I/O); the index reads <strong>4</strong> (~0.4 ms). The scan's cost <em>multiplied by 10,000</em> going from 10K to 100M rows; the index's cost went from 3 pages to 4. That flat line is <strong>O(log n)</strong>, and it is the single most important performance fact in database design.</p>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">08</span><h2>Interview Q&amp;A — with full model answers</h2></div>
+    <p class="lede">Tap a question to reveal a complete model answer — structured verdict-first, then reasoning, then a real-system reference. Each is written to be spoken aloud in about a minute.</p>
+
+    <div class="qa">
+      <div class="question">
+        <div class="qnum">Q1 · THE 60-SECOND ANSWER</div>
+        <div class="qtext">What is a database index, and when would you add one?</div>
+        <div class="context">The opener. They want the crisp definition plus evidence you think about cost, not just speed.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"An index is a <strong>separate, sorted data structure</strong> that maps column values to row locations, so the database can find matching rows without scanning the whole table. I'd add one when a <strong>frequent, selective read</strong> is doing full table scans — and I'd weigh it against the write tax."</p>
+          <h5>Reasoning</h5>
+          <p>"Without an index, a lookup is a <strong>full table scan</strong>: O(n), every row checked. With a B-tree index, the database binary-searches sorted pages — O(log n) — and because each level multiplies capacity by the fanout, even a 100M-row table needs only 3 levels: <strong>3–4 page reads</strong> instead of a million. That's the core win.</p>
+          <p>But every index is maintained on every write — an insert with 5 indexes is roughly 6 physical writes — plus disk space and planner overhead. So I add indexes <strong>driven by the query workload</strong>: columns in WHERE, JOIN, and ORDER BY clauses of hot queries, starting with the most selective equality columns. On a write-heavy table like an event log, I'd think twice or skip secondary indexes entirely."</p>
+          <h5>Real-system reference</h5>
+          <p>"In PostgreSQL I'd verify with <code>EXPLAIN ANALYZE</code> — looking for an <code>Index Scan</code> or <code>Index Only Scan</code> replacing a <code>Seq Scan</code> — and I'd check <code>pg_stat_user_indexes</code> to confirm the index is actually being used before keeping it. In MySQL the same check is <code>EXPLAIN</code> showing <code>type: ref/range</code> instead of <code>ALL</code>."</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2 · DIAGNOSIS</div>
+        <div class="qtext">You created an index on (team, position), but a query filtering only on position still does a full table scan. Why?</div>
+        <div class="context">They're testing the leftmost-prefix rule — and whether you can enumerate the other reasons an index gets ignored.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"The <strong>leftmost-prefix rule</strong>: the index is sorted by team first, so entries for one position are scattered across every team's block — the index can't jump to 'all forwards' any faster than scanning. But I'd also check three other suspects before concluding."</p>
+          <h5>Reasoning</h5>
+          <p>"First, the rule itself: a composite <code>(team, position)</code> serves <code>team</code>, or <code>team + position</code> — never <code>position</code> alone. It's the phone-book problem: sorted by last name, you can't efficiently find everyone named John. The fix, if that query is hot, is a <strong>separate index on (position)</strong> — or reordering the composite if the workload justifies it.</p>
+          <p>Second, <strong>selectivity</strong>: if <code>position = 'MF'</code> matches 40% of the table, the planner may correctly choose a sequential scan — random index+heap hops for 20,000 rows cost more than one sequential pass. An unused index isn't always a bug; sometimes the planner is right.</p>
+          <p>Third, <strong>query-shape killers</strong>: a function on the column (<code>WHERE LOWER(position) = 'fw'</code>), a leading-wildcard LIKE (<code>'%FW'</code>), or a <strong>type mismatch</strong> (<code>position = 7</code> on a text column, forcing a cast) all defeat the index even when the column order is fine."</p>
+          <h5>Real-system reference</h5>
+          <p>"In PostgreSQL, <code>EXPLAIN</code> tells the story: I'd look for <code>Seq Scan</code> with a <code>Filter</code> and check the row-count estimate. For the function-on-column case, the fix is an <strong>expression index</strong> — <code>CREATE INDEX ON players (LOWER(position))</code> — which indexes the transformed value directly. In MySQL, I'd check <code>EXPLAIN</code> output for <code>possible_keys</code> vs <code>key</code> to see whether the optimizer even considered it."</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3 · JUDGMENT</div>
+        <div class="qtext">When would you deliberately avoid adding an index?</div>
+        <div class="context">The flip side of Q1. They want to hear that you treat indexes as a budget with a write-side cost.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"Whenever the <strong>write tax exceeds the read benefit</strong>: write-heavy tables, low-selectivity columns, tiny tables, and indexes nobody's queries actually use."</p>
+          <h5>Reasoning</h5>
+          <p>"Four concrete cases. <strong>One: write-heavy tables.</strong> An event-ingest table doing 50K inserts/sec with 6 indexes pays ~350K index writes/sec — the indexes can become the bottleneck. I'd keep maybe the primary key and nothing else. <strong>Two: low-selectivity columns</strong> — an index on a boolean <code>is_active</code> that's 95% true rarely beats a scan, because the planner still has to fetch nearly every heap row. <strong>Three: small tables</strong> — a 500-row lookup table fits in a page or two; the index adds planning overhead for zero measurable gain. <strong>Four: speculative indexes</strong> — 'we might query by this someday' is how tables end up with 12 indexes slowing every deploy's migration.</p>
+          <p>The discipline is: every index must be traceable to a <strong>real query in the workload</strong>, and I re-audit periodically — an index with zero scans in <code>pg_stat_user_indexes</code> over a representative window is a candidate for removal."</p>
+          <h5>Real-system reference</h5>
+          <p>"PostgreSQL's <code>pg_stat_user_indexes.idx_scan</code> is the source of truth here — zero scans means zero reads served. MySQL's <code>performance_schema.table_io_waits_summary_by_index_usage</code> gives the same signal. Dropping a dead index is one of the cheapest performance wins: it speeds up every future write with zero read cost."</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4 · ARCHITECTURE</div>
+        <div class="qtext">B-tree or LSM tree — how do you choose?</div>
+        <div class="context">They're checking you know the write-optimized alternative and can place a workload on the right side.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>B-tree for read-heavy transactional workloads, LSM for write-heavy ingest.</strong> It's a trade-off between write amplification and read amplification, and the workload's read/write ratio decides."</p>
+          <h5>Reasoning</h5>
+          <p>"A B-tree updates <strong>in place</strong>: every write is a random page touch plus splits across each index — high write amplification — but reads are surgical, one root-to-leaf descent, O(log n) pages. An LSM tree buffers writes in an in-memory <strong>memtable</strong> and flushes them as immutable sorted <strong>SSTables</strong> — writes are sequential appends at memory speed, so write amplification is low — but a read may check the memtable plus several SSTables, so <strong>read amplification</strong> is higher, with background <strong>compaction</strong> merging files to keep it bounded.</p>
+          <p>So: the club's scouting database — analysts querying player histories all day, moderate writes — is a B-tree workload. The live match-event stream — millions of touch events written per match, rarely re-read individually — is an LSM workload. If someone proposes Cassandra for a read-heavy OLTP app, I'd push back on the read amplification; if they propose Postgres for a 100K-events/sec firehose, I'd push back on the write amplification."</p>
+          <h5>Real-system reference</h5>
+          <p>"PostgreSQL and MySQL/InnoDB are B-tree systems — their default indexes are B-trees. Cassandra, ScyllaDB, RocksDB, and LevelDB are LSM-based. In practice most architectures use <strong>both</strong>: Postgres for the transactional core, an LSM store for the event stream — and the design discussion is about placing each workload correctly, not picking a universal winner."</p>
+        </div></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">09</span><h2>Practice drills</h2></div>
+    <p class="lede">Untimed — think like you're whiteboarding. Write your answer, then check the rubric.</p>
+
+    <div class="drill">
+      <h4>Drill 1 — Design the scouting app's indexes</h4>
+      <p>The <code>players</code> table (50,000 rows) serves three hot queries:<br>
+      <strong>(a)</strong> <code>WHERE team = ? AND position = ?</code> — the lineup builder, 10K/day.<br>
+      <strong>(b)</strong> <code>WHERE goals &gt; ? ORDER BY goals DESC</code> — the top-scorers leaderboard, 50K/day, selecting only <code>name, team, goals</code>.<br>
+      <strong>(c)</strong> <code>WHERE player_id = ?</code> — the player profile page, 100K/day.<br>
+      Propose the index set. For each index, state the columns, the order, and one line of justification.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>(c) — primary key / unique index on <code>(player_id)</code>.</strong> Equality on a unique key: one root-to-leaf descent, one row. (Full marks for noting this likely already exists as the PK — don't create a duplicate.)</li>
+          <li><strong>(a) — composite <code>(team, position)</code>.</strong> Both are equality columns; <code>team</code> first as the more selective one. Serves the exact leftmost prefix. (Full marks for the selectivity ordering argument.)</li>
+          <li><strong>(b) — covering index <code>(goals) INCLUDE (name, team)</code>.</strong> Range on <code>goals</code> goes last (only key column); <code>name, team</code> ride along so the leaderboard never touches the heap — an index-only scan. (Full marks for INCLUDE rather than widening the key, and for naming "index-only scan.")</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> exactly three indexes (no speculative extras), the leftmost-prefix check against each query, and the observation that (b)'s index also serves "goals &gt; ?" count queries. Deductions for proposing <code>(position, team)</code> without a selectivity argument, or for covering all 7 columns.</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 2 — The index that gets ignored</h4>
+      <p>There's an index on <code>(team)</code>. <code>EXPLAIN</code> shows a sequential scan for <code>SELECT * FROM players WHERE team = 'Arsenal'</code>. List <strong>three distinct hypotheses</strong> for why the planner ignored the index, and how you'd confirm each.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>Hypothesis 1 — low selectivity / stale statistics.</strong> If 'Arsenal' matches a large share of rows (or the planner <em>thinks</em> it does because stats are stale), a scan is genuinely cheaper. Confirm: check the estimated vs. actual row counts in <code>EXPLAIN ANALYZE</code>; run <code>ANALYZE players</code> and re-check.</li>
+          <li><strong>Hypothesis 2 — small table / everything cached.</strong> On a tiny table the index saves nothing. Confirm: check table size (<code>pg_relation_size</code>); on 50K rows this shouldn't apply, which is itself diagnostic.</li>
+          <li><strong>Hypothesis 3 — the query defeats the index shape.</strong> A function or cast on the column (<code>WHERE LOWER(team) = 'arsenal'</code>), or an implicit type mismatch, makes the index unusable. Confirm: inspect the exact predicate in <code>EXPLAIN</code> output for casts/functions; fix with an expression index or a corrected predicate.</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> three <em>mechanistically different</em> hypotheses (not three wordings of "the index is bad"), each paired with a concrete confirmation step. Bonus for mentioning that the planner being right (hypothesis 1) is a valid outcome, not a failure.</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 3 — Size the tree</h4>
+      <p>A B-tree index has ~500 entries per page. A table grows from 1 million rows to 1 billion rows (1000×). How many <strong>page reads</strong> does a single-key lookup need before and after? What does that tell you about index scalability?</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <p><strong>Before:</strong> 500² = 250K &lt; 1M &lt; 500³ = 125M → 3 levels → <strong>3 index page reads</strong> (+1 heap fetch). <strong>After:</strong> 500³ = 125M &lt; 1B &lt; 500⁴ → 4 levels → <strong>4 index page reads</strong> (+1 heap fetch).</p>
+        <p><strong>The lesson:</strong> a <strong>1000× growth</strong> in data added exactly <strong>one</strong> page read. That's O(log n) in action — index lookup cost is effectively flat across any realistic scale, which is why "will the index still work at 10× the data?" is almost always answered <em>yes</em>, and why B-trees survived five decades of database evolution.</p>
+        <p><strong>What earns top marks:</strong> showing the fanout-power arithmetic (not just "3 and 4"), including the +1 heap fetch, and stating the general principle rather than just the two numbers.</p>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">✓</span><h2>Cheat sheet: the 6 index-design decisions</h2></div>
+    <p class="lede">Every index design is these six decisions, in this order. Tape this to your mental whiteboard.</p>
+    <div class="green-box">
+      <p><strong>1. Which queries?</strong> Start from the workload, not the table. Index the columns in <code>WHERE</code>, <code>JOIN … ON</code>, and <code>ORDER BY</code> of your hottest, slowest queries — verified with <code>EXPLAIN</code>, not guessed.</p>
+      <p><strong>2. One composite or several singles?</strong> Multi-column filters get <strong>one composite</strong> (index intersection is plan B). Single-column filters get single-column indexes.</p>
+      <p><strong>3. What column order?</strong> <strong>Equality columns first</strong> (most selective first), <strong>range columns last</strong> — and check every query against the <strong>leftmost-prefix rule</strong> before shipping.</p>
+      <p><strong>4. Should it cover?</strong> If a hot query selects few columns, <code>INCLUDE</code> them and get an <strong>index-only scan</strong> — but don't INCLUDE the kitchen sink; density is the whole win.</p>
+      <p><strong>5. Can the table afford it?</strong> Each index taxes <strong>every write</strong> (write amplification ≈ 1 + index count). Write-heavy tables get few indexes; every index must be traceable to a real query; drop what <code>pg_stat_user_indexes</code> shows is never scanned.</p>
+      <p><strong>6. B-tree or LSM?</strong> Read-heavy transactional data → <strong>B-tree</strong> (surgical reads). Write-heavy ingest → <strong>LSM</strong> (sequential writes, pay read amplification). Most architectures use both, placed per workload.</p>
+    </div>
+  </section>
+
+  <a class="nav-next" href="cap-theorem-consistency.html">
+    <div class="lbl">Previous lesson · Lesson 7</div>
+    <div class="t">CAP Theorem &amp; Consistency Models →</div>
+  </a>
+
+  <footer class="page-foot">
+    Lesson 8 of the daily system design series · <a href="../index.html">All lessons</a>
+  </footer>
+</div>
+</body>
+</html>
