@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Message Queues &amp; Async Processing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch .field-line {
+      position: absolute; border: 2px solid rgba(255,255,255,.5); border-radius: 4px;
+      pointer-events: none;
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 220px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .chart { display: flex; align-items: flex-end; gap: 3px; height: 110px; margin: 16px 0 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+    .chart .bbar { flex: 1; background: var(--blue); border-radius: 3px 3px 0 0; min-height: 2px; }
+    .chart-cap { font-size: .82rem; color: var(--muted); }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer h5 { margin: 14px 0 6px; font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .drill {
+      background: var(--purple-soft); border: 1px solid var(--purple);
+      border-radius: var(--radius); padding: 20px 22px; margin: 20px 0; max-width: 46rem;
+    }
+    .drill h4 { margin: 0 0 8px; }
+    .drill .rubric { border-top: 1px dashed var(--purple); padding-top: 12px; }
+    .verdict {
+      border: 2px solid var(--green); border-radius: var(--radius);
+      padding: 18px 22px; margin: 22px 0; max-width: 46rem; background: var(--green-soft);
+    }
+    .verdict h4 { margin: 0 0 8px; color: var(--green); }
+    .verdict p { max-width: none; margin: 6px 0; }
+    .nav-next {
+      display: block; margin-top: 60px; padding: 22px 24px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      text-decoration: none; color: inherit; box-shadow: var(--shadow);
+    }
+    .nav-next:hover { border-color: var(--ink); }
+    .nav-next .lbl { font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .nav-next .t { font-size: 1.2rem; font-weight: 700; margin-top: 4px; }
+    footer.page-foot { margin-top: 56px; color: var(--muted); font-size: .88rem; border-top: 1px solid var(--line); padding-top: 20px; }
+    .kicker { font-size: .82rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 30px 0 -8px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <nav class="crumbs"><a href="../index.html">All lessons</a> &rsaquo; Lesson 9</nav>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 9 &middot; Foundations</span>
+    <h1>Message Queues &amp; Async Processing</h1>
+    <p class="whyline">Every fast system is secretly two systems: the part the user waits for, and everything else. A message queue is how the two sides stop waiting on each other — so one slow service stops taking down the rest. This lesson covers what queues are, what rides them, what "at least once" really means, how poison messages and backpressure are handled, and which tool to reach for.</p>
+    <div class="meta">
+      <span>~25 min read</span>
+      <span>1 interactive lab</span>
+      <span>4 Q&amp;A with model answers</span>
+      <span>3 practice drills</span>
+    </div>
+  </header>
+
+  <div class="toc">
+    <h2>In this lesson</h2>
+    <ol>
+      <li><a href="#what-is-queue">What is a message queue?</a> — the idea defined from zero</li>
+      <li><a href="#critical-path">What rides the queue</a> — the critical-path rule, the six-step order flow</li>
+      <li><a href="#delivery">The same message, twice</a> — at-least-once, at-most-once, exactly-once</li>
+      <li><a href="#idempotency">The fix lives in the consumer</a> — idempotency from zero</li>
+      <li><a href="#queue-vs-log">Queue or log?</a> — what the broker remembers after you read</li>
+      <li><a href="#poison">The message that fails forever</a> — poison messages, backoff, and the dead letter queue</li>
+      <li><a href="#backpressure">Backpressure</a> — when the consumers can't keep up</li>
+      <li><a href="#lab">Lab: the halftime rush simulator</a></li>
+      <li><a href="#tools">Picking the tool</a> — Kafka vs RabbitMQ vs SQS</li>
+      <li><a href="#qa">Q&amp;A — with full model answers</a></li>
+      <li><a href="#drills">Practice drills</a></li>
+      <li><a href="#cheatsheet">Cheat sheet: the 6 queue decisions</a></li>
+      <li><a href="#talk">How to talk about queues in the interview</a></li>
+    </ol>
+  </div>
+
+  <section id="what-is-queue">
+    <div class="section-head"><span class="section-num">01</span><h2>What is a message queue?</h2></div>
+    <p class="lede">A <strong>message queue</strong> is a middleman that holds short pieces of work — messages — safely until some other program is ready to do them. The program that drops the work off doesn't wait for it to be done. That's the whole trick: <strong>writing and doing are separated in time.</strong></p>
+
+    <div class="pitch">
+      <div class="field-line" style="top:18px;left:18px;right:18px;bottom:18px;"></div>
+      <span class="tag">⚽ The running example: the derby halftime rush</span>
+      <h4>20,000 fans, one app, fifteen minutes</h4>
+      <p>Your club's app lets fans order food and merch from their seats. It's the derby — full house — and at halftime <strong>20,000 fans</strong> open the app at once. Every order needs six things: check the payment, save the order, tell the kitchen, find a runner to deliver it, send a confirmation SMS, and add loyalty points.</p>
+      <p>Every idea in this lesson lands on this stadium. Keep it in your head: one halftime, one app, and five downstream services that each have their own bad day.</p>
+    </div>
+
+    <div class="definition">
+      <strong class="term">Message broker</strong>
+      <p>A <strong>separate system</strong> that stores short messages safely until they are read. Think of it as a trusted locker room noticeboard: one side pins notes, the other side reads them later. Kafka, RabbitMQ, and Amazon SQS are all brokers.</p>
+    </div>
+    <div class="definition">
+      <strong class="term">Producer · Consumer · Message</strong>
+      <p>A <strong>producer</strong> writes messages into the broker and moves on — it never waits for the work to finish. A <strong>consumer</strong> is a program (not the customer) that reads messages from the broker and does the actual work later. A <strong>message</strong> is the short note itself — often just JSON, like <code>{"order": 4472, "seat": "12A", "items": ["pie", "tea"]}</code>.</p>
+    </div>
+
+    <h3>The way it breaks: everything waits for everything</h3>
+    <p>Build the halftime order flow the naive way — six synchronous steps, one after another, each waiting for the last:</p>
+    <pre>check payment → save order → tell kitchen → find runner → send SMS → add loyalty points</pre>
+    <p>Each step is a network call that <em>waits for its answer</em> before the next step starts. Now the SMS provider has a bad day and goes down for three hours. What happens? Every single order fails — the fan taps "Order", the request waits on the SMS step, times out, and the whole order dies. <strong>The payment, the kitchen, the runner — all working fine — produce zero food.</strong> The fan sees "Order failed" even though their card was charged.</p>
+    <div class="definition">
+      <strong class="term">Tight coupling</strong>
+      <p>When one service <strong>cannot finish its job unless another service is working at the same instant</strong>. Synchronous calls create tight coupling: everyone shares everyone else's failures.</p>
+    </div>
+
+    <h3>The availability math that should scare you</h3>
+    <p>Say each of the six services has 99.9% uptime — three nines, respectable. But an order only succeeds when <em>all six</em> are up at the same moment. The chain's availability is the product: 0.999⁶ ≈ <strong>99.4%</strong>. A 30-day month has 43,200 minutes; 0.6% of that is about <strong>259 minutes of failed orders</strong> — over four hours. One service alone at 99.9% would fail for only ~43 minutes. <strong>Every dependency you chain on the user's path multiplies the downtime.</strong></p>
+    <p>That's the case for queues in one sentence: <strong>the fewer services the user waits on, the fewer can ruin their experience.</strong></p>
+  </section>
+
+  <section id="critical-path">
+    <div class="section-head"><span class="section-num">02</span><h2>What rides the queue</h2></div>
+    <p class="lede">Not everything goes on the queue. The rule is simple: <strong>only steps the user actually waits for stay on the waiting path.</strong> Everything else rides the queue.</p>
+
+    <h3>The critical-path rule</h3>
+    <div class="definition">
+      <strong class="term">Critical path</strong>
+      <p>The <strong>minimum sequence of steps the user must wait for</strong> before the screen can say "done." A step belongs on the critical path <strong>only if the customer needs its result</strong> before that confirmation. Everything else is a candidate for the queue.</p>
+    </div>
+    <p>Apply it to our six steps. The fan needs to know two things before "Order placed": <em>did my payment go through?</em> and <em>is my order recorded?</em> — payment and saving the order. The SMS, the loyalty points, the kitchen, and the runner dispatch? <strong>The fan doesn't wait for any of them.</strong> Nobody stares at their phone thinking "I hope the kitchen display acknowledged my pie."</p>
+    <p>So the new flow: the order service does its two critical steps, writes <em>one short message</em> ("order 4472 placed") into the broker, and the fan sees "Order placed" instantly. The kitchen service, the SMS service, the loyalty service, and the runner dispatcher each <strong>work through their queues at their own pace</strong>.</p>
+
+    <h3>Replay the three-hour outage</h3>
+    <p>Same bad day: the SMS provider is down for three hours. Now the order service never calls the SMS service at all — it just drops a message in the broker. <strong>Zero orders fail.</strong> The SMS messages pile up in the broker for three hours, and when the provider recovers, the consumer drains the pile. The fans' texts arrive late; their food does not.</p>
+    <div class="callout">
+      <h4>🧠 The decoupling pair</h4>
+      <p><strong>Temporal decoupling:</strong> the producer and consumer don't have to be alive at the same moment — the broker holds the message in between. <strong>Structural decoupling:</strong> the producer doesn't know who consumes, or how many consumers there are. Adding a fifth service (analytics, say) means plugging it into the queue — not touching the order service.</p>
+    </div>
+
+    <h3>The queue also absorbs the halftime burst</h3>
+    <p>At halftime, orders arrive faster than the kitchen can cook. Without a queue, the extra requests get rejected or time out — fans see errors. With a queue, the messages pile up and <strong>the queue grows, then drains</strong>. The broker is a shock absorber: the producer writes at 300 orders/sec, the kitchen drains at 200/sec, and for the fifteen-minute burst the difference just sits in the queue.</p>
+    <div class="warn-box">
+      <p><strong>⚠️ But here's the limit — burn this line in:</strong> a queue holds a <em>temporary</em> excess. It cannot fix a consumer that is too slow <em>all day</em>. If producers sustain 300 msgs/sec and consumers handle 200/sec, the queue grows forever and eventually runs out of memory. <strong>A queue is not a solution to insufficient capacity; it's a buffer that buys time.</strong> Fix the consumer, scale the consumer — don't just deepen the queue.</p>
+    </div>
+    <p class="kicker">One-line lead-in from the CAP lesson</p>
+    <p>There's a family resemblance here: the CAP lesson's PACELC "else" branch said that when the network is healthy, async replication trades consistency for latency — work happens <em>later</em> in exchange for being fast <em>now</em>. Message queues are the same bargain, pointed at services: <strong>give up "it happened right now" in exchange for "it never blocks the user."</strong></p>
+  </section>
+
+  <section id="delivery">
+    <div class="section-head"><span class="section-num">03</span><h2>The same message, twice</h2></div>
+    <p class="lede">Queues don't promise "your message is delivered exactly once." They promise something weaker — and understanding <em>which</em> weaker promise you got is what separates the senior answer from the junior one.</p>
+
+    <h3>The ack: how the broker knows you're done</h3>
+    <div class="definition">
+      <strong class="term">Ack (acknowledgement)</strong>
+      <p>The consumer's signal to the broker: <strong>"I'm done with this message; you can forget it."</strong> The broker deletes the message only after the ack. If no ack arrives within a window, the broker assumes the consumer died and <strong>hands the message to another consumer</strong>. In SQS that window is the <strong>visibility timeout</strong> (default 30 seconds): the message is invisible to other consumers while one consumer is working on it.</p>
+    </div>
+
+    <h3>The crash story</h3>
+    <p>Runner-service A reads "order 4472 was placed," saves <em>Alex</em> as the runner in its database, then <strong>crashes before acking</strong>. The broker never got the ack, so after the visibility timeout it hands the same message to runner-service B. B assigns <em>Sam</em>. <strong>Two runners drive to the same restaurant.</strong> Every line of code did exactly what it said — and the work happened twice.</p>
+    <div class="definition">
+      <strong class="term">At-least-once delivery</strong>
+      <p>The broker's promise: <strong>a message will be delivered, and if a consumer dies before acking, it will be delivered again.</strong> A crash never loses the message — but it can arrive more than once. This is the default for almost every queue: SQS standard queues document that "more than one copy of a message might be delivered." You get <em>at least</em> one delivery. Duplicates are your problem.</p>
+    </div>
+    <div class="definition">
+      <strong class="term">At-most-once delivery</strong>
+      <p>The opposite trade: the consumer <strong>acks before doing the work</strong>. No duplicates ever — but if it crashes mid-work, the message is gone. The order gets no runner at all. Acceptable when volume matters more than completeness — some telemetry pipelines use it: losing 0.01% of analytics events is fine; doubling a charge is not.</p>
+    </div>
+    <div class="definition">
+      <strong class="term">Exactly-once (and why it's not on offer)</strong>
+      <p>The idea that the message is processed <em>exactly</em> one time, ever. It sounds like the obvious choice — and a consumer <strong>cannot promise it</strong>. Why: saving the result (in your database) and sending the ack (to the broker) are <strong>two separate systems</strong>, and a crash can always land <em>between</em> them. Crash after saving but before acking → duplicate. Crash after acking but before saving → lost. There is no single transaction spanning both. Kafka's "exactly-once" transactions cover only data that <strong>stays inside Kafka</strong>; the moment the consumer writes to its own database, there are two systems again.</p>
+    </div>
+    <div class="green-box">
+      <p><strong>The interview rule:</strong> what real systems offer is <em>effectively</em> exactly-once — <strong>at-least-once delivery plus a consumer that can safely receive a duplicate</strong>. The duplicate-arrival is handled by the broker; the duplicate-<em>effect</em> is handled by the consumer. That consumer-side property has its own name — the next section.</p>
+    </div>
+  </section>
+
+  <section id="idempotency">
+    <div class="section-head"><span class="section-num">04</span><h2>The fix lives in the consumer</h2></div>
+    <p class="lede">Since the broker <em>will</em> redeliver, the consumer must be built so that processing the same message twice has the same effect as processing it once. That property is <strong>idempotency</strong>.</p>
+
+    <div class="definition">
+      <strong class="term">Idempotent</strong>
+      <p>An operation is <strong>idempotent</strong> when <strong>doing it twice has the same effect as doing it once.</strong> Pressing an elevator button twice doesn't summon two elevators. Writing idempotent consumers is the standard answer to at-least-once delivery.</p>
+    </div>
+
+    <h3>The one-line fix</h3>
+    <p>Back to the two runners. The consumer assigns a runner like this:</p>
+    <pre>UPDATE orders SET runner = 'Alex' WHERE id = 4472 AND runner IS NULL;</pre>
+    <p>First delivery: the row updates — <code>runner</code> was NULL, now it's Alex. The redelivery (after runner-service A crashed) runs the same statement: <code>runner IS NULL</code> is false now, so it updates <strong>zero rows</strong>, skips the dispatch, and acks. <strong>Sam never drives.</strong> The conditional <code>WHERE</code> is the whole fix: the second delivery becomes a no-op.</p>
+    <p>Soccer version of the same shape: two "assign seat 12A a pie" messages arrive; the consumer only assigns when the seat has no order yet. Whichever delivery arrives second finds the work already done and moves on.</p>
+
+    <h3>Idempotency keys</h3>
+    <div class="definition">
+      <strong class="term">Idempotency key</strong>
+      <p>A <strong>unique identifier the producer attaches to an operation</strong> — for example, one key per payment attempt. The consumer (or the API on the other side) remembers which keys it has already processed; a repeated key gets the <strong>cached result instead of a second execution.</strong></p>
+    </div>
+    <p>The real-world version: every payment carries a unique idempotency key. The payment service sees a repeated key and returns the stored result instead of charging the card twice. Note the keys also travel on the <em>synchronous</em> payment call on the critical path — a fan double-tapping "Order" during halftime must not pay twice either. <strong>Idempotency belongs on the critical path too.</strong></p>
+    <div class="callout">
+      <h4>🧠 The sentence that wins interviews</h4>
+      <p><strong>"Queues deliver at least once, so every consumer must be idempotent."</strong> Then name the concrete mechanism — a conditional write or an idempotency key — not just the word <em>idempotent</em>. Interviewers hear the word constantly; the mechanism is what proves you mean it.</p>
+    </div>
+  </section>
+
+  <section id="queue-vs-log">
+    <div class="section-head"><span class="section-num">05</span><h2>Queue or log?</h2></div>
+    <p class="lede">After a consumer reads a message, the broker does one of two things: <strong>deletes it</strong>, or <strong>keeps it</strong>. That one choice changes everything about what the system can do.</p>
+
+    <div class="definition">
+      <strong class="term">Queue (delete-on-ack)</strong>
+      <p>The message is <strong>deleted after the consumer acks</strong>. Three instances of the kitchen service share one queue, and each message goes to <strong>just one of them</strong> — whoever's free. This pattern is called <strong>competing consumers</strong>: several workers race for the same pile of tasks, each task done by exactly one worker. No history, no replay: once acked, the message is gone. SQS and standard RabbitMQ queues work this way.</p>
+    </div>
+    <p>The stadium version: the kitchen's order screen. Ten cooks, one shared pile of orders; cook #3 grabs order 4472, and nobody else sees it. If a cook drops their station mid-order, the message becomes visible again (no ack) and another cook picks it up. <strong>One task, one worker, at least once.</strong></p>
+
+    <div class="definition">
+      <strong class="term">Log (retain + offsets + replay)</strong>
+      <p>The message is <strong>appended to an immutable log and kept</strong> for a retention period (Kafka's default: seven days). Each consumer remembers its own position in the log — the <strong>offset</strong>, a numbered bookmark. Reading never deletes anything, so <strong>many services can read the same events</strong>, and a brand-new service can start from the oldest stored message and catch up on history. Re-reading history is called <strong>replay</strong>. If the WAL from the replication lesson rings a bell — an append-only log with readers at their own positions — same idea, pointed at events instead of database rows.</p>
+    </div>
+    <p>The stadium version: the club's analytics team joins mid-season. With a log, they point their consumer at "all order events since the season opener" and replay seven days of history — no code changes anywhere else. With a delete-on-ack queue, that history never existed.</p>
+    <p><strong>The two-sentence decision rule:</strong> use a queue when each message is a <em>task for exactly one worker</em>. Use a log when <em>many services need the same events</em>, or you might need to <em>replay</em> them later. Most real architectures use both: RabbitMQ for task queues, Kafka for the event log.</p>
+
+    <h3>Pub/sub and the Kafka twist</h3>
+    <div class="definition">
+      <strong class="term">Pub/sub (publish/subscribe)</strong>
+      <p>A pattern where <strong>one published message fans out to many subscribers</strong> — the producer ("publisher") has no idea how many readers there are. The club publishes one "goal scored!" event; the notifications service, the live stats service, and the betting-odds service each get their own copy. Contrast with competing consumers, where one message goes to <em>exactly one</em> worker.</p>
+    </div>
+    <p>Kafka blends both: each <strong>consumer group</strong> receives <em>all</em> messages (that's the pub/sub fan-out across groups), but <em>within</em> a group each message goes to <em>one</em> consumer (that's the competing-consumers split within the group). It's the load-balancing lesson's idea again — distributing work across workers — pointed at a stream of events instead of HTTP requests.</p>
+
+    <h3>Ordering: the partition key</h3>
+    <div class="definition">
+      <strong class="term">Partition</strong>
+      <p>A <strong>shard of a log</strong>: a topic's messages are split across several ordered partitions so multiple consumers can read in parallel. The price of that parallelism: <strong>Kafka guarantees order only <em>within</em> one partition</strong>, not across partitions.</p>
+    </div>
+    <p>So you choose what must stay ordered by choosing the partition key. Uber partitions ride events by <strong>trip ID</strong>: requested → accepted → started → completed for one trip always lands in one partition, in order. Events for different trips may interleave — and nobody cares, because no single reader needs them ordered. <strong>The interview line: "order within the entity that matters, keyed by that entity."</strong> SQS standard makes no ordering promises at all; SQS FIFO orders within a message group (strict ordering, capped at 3,000 msgs/sec).</p>
+  </section>
+
+  <section id="poison">
+    <div class="section-head"><span class="section-num">06</span><h2>The message that fails forever</h2></div>
+    <p class="lede">Some messages can never succeed. An order arrives with a five-digit phone number; the SMS provider rejects it every time. The consumer retries, fails, gets the message redelivered, retries, fails — <strong>a poison message that wastes work forever</strong>, and in a strict-order queue it blocks everything behind it.</p>
+
+    <div class="definition">
+      <strong class="term">Poison message</strong>
+      <p>A message that <strong>fails on every attempt</strong>, no matter how many times it's retried — because the message itself is bad (corrupt data, an impossible instruction), not because the service had a hiccup.</p>
+    </div>
+
+    <h3>Split failures: temporary vs permanent</h3>
+    <p>First sort the failure. A <strong>temporary failure</strong> — the SMS provider timed out — might work next time. A <strong>permanent failure</strong> — the five-digit phone number — never will. The two get different treatment:</p>
+    <ul>
+      <li><strong>Temporary → retry with backoff.</strong> Wait longer between each attempt: ~1s, then ~2s, then ~4s. This is <strong>exponential backoff</strong>. And add <strong>jitter</strong> — a small random delay on top — because when a service fails, <em>many</em> consumers fail together; without jitter they all retry at the same instant and crush the recovering service. A synchronized retry wave that takes the service down again is a <strong>retry storm</strong>.</li>
+      <li><strong>Permanent → stop retrying, quarantine the message.</strong> Past an attempt limit, the broker moves the message aside into a <strong>dead letter queue (DLQ)</strong>: a separate queue that holds the failures for a human to inspect.</li>
+    </ul>
+
+    <h3>The dead letter queue: mechanics</h3>
+    <div class="definition">
+      <strong class="term">Dead letter queue (DLQ)</strong>
+      <p>A <strong>separate queue where messages go after they exceed the retry limit</strong>. A person inspects the bad message, fixes the data, and <strong>replays</strong> it back into the main queue. Netflix monitors its DLQs with alerts and has on-call engineers replay failed messages after fixing the consumer bug.</p>
+    </div>
+    <p>The knobs to name: SQS's <strong>redrive policy</strong> with <code>maxReceiveCount</code> — "after N receives, move to the DLQ." RabbitMQ <strong>quorum queues</strong> have a delivery limit (default 20 since RabbitMQ 4.0); without a configured dead-letter exchange, the bad message is dropped silently.</p>
+    <div class="warn-box">
+      <p><strong>⚠️ The warning to quote:</strong> a dead letter queue that nobody watches is just a slower way to lose messages. <strong>Put an alert on it.</strong> An unmonitored DLQ is where failed payments go to be forgotten — technically stored, practically lost.</p>
+    </div>
+  </section>
+
+  <section id="backpressure">
+    <div class="section-head"><span class="section-num">07</span><h2>Backpressure</h2></div>
+    <p class="lede">The halftime rush: fans fire orders into the broker 20× faster than the kitchen can cook. The queue depth grows. <strong>Backpressure</strong> is the name for <em>what the system does about that</em> — because "hope" isn't a strategy.</p>
+
+    <div class="definition">
+      <strong class="term">Backpressure</strong>
+      <p>The set of strategies a system uses when <strong>work arrives faster than it can be processed</strong> — how the pressure from producers flows back and gets handled instead of drowning the consumers. Four strategies, each with a named price:</p>
+    </div>
+    <ol>
+      <li><strong>Buffer — let the queue absorb the spike.</strong> A disk-backed log like Kafka buffers enormous volumes cheaply; a more memory-oriented broker like RabbitMQ can struggle under the same surge. Price: <em>you're buying time, not capacity</em> — remember the rule from section 2. Works when the surge is temporary.</li>
+      <li><strong>Scale consumers — add more workers.</strong> More kitchen hands, more drain. Price: <em>parallelism has a ceiling.</em> A Kafka topic with 12 partitions caps one consumer group at 12 active consumers — more parallelism needs repartitioning. And spinning up instances takes minutes; a fifteen-minute halftime doesn't wait.</li>
+      <li><strong>Drop — shed the least important work.</strong> For non-critical workloads, drop the oldest past a size limit (Kafka retention policies do exactly this). Price: <em>lost messages.</em> Fine for telemetry; never for payments.</li>
+      <li><strong>Push back on producers — tell them to slow down.</strong> The broker signals the order service: throttle the fan app, show a "busy" note. Price: <em>coupling.</em> The producer now has to know the consumer is struggling — the systems are joined again. But when lost messages are unacceptable, it's the right call.</li>
+    </ol>
+    <p>The monitoring pair to name in any answer: <strong>queue depth</strong> (how many messages are waiting) and <strong>consumer lag</strong> (how far behind the consumers are — in a log, the gap between the newest offset and each consumer's offset). Depth grows first; lag tells you whether anyone's catching up.</p>
+  </section>
+
+  <section id="lab">
+    <div class="section-head"><span class="section-num">08</span><h2>Lab: the halftime rush simulator</h2></div>
+    <p class="lede">You're the kitchen dispatcher. Orders flood in; your cooks drain them. Push the demand up, add or remove cooks, and watch the queue depth — then inject a poison order and watch it retry its way into the dead letter queue.</p>
+
+    <div class="lab">
+      <h3>⚽ Halftime rush</h3>
+      <p class="howto">Drag demand to simulate the halftime surge. Add or remove kitchen workers and watch the queue depth and consumer lag. Inject a poison order to see backoff retries and the DLQ trip.</p>
+
+      <div class="slider-row">
+        <label for="mq-demand">Fan orders arriving</label>
+        <input type="range" id="mq-demand" min="20" max="400" step="10" value="120">
+        <output id="mq-demand-out">120 orders/sec</output>
+      </div>
+
+      <div class="controls">
+        <button class="btn primary" id="mq-add">+ Add cook</button>
+        <button class="btn" id="mq-remove">− Remove cook</button>
+        <button class="btn" id="mq-poison">☠️ Inject poison order</button>
+        <button class="btn" id="mq-reset">Reset</button>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <div class="node-name">Queue depth</div>
+          <div class="score" id="mq-depth">0</div>
+          <span class="badge ok" id="mq-depth-badge">draining</span>
+        </div>
+        <div class="stat">
+          <div class="node-name">Consumer lag</div>
+          <div class="score" id="mq-lag">0s</div>
+        </div>
+        <div class="stat">
+          <div class="node-name">Cooks</div>
+          <div class="score" id="mq-workers">4</div>
+        </div>
+        <div class="stat">
+          <div class="node-name">Dead letter queue</div>
+          <div class="score" id="mq-dlq">0</div>
+          <span class="badge ok" id="mq-dlq-badge">no alert</span>
+        </div>
+        <div class="stat">
+          <div class="node-name">Duplicate deliveries</div>
+          <div class="score" id="mq-dups">0</div>
+        </div>
+      </div>
+
+      <div class="chart" id="mq-chart" aria-hidden="true"></div>
+      <div class="chart-cap">Queue depth over the last ~12 seconds. Cook capacity: 30 orders/sec each.</div>
+
+      <div class="log" id="mq-log"></div>
+    </div>
+
+    <div class="callout">
+      <h4>🧠 What to take from the lab</h4>
+      <p><strong>One:</strong> push demand above total cook capacity and the depth line climbs — buffering buys you <em>time</em>, not a solution. <strong>Two:</strong> the poison order retries at 1s → 2s → 4s (exponential backoff), each retry counts as a duplicate delivery, and after the attempt limit it lands in the DLQ — where the alert should fire. <strong>Three:</strong> a consumer that idempotently ignores the duplicates (the <code>AND runner IS NULL</code> trick) turns every retry into a harmless no-op.</p>
+    </div>
+  </section>
+
+  <section id="tools">
+    <div class="section-head"><span class="section-num">09</span><h2>Picking the tool</h2></div>
+    <p class="lede">Three names come up constantly. Each is the right answer for a different requirement — pick by the requirement, not by fashion.</p>
+    <table class="cmp">
+      <tr><th></th><th>Kafka</th><th>RabbitMQ</th><th>Amazon SQS</th></tr>
+      <tr><td><strong>What it is</strong></td><td>Distributed event log — messages persist, ordered per partition, kept for a retention period</td><td>Traditional broker (AMQP) — delete-on-ack queues with rich routing</td><td>Fully managed queue — zero ops, you just use it</td></tr>
+      <tr><td><strong>After ack</strong></td><td>Message stays (retention, replay)</td><td>Message deleted</td><td>Message deleted</td></tr>
+      <tr><td><strong>Superpower</strong></td><td>Millions of msgs/sec, many consumers read the same events, replay history</td><td>Routing (direct / topic / fanout exchanges), priorities, time-to-live (TTL), delayed messages</td><td>No servers to run; built-in DLQ; 14-day retention</td></tr>
+      <tr><td><strong>Price</strong></td><td>Ops complexity — you run the cluster</td><td>Memory-oriented under heavy buffering; no replay</td><td>Standard = best-effort ordering + at-least-once; FIFO = strict ordering, 3,000 msgs/sec cap</td></tr>
+      <tr><td><strong>Reach for it when</strong></td><td>Replay matters, many services need the same events, event volume is huge (LinkedIn processes trillions of messages a day)</td><td>Complex routing, task queues, one message → one worker with rich delivery rules</td><td>You're on AWS and can't afford ops overhead</td></tr>
+    </table>
+    <h3>When not to use a queue at all</h3>
+    <ul>
+      <li>The caller <strong>needs the reply now</strong> — payment stays synchronous on the critical path. Waiting for a queue round-trip plus polling is worse than one direct call.</li>
+      <li>The system is <strong>simple</strong> — two services, one request. A direct HTTP call is more debuggable and has fewer moving parts.</li>
+      <li>You <strong>can't afford eventual consistency</strong> — queueing means the effect happens <em>later</em>. If "later" violates the requirement, keep it synchronous.</li>
+    </ul>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">10</span><h2>Q&amp;A — with full model answers</h2></div>
+    <p class="lede">Four questions, the way an interviewer would ask them. Read the context first — it tells you what they're really testing.</p>
+    <div class="qa">
+
+      <div class="question">
+        <div class="qnum">Q1 · DIAGNOSIS</div>
+        <div class="qtext">"Your checkout calls six services in a row: payment, save order, notify restaurant, find rider, send SMS, add loyalty points. The SMS provider goes down for three hours and every order fails. What's the structural bug?"</div>
+        <div class="context">They're testing the critical-path rule — and whether you can split a flow into what the user waits for vs what rides the queue.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Tight coupling on the critical path.</strong> The user waits for six services when they only need two. Payment and saving the order stay synchronous — everything else rides the queue."</p>
+          <h5>Reasoning</h5>
+          <p>"The bug is structural: the SMS step sits on the path the user waits on, so an SMS outage becomes an order outage. Apply the critical-path rule — a step belongs there only if the customer needs its result before the confirmation. The fan needs 'did I pay?' and 'is my order recorded?' Nobody waits for the SMS text to arrive. So: the order service does payment + save order, writes one message ('order placed') to the broker, and returns instantly. The kitchen, rider dispatch, SMS, and loyalty services consume at their own pace.</p>
+          <p>Replay the outage with that design: the SMS provider is down three hours, the order service never notices, zero orders fail — the SMS messages pile up in the broker and drain when it recovers. As supporting math: six 99.9% services chained give 0.999⁶ ≈ 99.4% — about 259 minutes of failed orders per month versus ~43 for one service alone. Removing four services from the waiting path removes most of that downtime."</p>
+          <h5>The senior line</h5>
+          <p>"And I'd add the caveat: the queue is a shock absorber, not capacity. If the kitchen is permanently slower than order intake, no queue depth fixes that — I'd monitor depth and consumer lag and scale the consumer side."</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2 · DIAGNOSIS</div>
+        <div class="qtext">"Two riders were dispatched to the same order. The code has no obvious bug — each step ran correctly. Walk me through what happened and the fix."</div>
+        <div class="context">The crash-before-ack story. They want the delivery semantic named, the mechanism explained, and a concrete consumer-side fix.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>At-least-once delivery plus a non-idempotent consumer.</strong> Rider-service A processed the message, saved the rider, and crashed before acking — the broker redelivered to instance B, which did the work again. The fix is idempotency in the consumer."</p>
+          <h5>Reasoning</h5>
+          <p>"The mechanism: the broker deletes a message only after the ack. A's crash happened between doing the work (saving Alex as rider in its database) and acking — two separate systems, so a crash can always land between them. The visibility timeout expired, the broker handed the same message to B, and B assigned Sam. That's at-least-once delivery: crashes never lose messages, but they can duplicate them.</p>
+          <p>The fix lives in the consumer, not the broker: make the assignment idempotent — <code>UPDATE orders SET runner = 'Alex' WHERE id = 4472 AND runner IS NULL</code>. First delivery assigns; the redelivery updates zero rows and skips. Alternatively, attach an idempotency key per order and return the cached result on repeats. And no, 'exactly-once' isn't the answer — a consumer can't promise it end-to-end, because the database write and the ack are two systems."</p>
+          <h5>What earns top marks</h5>
+          <p>Naming a <em>concrete</em> mechanism (the conditional write, the idempotency key) rather than just saying the word 'idempotent' — and preempting the exactly-once trap before the interviewer has to bring it up.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3 · JUDGMENT</div>
+        <div class="qtext">"Kafka or RabbitMQ — how do you choose?"</div>
+        <div class="context">Tool-choice questions are really requirement-reading questions. They want one reason tied to the requirement, not a feature list.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Kafka when the event history matters to many consumers; RabbitMQ when each message is a task for one worker with routing rules. If I'm on AWS and want zero ops, SQS is the default.</strong>"</p>
+          <h5>Reasoning</h5>
+          <p>"The decision is the queue-vs-log choice from section 5. Kafka keeps every message in a retained, ordered log — so analytics can replay the season's events, and five services can read the same stream independently. RabbitMQ deletes on ack and gives me rich routing: direct/topic/fanout exchanges, priorities, TTL, delayed messages — that's the kitchen's task queue, one order to one cook. If the requirement is 'on AWS, no team to run a cluster,' SQS wins on ops cost: standard for best-effort ordering, FIFO when I need strict ordering within a message group.</p>
+          <p>The one reason I'd state out loud: 'we need a new analytics service to replay order events from last week without touching the producers' — that sentence ends the debate; it's Kafka. If instead the sentence is 'route each ticket to exactly one support agent by region with priorities,' it's RabbitMQ."</p>
+          <h5>What earns top marks</h5>
+          <p>Turning it into a <em>requirement sentence</em> that forces the choice, rather than reciting feature lists. Bonus for naming the price of the pick — Kafka's ops complexity, RabbitMQ's memory-oriented buffering, SQS FIFO's 3,000 msgs/sec cap.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4 · ARCHITECTURE</div>
+        <div class="qtext">"It's 3 AM. Queue depth is climbing, consumers look healthy, no errors in the logs. Walk me through your diagnosis."</div>
+        <div class="context">They're checking you can reason about the whole pipeline — producer, broker, consumer, and the ack path — not just the obvious suspects.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"Depth climbing with healthy-looking consumers means <strong>work is arriving faster than it's being completed</strong>, or completion is being <strong>withheld on the ack path</strong>. I'd check four places in order."</p>
+          <h5>Reasoning</h5>
+          <p>"First, <strong>capacity vs arrival</strong>: compare the producer rate against real consumer throughput — not the dashboard's 'healthy' label, the actual messages-per-second drained. A halftime-style surge at 3 AM might be a partner backfill job flooding the queue.</p>
+          <p>Second, <strong>partition skew</strong>: one partition hot while the rest idle — a bad partition key sends everything to one consumer. Check per-partition lag, not just total.</p>
+          <p>Third, <strong>the slow downstream on the ack path</strong>: consumers look fine because they're processing, but if each one waits on a slow database before acking, completions pile up. Consumer lag with flat CPU is the signature — the work is done, the ack is what waits.</p>
+          <p>Fourth, <strong>a poison message with quiet retries</strong>: no errors in <em>your</em> logs, but the broker's attempt counts rising and one consumer burning cycles on the same message. Check retry counts and the DLQ fill rate.</p>
+          <p>Then the backpressure answer with its price: if it's a temporary surge, buffer (disk-backed broker); if arrivals stay high, scale consumers up to the partition ceiling; if neither is affordable, slow the producers. And whatever I pick, I'd add an alert on depth + lag — finding this at 3 AM from a human is itself the operational failure."</p>
+        </div></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">11</span><h2>Practice drills</h2></div>
+    <p class="lede">Untimed — think like you're whiteboarding. Write your answer, then check the rubric.</p>
+
+    <div class="drill">
+      <h4>Drill 1 — Split the flow</h4>
+      <p>A checkout flow does six steps in a row: <strong>(1)</strong> validate payment, <strong>(2)</strong> save order, <strong>(3)</strong> notify the kitchen, <strong>(4)</strong> find a runner, <strong>(5)</strong> send an SMS, <strong>(6)</strong> add loyalty points. Which steps stay on the critical path and which ride the queue? Then replay the three-hour SMS outage: what happens to orders in each design?</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>Stay: (1) validate payment, (2) save order.</strong> The customer needs both answers before "Order placed." Full marks for stating the rule, not just the split.</li>
+          <li><strong>Queue: (3)–(6).</strong> The kitchen, runner, SMS, and loyalty steps produce no result the user waits for. Full marks for noting the order service writes <em>one</em> message and returns — producers don't fan out per consumer.</li>
+          <li><strong>Replay (all synchronous):</strong> every order fails for three hours; the chain's availability is the product of all six services' availabilities.</li>
+          <li><strong>Replay (with queue):</strong> zero orders fail; SMS messages accumulate in the broker for three hours and drain on recovery. The user experience is unchanged; only the texts arrive late.</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> the rule stated first, the split justified against it, both replays contrasted in terms of <em>failed orders</em> (the user's outcome), not just architecture. Deductions for leaving the kitchen on the critical path "because the user wants food fast" — speed of food is a queue-drain concern, not a confirmation concern.</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 2 — The crash between the lines</h4>
+      <p>A consumer reads a message, updates its database, then crashes before acking. Name the delivery semantic at play, describe what the user visibly experiences, and give the one-line fix.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>Semantic: at-least-once.</strong> The broker never received the ack, so the message is redelivered. Full marks for naming the visibility timeout / redelivery mechanism, not just the label.</li>
+          <li><strong>User-visible effect:</strong> the work happens twice — two runners dispatched, a double charge, a duplicate SMS. Pick one concrete manifestation, stated in the user's terms.</li>
+          <li><strong>Fix: idempotency in the consumer</strong> — a conditional write (<code>... WHERE id = ? AND runner IS NULL</code>) or an idempotency key with a cached-result check. Full marks only for a <em>mechanism</em>; "make it idempotent" with no mechanism is half marks.</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> the causal chain in three beats — crash <em>between</em> the database write and the ack → redelivery → duplicate effect — then the one-line mechanism that breaks the chain at the second delivery.</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 3 — The burst you can't cook through</h4>
+      <p>Orders arrive at 1,000 msgs/sec; the kitchen consumers process 100 msgs/sec, all day. Name two of the four backpressure strategies, pick one, and state its price.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>Valid pairs:</strong> buffer + scale consumers; buffer + drop oldest; scale consumers + push back on producers; drop + push back. Any two of the four, named correctly.</li>
+          <li><strong>The trap answer:</strong> "just buffer it" — a 10× gap sustained all day is not a burst; the queue grows forever. Full marks <em>require</em> calling this out: "a queue is a buffer that buys time, not a solution to insufficient capacity."</li>
+          <li><strong>Strong picks:</strong> scale consumers (price: partition ceiling, spin-up time) <em>plus</em> push back on producers while scaling (price: coupling, throttled UX) — or push back alone if message loss is unacceptable.</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> rejecting "buffer" as the answer to a <em>sustained</em> 10× gap, naming the price of the chosen strategy, and mentioning depth + lag as the monitoring that would have caught this before it was a crisis.</p>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">✓</span><h2>Cheat sheet: the 6 queue decisions</h2></div>
+    <p class="lede">Every async design is these six decisions, in this order. Tape this to your mental whiteboard.</p>
+    <div class="green-box">
+      <p><strong>1. Which steps wait?</strong> The <strong>critical-path rule</strong>: only steps whose result the user needs before "done" stay synchronous. Everything else rides the queue.</p>
+      <p><strong>2. At least once — so what?</strong> Queues redeliver after a crash, so <strong>every consumer must be idempotent</strong> — name the mechanism: a conditional write or an idempotency key.</p>
+      <p><strong>3. Queue or log?</strong> One task for one worker → <strong>queue</strong> (delete on ack, competing consumers). Same events for many readers, or future replay → <strong>log</strong> (retention + offsets). Order within the entity that matters: partition by it.</p>
+      <p><strong>4. How does it fail?</strong> <strong>Backoff + jitter</strong> for temporary failures (no retry storms). <strong>Attempt limit + dead letter queue + alert</strong> for poison messages. Replay the DLQ after fixing the cause.</p>
+      <p><strong>5. What's the backpressure plan?</strong> Monitor <strong>depth + consumer lag</strong>. Pick one of buffer / scale consumers / drop / push back — and name its price. Buffering is for bursts, not for a permanently slow consumer.</p>
+      <p><strong>6. Which tool, and why?</strong> <strong>Kafka</strong> for replay-at-scale; <strong>RabbitMQ</strong> for routing and task queues; <strong>SQS</strong> for AWS with zero ops. One requirement-tied reason — not a feature list.</p>
+    </div>
+  </section>
+
+  <section id="talk">
+    <div class="section-head"><span class="section-num">🎯</span><h2>How to talk about queues in the interview</h2></div>
+    <p class="lede">When the question is "design checkout" or "design notifications," run this five-step structure. It turns a rambling tour of Kafka features into a senior answer.</p>
+    <ol>
+      <li><strong>Split the flow.</strong> State the critical-path rule and name what the user waits for vs what rides the queue.</li>
+      <li><strong>Name the semantic.</strong> Say "at least once, so my consumers are idempotent" — with the <em>concrete</em> idempotency mechanism (conditional write / idempotency key), and the crash-before-ack story if they ask.</li>
+      <li><strong>Describe backpressure.</strong> Depth + lag monitoring, which of the four strategies, and its price.</li>
+      <li><strong>Describe failure handling.</strong> Backoff + jitter for transient; attempt limit → DLQ → <strong>alert</strong> → replay for poison.</li>
+      <li><strong>Pick the tool.</strong> One reason tied to the requirements: replay → Kafka; routing/task queues → RabbitMQ; AWS + zero ops → SQS.</li>
+    </ol>
+    <div class="verdict">
+      <h4>Senior-depth traps — land these unprompted</h4>
+      <p><strong>Queues don't fix slow consumers.</strong> "A buffer that buys time" — a 10× sustained gap needs scaling or backpressure, not depth.</p>
+      <p><strong>Exactly-once is not on offer end-to-end.</strong> The database write and the ack are two systems; a crash can always land between them. What's on offer is at-least-once plus idempotent consumers.</p>
+      <p><strong>The DLQ with no alert is a slower way to lose messages.</strong> If nobody watches it, the failed orders are just stored somewhere you never look.</p>
+    </div>
+  </section>
+
+  <a class="nav-next" href="indexing-deep-dive.html">
+    <div class="lbl">Previous lesson · Lesson 8</div>
+    <div class="t">Database Indexing →</div>
+  </a>
+
+  <footer class="page-foot">
+    Lesson 9 of the daily system design series · <a href="../index.html">All lessons</a>
+  </footer>
+</div>
+<script>
+(function () {
+  "use strict";
+  var TICK_MS = 300;
+  var CAPACITY_PER_WORKER = 30; // orders/sec per cook
+  var MAX_ATTEMPTS = 4; // then DLQ
+  var BACKOFF = [1000, 2000, 4000];
+
+  var demand = 120;
+  var workers = 4;
+  var depth = 0;
+  var processed = 0;
+  var dlqCount = 0;
+  var duplicates = 0;
+  var poisons = []; // {attempts: n, nextRetryAt: ms}
+  var history = [];
+  var now = 0;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var elDemand = $("mq-demand"), elDemandOut = $("mq-demand-out"),
+      elDepth = $("mq-depth"), elDepthBadge = $("mq-depth-badge"),
+      elLag = $("mq-lag"), elWorkers = $("mq-workers"),
+      elDlq = $("mq-dlq"), elDlqBadge = $("mq-dlq-badge"),
+      elDups = $("mq-dups"), elChart = $("mq-chart"), elLog = $("mq-log");
+
+  function log(msg, cls) {
+    var div = document.createElement("div");
+    if (cls) div.className = cls;
+    var t = (now / 1000).toFixed(1);
+    div.innerHTML = '<span class="t">[' + t + 's]</span> ' + msg;
+    elLog.prepend(div);
+    while (elLog.children.length > 30) elLog.removeChild(elLog.lastChild);
+  }
+
+  function renderChart() {
+    elChart.innerHTML = "";
+    var max = 1;
+    for (var i = 0; i < history.length; i++) if (history[i] > max) max = history[i];
+    for (var j = 0; j < history.length; j++) {
+      var bar = document.createElement("div");
+      bar.className = "bbar";
+      bar.style.height = Math.max(2, (history[j] / max) * 100) + "%";
+      elChart.appendChild(bar);
+    }
+  }
+
+  function tick() {
+    now += TICK_MS;
+    var dt = TICK_MS / 1000;
+
+    // arrivals with a little jitter
+    var arrivals = demand * dt * (0.85 + Math.random() * 0.3);
+    depth += arrivals;
+
+    // consumers drain
+    var capacity = workers * CAPACITY_PER_WORKER * dt;
+    var drained = Math.min(depth, capacity);
+    depth -= drained;
+    processed += drained;
+
+    // poison retries on backoff schedule
+    for (var i = poisons.length - 1; i >= 0; i--) {
+      var p = poisons[i];
+      if (now >= p.nextRetryAt) {
+        p.attempts++;
+        duplicates++;
+        if (p.attempts >= MAX_ATTEMPTS) {
+          dlqCount++;
+          poisons.splice(i, 1);
+          log("☠️ poison order failed attempt " + p.attempts + " → moved to <b>dead letter queue</b> (alert fired)", "");
+        } else {
+          var wait = BACKOFF[Math.min(p.attempts - 1, BACKOFF.length - 1)];
+          p.nextRetryAt = now + wait;
+          log("☠️ poison order attempt " + p.attempts + " failed — retrying in ~" + (wait / 1000) + "s (backoff). Duplicate delivery #" + duplicates, "");
+        }
+      }
+    }
+
+    history.push(depth);
+    if (history.length > 40) history.shift();
+
+    // stats
+    var totalCap = workers * CAPACITY_PER_WORKER;
+    var lag = totalCap > 0 ? depth / totalCap : (depth > 0 ? Infinity : 0);
+    elDepth.textContent = Math.round(depth).toLocaleString();
+    elLag.textContent = lag === Infinity ? "∞" : lag.toFixed(1) + "s";
+    elWorkers.textContent = workers;
+    elDlq.textContent = dlqCount;
+    elDups.textContent = duplicates;
+
+    if (demand > totalCap) {
+      elDepthBadge.textContent = "growing";
+      elDepthBadge.className = "badge bad";
+    } else if (depth > 5) {
+      elDepthBadge.textContent = "draining";
+      elDepthBadge.className = "badge warn";
+    } else {
+      elDepthBadge.textContent = "steady";
+      elDepthBadge.className = "badge ok";
+    }
+    if (dlqCount > 0) {
+      elDlqBadge.textContent = "⚠️ alert!";
+      elDlqBadge.className = "badge bad";
+    } else {
+      elDlqBadge.textContent = "no alert";
+      elDlqBadge.className = "badge ok";
+    }
+    renderChart();
+  }
+
+  elDemand.addEventListener("input", function () {
+    demand = parseInt(elDemand.value, 10);
+    elDemandOut.textContent = demand + " orders/sec";
+    log("halftime demand set to " + demand + " orders/sec", "");
+  });
+
+  $("mq-add").addEventListener("click", function () {
+    workers++;
+    log("cook added — " + workers + " cooks, " + (workers * CAPACITY_PER_WORKER) + " orders/sec capacity", "");
+  });
+  $("mq-remove").addEventListener("click", function () {
+    if (workers > 1) {
+      workers--;
+      log("cook removed — " + workers + " cooks left", "");
+    }
+  });
+  $("mq-poison").addEventListener("click", function () {
+    poisons.push({ attempts: 0, nextRetryAt: now });
+    log("☠️ poison order injected — a five-digit phone number the SMS provider rejects every time", "");
+  });
+  $("mq-reset").addEventListener("click", function () {
+    depth = 0; processed = 0; dlqCount = 0; duplicates = 0;
+    poisons = []; history = []; now = 0;
+    elLog.innerHTML = "";
+    log("kitchen reset — fresh halftime", "");
+  });
+
+  log("kitchen open — 4 cooks, demand " + demand + " orders/sec. Push demand past capacity and watch depth climb.", "");
+  setInterval(tick, TICK_MS);
+})();
+</script>
+</body>
+</html>
