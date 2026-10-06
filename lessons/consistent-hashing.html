@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Consistent Hashing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { max-width: none; margin: 8px 0; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 220px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer h5 { margin: 14px 0 6px; font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .drill {
+      background: var(--purple-soft); border: 1px solid var(--purple);
+      border-radius: var(--radius); padding: 20px 22px; margin: 20px 0; max-width: 46rem;
+    }
+    .drill h4 { margin: 0 0 8px; }
+    .drill .rubric { border-top: 1px dashed var(--purple); padding-top: 12px; }
+    .verdict {
+      border: 2px solid var(--green); border-radius: var(--radius);
+      padding: 18px 22px; margin: 22px 0; max-width: 46rem; background: var(--green-soft);
+    }
+    .verdict h4 { margin: 0 0 8px; color: var(--green); }
+    .verdict p { max-width: none; margin: 6px 0; }
+    .nav-next {
+      display: block; margin-top: 60px; padding: 22px 24px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      text-decoration: none; color: inherit; box-shadow: var(--shadow);
+    }
+    .nav-next:hover { border-color: var(--ink); }
+    .nav-next .lbl { font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .nav-next .t { font-size: 1.2rem; font-weight: 700; margin-top: 4px; }
+    footer.page-foot { margin-top: 56px; color: var(--muted); font-size: .88rem; border-top: 1px solid var(--line); padding-top: 20px; }
+    .kicker { font-size: .82rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 30px 0 -8px; }
+    /* Ring lab extras */
+    .ring-wrap { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; margin: 18px 0; }
+    #ring-svg { flex: 0 0 auto; max-width: 100%; }
+    .legend { font-size: .9rem; color: var(--muted); }
+    .legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+    .loadbars { flex: 1 1 220px; min-width: 220px; }
+    .loadrow { display: grid; grid-template-columns: 64px 1fr 52px; gap: 10px; align-items: center; margin: 8px 0; font-size: .9rem; }
+    .loadrow .track { height: 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+    .loadrow .fill { height: 100%; border-radius: 6px; }
+    .loadrow .pct { font-family: "IBM Plex Mono", monospace; text-align: right; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <nav class="crumbs"><a href="../index.html">All lessons</a> &rsaquo; Lesson 10</nav>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 10 &middot; Core building blocks</span>
+    <h1>Consistent Hashing</h1>
+    <p class="whyline">Every growing system eventually adds or removes a server. The naive way to spread data across servers reshuffles <em>almost everything</em> each time that happens. Consistent hashing is the trick that makes scaling almost free: add a machine, and only about one machine's worth of data moves. This lesson covers how the ring works, why virtual nodes fix its skew, and how Dynamo, Cassandra, and every serious cache use it.</p>
+    <div class="meta">
+      <span>~25 min read</span>
+      <span>1 interactive lab</span>
+      <span>4 interview questions with model answers</span>
+      <span>3 practice drills</span>
+    </div>
+  </header>
+
+  <div class="toc">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#what">What is consistent hashing? (from zero)</a></li>
+      <li><a href="#ring">How the ring works</a></li>
+      <li><a href="#naive">Why it beats naive sharding</a></li>
+      <li><a href="#vnodes">The skew problem: virtual nodes</a></li>
+      <li><a href="#replication">Replication on the ring</a></li>
+      <li><a href="#realworld">Where it's used in the real world</a></li>
+      <li><a href="#traps">Senior-depth traps</a></li>
+      <li><a href="#lab">Lab: the stadium ring simulator</a></li>
+      <li><a href="#qa">Interview questions with full model answers</a></li>
+      <li><a href="#drills">Practice drills</a></li>
+      <li><a href="#cheatsheet">Cheat sheet + how to talk through it</a></li>
+    </ol>
+  </div>
+
+  <section id="what">
+    <div class="section-head"><span class="section-num">01</span><h2>What is consistent hashing?</h2></div>
+    <p class="lede">Start with the pain. You've got 3 cache servers and a million user sessions to spread across them. The obvious answer creates a hidden trap — one that only springs when your system is already under stress.</p>
+
+    <h3>The naive way (and its trap)</h3>
+    <p>The first thing everyone reaches for: hash the key, then take the remainder after dividing by the number of servers.</p>
+    <pre>server = hash(key) mod N</pre>
+    <p>With 3 servers, a session whose hash is <code>842</code> lands on server <code>842 mod 3 = 2</code>. Simple, deterministic, even spread. What's not to like?</p>
+    <p>Now it's Black Friday, server 2 is melting, and you add a 4th server. Same key: <code>842 mod 4 = 0</code> — it now belongs to server <strong>0</strong>. Nothing about the key changed; only <code>N</code> changed. And <code>N</code> is in <em>every single lookup</em>, so when <code>N</code> changes, the mapping of nearly every key changes with it.</p>
+    <div class="definition">
+      <strong class="term">The remap problem</strong>
+      <p>With <code>hash(key) mod N</code>, adding one server moves roughly <code>N / (N+1)</code> of your keys — with 3 servers going to 4, about <strong>75%</strong> of everything relocates. Your caches go cold all at once, your database takes the full hit it was being shielded from, and the scaling operation meant to relieve pressure causes the worst spike of the day.</p>
+    </div>
+
+    <div class="pitch">
+      <span class="tag">⚽ Running example: match-day entry</span>
+      <h4>The stadium concourse</h4>
+      <p>Picture a stadium with a <strong>circular concourse</strong> — a ring you can walk all the way around. There are entry gates spaced along it: Gate A, Gate B, Gate C. Every fan has a ticket number. The rule: <strong>walk clockwise from the main entrance until you reach the first gate — that's your gate.</strong></p>
+      <p>Now the club opens a new Gate D between A and B. Which fans get rerouted? Only the fans whose clockwise walk <em>previously</em> passed through D's position to reach B — the fans standing between A's gate and D's gate. Everyone else keeps walking to exactly the same gate as before.</p>
+      <p><strong>That is consistent hashing.</strong> The concourse is the <em>hash ring</em>, the gates are <em>servers</em>, the fans are <em>keys</em>, and "first gate clockwise" is the <em>lookup rule</em>. Opening or closing a gate disturbs only its neighbours.</p>
+    </div>
+
+    <div class="definition">
+      <strong class="term">Consistent hashing</strong>
+      <p>A way to assign keys to servers such that adding or removing a server moves only about <strong>1/n of the keys</strong> (where n is the number of servers), instead of nearly all of them. It does this by hashing keys <em>and</em> servers onto the same circle — the <strong>hash ring</strong> — and giving each key to the first server clockwise from it.</p>
+    </div>
+
+    <div class="callout">
+      <h4>Why "consistent"?</h4>
+      <p>Not consistent as in the CAP theorem's consistency (Lesson 7) — nothing about data agreement here. "Consistent" means the <em>mapping stays consistent</em>: keys keep mapping to the same servers even as servers come and go. Different word, different meaning, same industry. Interviewers love watching candidates untangle the two.</p>
+    </div>
+  </section>
+
+  <section id="ring">
+    <div class="section-head"><span class="section-num">02</span><h2>How the ring works</h2></div>
+    <p class="lede">Four mechanics, each simple, and together they make scaling nearly free: a shared circle, both sides hashed onto it, clockwise ownership, and neighbour-only disturbance.</p>
+
+    <h3>The hash space, bent into a circle</h3>
+    <p>A <span class="term">hash function</span> (a deterministic function that turns any string into a big number — MD5, SHA-1, and murmur3 are common) produces values in some fixed range, say <code>0</code> to <code>2³² − 1</code>. Take that number line and bend it so the biggest number touches zero again. That's the ring: a clock face with 4 billion positions instead of 12.</p>
+    <p>The two rules:</p>
+    <ol>
+      <li><strong>Hash every server onto the ring.</strong> Gate A sits at <code>hash("server-A")</code>, Gate B at <code>hash("server-B")</code>, and so on. Servers get random-looking positions because the hash scrambles their names.</li>
+      <li><strong>Hash every key onto the ring, then walk clockwise.</strong> A key's owner is the first server you meet walking clockwise from the key's position. Each server owns the <strong>arc</strong> of the ring from the previous server's position up to its own.</li>
+    </ol>
+
+    <h3>A worked example (small numbers, same mechanics)</h3>
+    <p>Real rings use 2³² positions; for readability, imagine a ring of positions <code>0–99</code>. Three gates hash to: <strong>A → 20</strong>, <strong>B → 55</strong>, <strong>C → 90</strong>.</p>
+    <ul>
+      <li>Key <code>user:7</code> hashes to <strong>10</strong> → walk clockwise → first gate is A at 20. <strong>Owner: A.</strong></li>
+      <li>Key <code>user:12</code> hashes to <strong>30</strong> → clockwise → B at 55. <strong>Owner: B.</strong></li>
+      <li>Key <code>user:31</code> hashes to <strong>60</strong> → clockwise → C at 90. <strong>Owner: C.</strong></li>
+      <li>Key <code>user:44</code> hashes to <strong>95</strong> → clockwise → wraps past 99 to 0 → A at 20. <strong>Owner: A.</strong> (The ring wraps; positions after the last gate belong to the first gate.)</li>
+    </ul>
+    <p>So A's arc is (90, 20] wrapping around — positions 91–99 and 0–20. B owns (20, 55]. C owns (55, 90].</p>
+
+    <h3>Adding a server: only one arc splits</h3>
+    <p>Open a new gate <strong>D at 40</strong>. It lands inside B's arc. D now owns (20, 40], and B keeps (40, 55]. Which keys move? <strong>Only the keys sitting between 20 and 40</strong> — previously B's, now D's. Keys at 10, 60, 95 don't even notice.</p>
+    <p>In general, a new server steals exactly one arc from its clockwise neighbour. With <code>n</code> servers sharing the ring, each owns ~<code>1/n</code> of it, so an addition moves ~<code>1/n</code> of the keys. Four servers → roughly a quarter of keys move. Compare that to the naive 75%.</p>
+
+    <h3>Removing a server: its arc slides to the neighbour</h3>
+    <p>Gate B fails at 3am. Its arc (40, 55] doesn't vanish — the keys in it now walk clockwise past B's empty spot to the next gate, D… wait, no: clockwise from 40–55, the first live gate is now C at 90 (B's own position is gone). So <strong>B's keys slide to C</strong>, the next clockwise neighbour. Every other key's walk is unchanged. Then you bring up a replacement, it rejoins at its hashed position, and takes its arc back.</p>
+
+    <div class="green-box">
+      <p><strong>The one-sentence mechanics:</strong> keys never point at server <em>number</em> anything — they point at <em>positions on a circle</em>, and servers stand on that circle too. Adding or removing a server only reassigns the arcs touching it. That's the whole trick, and everything else in this lesson is refinement.</p>
+    </div>
+  </section>
+
+  <section id="naive">
+    <div class="section-head"><span class="section-num">03</span><h2>Why it beats naive sharding</h2></div>
+    <p class="lede">In the sharding lesson (Lesson 6), consistent hashing appeared as one of four sharding strategies. Here's the head-to-head that shows why it's the default choice whenever the set of machines changes over time.</p>
+
+    <table class="cmp">
+      <tr><th></th><th><code>hash(key) mod N</code></th><th>Consistent hashing</th><th>Range sharding</th></tr>
+      <tr>
+        <td><strong>Adding a server moves…</strong></td>
+        <td>~<code>N/(N+1)</code> of keys (75% when going 3→4)</td>
+        <td>~<code>1/n</code> of keys (25% when going 3→4)</td>
+        <td>Half of one shard's range</td>
+      </tr>
+      <tr>
+        <td><strong>Who moves?</strong></td>
+        <td>Keys everywhere, unpredictably</td>
+        <td>Only keys in the new server's arc</td>
+        <td>Keys in the split range</td>
+      </tr>
+      <tr>
+        <td><strong>Range queries</strong> ("all users 800–900")</td>
+        <td>Scattered across servers</td>
+        <td>Scattered across servers (hashing destroys order)</td>
+        <td>Contained — ranges stay together</td>
+      </tr>
+      <tr>
+        <td><strong>Skew risk</strong></td>
+        <td>Low (mod spreads evenly)</td>
+        <td>Real — random arcs vary (fixed by virtual nodes, §04)</td>
+        <td>Real — hot ranges (needs splitting)</td>
+      </tr>
+      <tr>
+        <td><strong>Needs a lookup directory?</strong></td>
+        <td>No</td>
+        <td>No — any client can compute the ring itself</td>
+        <td>Yes — a router must know the ranges</td>
+      </tr>
+    </table>
+
+    <div class="callout">
+      <h4>The interview one-liner</h4>
+      <p>"Mod-N sharding is simple but every membership change reshuffles the deck. Consistent hashing keeps the reshuffle local — about one server's worth of data moves per server added or removed — and any client can compute placement itself with no central router. The price is losing key order, so it's for point lookups, not range scans."</p>
+    </div>
+  </section>
+
+  <section id="vnodes">
+    <div class="section-head"><span class="section-num">04</span><h2>The skew problem: virtual nodes</h2></div>
+    <p class="lede">The ring has one genuine flaw, and it's the first thing a good interviewer will poke at. Random positions mean random arc sizes — and random arc sizes mean unfair workloads.</p>
+
+    <h3>Random arcs are unfair arcs</h3>
+    <p>Back to our stadium: gates hash to 20, <strong>22</strong>, and 90. Gate B (at 22) owns the arc (20, 22] — a sliver. Gate C (at 90) owns (22, 90] — <strong>68% of the whole ring</strong>. Gate C's staff handle two-thirds of the fans while Gate B's staff nap.</p>
+    <p>This isn't a freak accident; it's the mathematics of random points on a circle. With <code>n</code> random gates, arc sizes average <code>1/n</code> of the ring but vary wildly — the spread (standard deviation) is nearly as big as the average itself. In practice, the busiest server routinely carries <strong>multiples of the average load</strong>. Throwing more servers at it doesn't fix it; each new gate is just another random dice roll.</p>
+    <div class="definition">
+      <strong class="term">Load skew</strong>
+      <p>When random ring positions give some servers much larger arcs than others, so a few servers do most of the work while the rest idle. The fix is not better randomness — it's <em>more</em> points per server.</p>
+    </div>
+
+    <h3>Virtual nodes: many small arcs instead of one big one</h3>
+    <p>Instead of placing each physical server on the ring <em>once</em>, place it <strong>many times</strong> — say 100 or 200 positions. Each of these positions is a <span class="term">virtual node</span> (or <em>vnode</em>): a fake extra copy of the server that owns its own small arc, and forwards to the real machine behind it.</p>
+    <div class="pitch">
+      <span class="tag">⚽ The stadium, fixed</span>
+      <h4>Turnstiles, not gates</h4>
+      <p>Instead of one big Gate C, the club installs <strong>turnstiles</strong> all around the concourse — 100 little entry points, each painted in its gate's colour. A fan still walks clockwise to the first turnstile, then gets directed to that turnstile's gate. Gate C's turnstiles are scattered everywhere, so its fans come from a hundred small slices of the ring instead of one giant arc. Some slices are bigger, some smaller — but with a hundred slices, the big and small average out, and every gate ends up with close to its fair third.</p>
+    </div>
+    <p>The math behind the intuition: one server's total share is now the <em>sum of 100 random arcs</em>. Sums of many random pieces cluster tightly around the average — that's the law of large numbers doing your load balancing for you. With enough vnodes, every server's load hugs the mean, and the worst-loaded server is barely above average.</p>
+
+    <div class="callout">
+      <h4>How many vnodes?</h4>
+      <p>More vnodes = fairer split, but each vnode is bookkeeping (the ring holds <code>n × vnodes</code> points). The industry settled on <strong>hundreds per server</strong>: Amazon's Dynamo used on the order of a hundred-plus vnodes per node, Cassandra defaults to 256 <em>tokens</em> (its word for vnodes) per node, and the memcached consistent-hash library ketama uses 160. You don't tune this by hand — you pick a big number and move on.</p>
+    </div>
+
+    <h3>The bonus superpower: unequal machines</h3>
+    <p>Here's the move that turns vnodes from a fix into a feature. Vnode counts don't have to be equal. Got a beefy new server with twice the RAM? Give it <strong>twice the vnodes</strong>. Its arcs cover twice the ring, so it naturally receives twice the keys. This is <span class="term">weighted</span> placement, and it falls out of vnodes for free — no special-casing, no capacity planner spreadsheet.</p>
+    <p>In our stadium: the new north stand has wider turnstiles and double the staff, so it gets 200 turnstiles while the old gates keep 100. Fans distribute proportionally, automatically.</p>
+
+    <div class="warn-box">
+      <p><strong>What vnodes don't fix:</strong> they balance <em>how many keys</em> each server owns, not <em>how hot</em> those keys are. If one key gets a million hits a second, its whole server still melts — vnodes can't split a single key. That's the <strong>hot key</strong> problem, and it gets its own section in the traps below (§07).</p>
+    </div>
+  </section>
+
+  <section id="replication">
+    <div class="section-head"><span class="section-num">05</span><h2>Replication on the ring</h2></div>
+    <p class="lede">So far every key lives on exactly one server. That's fine for a cache (a miss just refetches), but for a database, one dead server means lost data. The ring handles replication with the same clockwise trick.</p>
+
+    <h3>The preference list</h3>
+    <p>Instead of one owner, give each key a <span class="term">preference list</span>: the first <code>R</code> servers clockwise from the key's position. With <code>R = 3</code>, every key is stored on its owner <em>plus the next two clockwise neighbours</em>.</p>
+    <ul>
+      <li>If the owner dies, the next server on the list already has the data — it promotes itself to serve those keys. No copying needed at failover time.</li>
+      <li>Reads and writes can use <strong>quorums</strong> over the preference list — the <code>W + R &gt; N</code> rule from the CAP lesson (Lesson 7) — to stay available during failures. This is exactly how Amazon's Dynamo combined the ring with quorum replication to build an always-writable store.</li>
+      <li>When the dead server returns, it asks its neighbours for the keys it missed — via <span class="term">anti-entropy</span> (a background process where replicas compare their data and sync up differences) and <span class="term">hinted handoff</span> (neighbours temporarily hold writes destined for the dead node, then hand them over when it returns).</li>
+    </ul>
+    <div class="definition">
+      <strong class="term">Replication factor</strong>
+      <p>The number of copies of each key, usually written as <code>R</code> (Dynamo) or <code>RF</code> (Cassandra). Higher R = survives more simultaneous failures, but every write costs R copies of work and storage. The ring makes placement of all R copies a one-line rule: "the next R servers clockwise."</p>
+    </div>
+    <p>Notice the elegance: membership change, failure handling, and replica placement are all the same clockwise walk. One mental model covers the whole system.</p>
+  </section>
+
+  <section id="realworld">
+    <div class="section-head"><span class="section-num">06</span><h2>Where it's used in the real world</h2></div>
+    <p class="lede">This isn't textbook theory — the ring is load-bearing infrastructure at massive scale. Name-dropping these correctly signals senior depth.</p>
+    <ul>
+      <li><strong>Amazon Dynamo (2007)</strong> — the paper that popularised the ring. Consistent hashing + virtual nodes + preference-list replication + quorum reads/writes. The blueprint for an entire generation of stores.</li>
+      <li><strong>Apache Cassandra</strong> — a Dynamo descendant. The ring is divided into <em>token ranges</em>; vnodes are called <em>tokens</em> (256 per node by default). Same clockwise ownership, same neighbour failover.</li>
+      <li><strong>DynamoDB</strong> — AWS's managed descendant of the same lineage; partitions are placed on a hash ring under the hood.</li>
+      <li><strong>Memcached clients (ketama)</strong> — memcached servers don't coordinate with each other, so the <em>client library</em> builds the ring (160 vnodes per server) and picks which server to ask. Same idea, pushed to the client.</li>
+      <li><strong>CDNs</strong> — consistent-hash routing sends the same URL to the same edge cache, keeping hit rates high as edge nodes are added and removed.</li>
+      <li><strong>Load balancers (Google's Maglev)</strong> — a variant of the ring (a lookup table rebuilt on membership change) keeps connections pinned to backends with minimal disruption.</li>
+      <li><strong>Peer-to-peer systems (Chord, Kademlia)</strong> — the ring idea extended so <em>nodes themselves</em> route lookups around the circle with no central directory. BitTorrent's DHT works this way.</li>
+    </ul>
+    <div class="callout">
+      <h4>The pattern to recognise</h4>
+      <p>Whenever an interviewer says "nodes join and leave" and "minimal data movement," the answer they're fishing for is the ring. Caches, key-value stores, CDN routing, distributed rate limiters — anywhere placement must survive membership churn, consistent hashing is the default first answer.</p>
+    </div>
+  </section>
+
+  <section id="traps">
+    <div class="section-head"><span class="section-num">07</span><h2>Senior-depth traps</h2></div>
+    <p class="lede">Saying "consistent hashing" in a design discussion is table stakes. Surviving the follow-ups is what separates the senior answer. These are the six follow-ups that actually get asked.</p>
+
+    <h3>1. Hot keys: the ring balances counts, not heat</h3>
+    <p>Vnodes guarantee every server owns a fair <em>number of keys</em>. They say nothing about <em>request rates</em>. If one key — a celebrity's profile, the World Cup final's live score — gets 100k reads/sec, its owning server melts while the ring looks perfectly balanced. This is the <strong>hot key</strong> (or <em>celebrity</em>) problem.</p>
+    <p>Fixes, in order of preference: <strong>cache the hot key</strong> at the client or a fronting cache layer so most reads never reach the ring; <strong>split the key</strong> (write to <code>score:1 … score:10</code>, read a random one and merge — the same salting trick from the sharding lesson); or <strong>replicate the hot key</strong> to several servers deliberately. The ring can't do this for you — you detect and handle it above the ring.</p>
+
+    <h3>2. Range queries die on the ring</h3>
+    <p>Hashing destroys order: <code>user:800</code> and <code>user:801</code> land on opposite sides of the circle. "Give me users 800–900" becomes a scatter-gather across every server. If the workload needs range scans, the ring is the wrong tool — you want range sharding (Lesson 6), or a secondary index alongside the ring. Real systems often run both: ring for point lookups, an ordered structure for scans.</p>
+
+    <h3>3. Who maintains the ring? Membership is a protocol, not magic</h3>
+    <p>The ring tells you where data <em>should</em> go, but every server must agree on <em>who's on the ring right now</em>. Dynamo and Cassandra use <span class="term">gossip</span>: servers periodically swap membership lists with random peers, so news of a dead or new node spreads epidemically in seconds. Gossip is eventually consistent — two servers can briefly disagree about the ring, which is why writes go to a preference list with quorums rather than trusting one owner's view. Alternative: a control plane (like a load balancer's) pushes the authoritative ring to everyone.</p>
+    <div class="warn-box">
+      <p><strong>Interview trap:</strong> "You add a server while another is down — what breaks?" During the churn, different servers hold different rings, so a key's preference list differs depending on who you ask. Quorum writes plus <span class="term">read-repair</span> (fixing a stale replica when a read notices it disagrees with the others) paper over this, but there's a window of extra work and possible conflicts. The disciplined answer: membership changes are operations with a blast radius — drain, add, and verify one node at a time.</p>
+    </div>
+
+    <h3>4. The hash function is load-bearing</h3>
+    <p>Everything assumes the hash <em>uniformly</em> scatters inputs around the ring. A weak hash clusters points, recreates the skew vnodes were meant to fix, and can even be attacked (hash-flooding DoS). Production rings use well-studied non-cryptographic hashes like <strong>murmur3</strong> or <strong>xxHash</strong> (fast, uniform), or MD5/SHA-1 in older systems. "Just use a good hash" is a legitimate line in a design discussion — and interviewers accept it if you can say <em>why</em> uniformity matters.</p>
+
+    <h3>5. Consistent hashing doesn't elect leaders</h3>
+    <p>The ring answers <em>placement</em>: which servers hold this key. It does not answer <em>coordination</em>: who is the leader, who commits a transaction, who owns a lock. If your design needs a single decider, you still need consensus (Raft/Paxos) for that role — the ring and consensus solve different problems and routinely appear in the same architecture (e.g., a Raft group <em>per shard</em>, shards placed by a ring).</p>
+
+    <h3>6. Graceful removal beats abrupt removal</h3>
+    <p>Yanking a server moves its arc instantly to the neighbour — a sudden load spike on exactly one machine. The mature approach: mark the node <em>leaving</em>, let it keep serving reads while the neighbour warms its copies, then decommission. Same destination, controlled ramp. In the stadium: you don't lock a gate mid-rush; you stop sending new fans to it and let the queue drain.</p>
+  </section>
+
+  <section id="lab">
+    <div class="section-head"><span class="section-num">08</span><h2>Lab: the stadium ring simulator</h2></div>
+    <p class="lede">Don't take the math on faith — open and close gates and watch the keys. Toggle virtual nodes and watch the load bars even out.</p>
+
+    <div class="lab">
+      <h3>🏟️ Match-day entry simulator</h3>
+      <p class="howto">Each dot is a fan (a key) hashed onto the concourse ring; each coloured arc belongs to a gate. Add or remove gates and see how few fans get rerouted. Then switch on virtual nodes (turnstiles) and watch the load balance.</p>
+      <div class="controls">
+        <button class="btn primary" id="ch-add">+ Open a gate</button>
+        <button class="btn" id="ch-remove">− Close a gate</button>
+        <button class="btn on" id="ch-vn1">1 position / gate</button>
+        <button class="btn" id="ch-vn8">8 positions / gate</button>
+        <button class="btn" id="ch-reset">Reset</button>
+      </div>
+      <div class="ring-wrap">
+        <svg id="ring-svg" width="300" height="300" viewBox="0 0 300 300" role="img" aria-label="Consistent hash ring"></svg>
+        <div class="loadbars">
+          <div class="legend" id="ch-legend"></div>
+          <div id="ch-loads"></div>
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat">
+          <div class="node-name">Fans rerouted on last change</div>
+          <div class="score" id="ch-moved">—</div>
+          <div class="badge ok" id="ch-moved-badge">open/close a gate</div>
+        </div>
+        <div class="stat">
+          <div class="node-name">Busiest gate's share</div>
+          <div class="score" id="ch-maxshare">—</div>
+          <div class="badge ok" id="ch-share-badge">—</div>
+        </div>
+        <div class="stat">
+          <div class="node-name">Naive mod-N would move</div>
+          <div class="score" id="ch-naive">—</div>
+          <div class="badge bad" id="ch-naive-badge">comparison</div>
+        </div>
+      </div>
+      <div class="log" id="ch-log"></div>
+      <p class="howto" style="margin-top:14px">Try this: with 1 position per gate, close a gate — one gate absorbs the whole arc. Now reset, switch to 8 positions per gate, and close a gate — the orphaned fans scatter across <em>every</em> remaining gate instead of piling onto one.</p>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">09</span><h2>Interview questions with full model answers</h2></div>
+    <p class="lede">Read the question, answer it out loud in your own words, then check against the model. The model answers are deliberately complete — borrow their structure, not their script.</p>
+
+    <div class="qa">
+      <div class="question">
+        <div class="qnum">Q1</div>
+        <div class="qtext">Design a distributed cache. A server dies at peak traffic — walk me through exactly what happens.</div>
+        <div class="context">Tests whether you can operate the ring under failure, not just describe it.</div>
+        <div class="answer">
+          <h5>Model answer</h5>
+          <p>"I'd place cache servers on a consistent hash ring with virtual nodes — say 160 vnodes per server, ketama-style — so keys map to servers by clockwise ownership and the client library can compute placement with no router. Each key's value is also held by the next two clockwise servers as a preference list, giving replication factor 3.</p>
+          <p>When a server dies: first, membership. Servers gossip heartbeats, so within seconds everyone marks it down and rebuilds the ring without it. Its arcs now belong to the next clockwise vnodes — spread across many physical servers thanks to the vnodes, so no single survivor takes the whole hit.</p>
+          <p>Second, data. Keys it owned are already on the two replicas, which promote themselves — reads keep serving immediately, no re-copy needed. New writes go to the surviving preference-list members, and the replicas hold <em>hinted handoffs</em> — writes destined for the dead node — to replay when it returns.</p>
+          <p>Third, the cold-start spike: the failed server's cache was warm and its replacements' copies may be warm too, but to be safe I'd have the clients fall back to the database with request coalescing, and bring the replacement up as <em>joining</em> so it warms before taking full traffic. The key property: only ~1/n of key ownership changed, so the blast radius is bounded and proportional, not total."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2</div>
+        <div class="qtext">Why not just do <code>hash(key) % N</code>? It spreads keys evenly and it's one line of code.</div>
+        <div class="context">The classic "justify the complexity" probe. They want the failure mode, quantified.</div>
+        <div class="answer">
+          <h5>Model answer</h5>
+          <p>"It does spread evenly — while N is constant. The problem is that N is an input to every lookup, so changing N changes every lookup. Going from 3 servers to 4, <code>hash(key) % 3</code> and <code>hash(key) % 4</code> agree only ~25% of the time, so ~75% of keys relocate at once. In a cache that means a simultaneous cold start and a thundering herd on the database — the scaling event causes the outage it was meant to prevent.</p>
+          <p>Consistent hashing decouples placement from the server count: keys map to ring positions, servers occupy ring positions, and only the arcs adjacent to a joining or leaving server change hands — about 1/n of keys per membership change. The cost is a bit more machinery (the ring, vnodes for skew) and losing key order, which rules out range scans. For a cache or key-value workload where nodes come and go, that's the right trade."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3</div>
+        <div class="qtext">Your 5-node ring is healthy, but one node consistently runs at 3× the CPU of the others. What's wrong, and how do you fix it without adding hardware?</div>
+        <div class="context">Distinguishes "the ring balances counts" from "the ring balances heat."</div>
+        <div class="answer">
+          <h5>Model answer</h5>
+          <p>"First I'd check which kind of skew it is, because the fixes differ. Two candidates: <em>arc skew</em> — the node owns a disproportionate share of keys — or <em>hot keys</em> — it owns a normal share of keys but a few of them are extremely popular.</p>
+          <p>For arc skew, the fix is virtual nodes: if we're running one ring position per server, a random large arc explains it exactly. Move to ~100+ vnodes per node and the shares converge on the mean by the law of large numbers. If the node is also just a bigger machine, I'd additionally weight it — more vnodes — so it <em>intentionally</em> takes more.</p>
+          <p>For hot keys, vnodes won't help — they'd just move the hot key to a different victim. The fix is above the ring: cache the hot keys in front of the ring, or split them with a salt suffix and fan reads out across the splits. I'd verify with per-key request metrics before choosing, because the two problems look identical in CPU graphs."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4</div>
+        <div class="qtext">You need both "fetch user 842" and "list users 800–900" at scale. Does consistent hashing help with both?</div>
+        <div class="context">Tests whether you know the ring's hard boundary: it destroys order.</div>
+        <div class="answer">
+          <h5>Model answer</h5>
+          <p>"It helps the first and hurts the second. Point lookup is the ring's home turf: hash the user id, walk clockwise, one hop, done — and it stays cheap as nodes join and leave. But hashing destroys ordering, so 'users 800–900' scatters across the whole ring and becomes a scatter-gather over every node — the worst possible access pattern for that query.</p>
+          <p>So I'd use both strategies for their strengths: the ring for point lookups by id, and range sharding — or a secondary ordered index — for the range queries. In practice that means either two stores, or one store with the ring as primary placement plus an ordered index maintained alongside. The senior move is recognising that no single placement strategy serves both access patterns, and saying so explicitly."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">10</span><h2>Practice drills</h2></div>
+    <p class="lede">Untimed — work them on paper, then check the rubric. A drill is "done" when your answer would earn every rubric point.</p>
+
+    <div class="drill">
+      <h4>Drill 1 — Draw the ring by hand</h4>
+      <p>Ring positions 0–99. Servers hash to A→10, B→40, C→70. Keys hash to 5, 25, 45, 80.</p>
+      <ol>
+        <li>Which server owns each key?</li>
+        <li>A new server D joins at 50. Which keys move, and to whom?</li>
+        <li>C fails. Which keys move now, and to whom?</li>
+      </ol>
+      <details class="reveal"><summary>Rubric</summary><div class="body">
+        <ul>
+          <li>Initial: 5→A (wrap: clockwise from 5 is 10), 25→B, 45→C, 80→A (wrap past 99 to 10). <em>2 pts — the two wraps are the point.</em></li>
+          <li>D at 50 lands in C's arc (40, 70]: D owns (40, 50], C keeps (50, 70]. Key 45 moves B→D. Only key 45 moves. <em>2 pts.</em></li>
+          <li>C fails: its arc (50, 70] slides to the next clockwise server, A at 10 (wrapping). Keys 45 (now on D — unaffected) … careful: key 45 is on D, not C. C owns no keys in this set after D joined, so <strong>nothing moves</strong>. <em>2 pts — the trap is noticing D already took C's only key.</em></li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 2 — Weighted vnodes for a mixed cluster</h4>
+      <p>You have 2 old servers (8 GB RAM each) and 2 new servers (32 GB each) on one ring, 100 vnodes per "unit". How many vnodes per server, and what share of keys does each server get? What goes wrong if you give everyone 100?</p>
+      <details class="reveal"><summary>Rubric</summary><div class="body">
+        <ul>
+          <li>Weight by capacity: old = 1 unit → 100 vnodes; new = 4 units → 400 vnodes. Total 1000 vnodes: old servers 10% each, new servers 40% each. <em>2 pts.</em></li>
+          <li>Equal vnodes (100 each) gives every server 25% of keys — the 8 GB machines hold as much data and take as much traffic as the 32 GB ones, so the old nodes saturate first and become the system's ceiling. <em>2 pts — must name that the weakest node sets the limit.</em></li>
+          <li>Bonus: mention this only balances key <em>counts</em>; if the workload is read-heavy, weight by expected request rate or add caching, not just RAM. <em>1 pt.</em></li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 3 — Diagnose the 3am page</h4>
+      <p>One cache server's CPU is pinned at 100%; its four peers sit at 20%. Key counts per server are nearly equal. List your top three hypotheses in order, and the single metric that confirms or kills each.</p>
+      <details class="reveal"><summary>Rubric</summary><div class="body">
+        <ul>
+          <li><strong>Hot key</strong> — check per-key request rate (top-K keys by hits). A single key with outsized traffic confirms it. <em>2 pts.</em></li>
+          <li><strong>Expensive keys, not hot keys</strong> — check bytes/request or compute per key. A few large values (or keys triggering slow fallback fetches) explain high CPU at equal key counts. <em>2 pts.</em></li>
+          <li><strong>Noisy neighbour / hardware</strong> — check steal time, GC pauses, or NIC errors on that host. Equal keys + equal request rates + unequal CPU = the box, not the ring. <em>2 pts — must be third, after ruling out data causes.</em></li>
+        </ul>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">11</span><h2>Cheat sheet + how to talk through it</h2></div>
+    <p class="lede">Six decisions, then the 60-second framing that opens any design discussion on this topic.</p>
+
+    <div class="verdict">
+      <h4>✅ The six consistent-hashing decisions</h4>
+      <ol>
+        <li><strong>Ring or mod-N?</strong> — nodes join/leave over time → ring. Fixed fleet, range scans needed → mod-N or range sharding.</li>
+        <li><strong>Hash function</strong> — murmur3/xxHash (fast, uniform); MD5/SHA-1 in older systems. Uniformity is load-bearing.</li>
+        <li><strong>Vnode count</strong> — ~100–256 per node; weight by capacity for mixed hardware.</li>
+        <li><strong>Replication factor</strong> — preference list = next R clockwise; R=3 is the industry default.</li>
+        <li><strong>Membership protocol</strong> — gossip (Dynamo/Cassandra) or control-plane pushes; changes are one-at-a-time operations.</li>
+        <li><strong>Hot keys</strong> — detect per-key rates; cache or salt-split above the ring. The ring can't fix this.</li>
+      </ol>
+    </div>
+
+    <div class="callout">
+      <h4>🎙️ The 60-second framing</h4>
+      <p>"For placement I'll use consistent hashing: keys and servers both hash onto a ring, each key goes to the first server clockwise, so adding or removing a node moves only about one-nth of the data instead of nearly all of it. I'll run ~160 virtual nodes per server to keep the split even — weighted if the hardware is mixed — and replicate each key to the next two clockwise neighbours for failover. Point lookups stay one hop; range queries would need a separate ordered index since hashing destroys order. Hot keys get cached in front, because the ring balances key counts, not heat."</p>
+    </div>
+
+    <a class="nav-next" href="message-queues.html">
+      <div class="lbl">Previous lesson</div>
+      <div class="t">← Lesson 9: Message Queues &amp; Async Processing</div>
+    </a>
+
+    <footer class="page-foot">
+      Lesson 10 · Consistent Hashing · Part of the daily system design series.<br>
+      Builds on: Lesson 6 (Database Sharding) · Lesson 7 (CAP Theorem &amp; Consistency Models)
+    </footer>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var GATE_NAMES = ["A", "B", "C", "D", "E", "F"];
+  var COLORS = ["#d84a2f", "#1769aa", "#167454", "#9c6415", "#6b4fa1", "#0e7c86"];
+  var KEY_COUNT = 60;
+
+  var gates = ["A", "B", "C"];
+  var vnodesPerGate = 1;
+  var keys = [];
+  var ownerMap = {};
+  var lastMoved = null;
+
+  for (var i = 0; i < KEY_COUNT; i++) keys.push("fan:" + (1001 + i));
+
+  function fnv1a(str) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    // final avalanche (murmur3 fmix32): diffuses small input differences
+    // so neighbouring labels/keys spread uniformly around the ring
+    h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b);
+    h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35);
+    h ^= h >>> 16;
+    return h >>> 0;
+  }
+  function angOf(h) { return (h / 4294967296) * 360; }
+
+  function buildRing() {
+    var pts = [];
+    gates.forEach(function (g) {
+      for (var v = 0; v < vnodesPerGate; v++) {
+        var label = vnodesPerGate === 1 ? ("gate-" + g) : ("gate-" + g + "-v" + v);
+        pts.push({ ang: angOf(fnv1a(label)), gate: g });
+      }
+    });
+    pts.sort(function (a, b) { return a.ang - b.ang; });
+    return pts;
+  }
+  function ownerOf(ang, ring) {
+    for (var i = 0; i < ring.length; i++) if (ring[i].ang >= ang) return ring[i].gate;
+    return ring[0].gate;
+  }
+
+  function colorFor(g) { return COLORS[GATE_NAMES.indexOf(g) % COLORS.length]; }
+  function polar(cx, cy, r, deg) {
+    var rad = (deg - 90) * Math.PI / 180;
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+  }
+  function arcPath(cx, cy, r, a0, a1) {
+    var s = polar(cx, cy, r, a0), e = polar(cx, cy, r, a1);
+    var d = (a1 - a0 + 360) % 360;
+    var large = d > 180 ? 1 : 0;
+    return "M " + s[0].toFixed(1) + " " + s[1].toFixed(1) +
+           " A " + r + " " + r + " 0 " + large + " 1 " + e[0].toFixed(1) + " " + e[1].toFixed(1);
+  }
+
+  function recompute(countMoved) {
+    var ring = buildRing();
+    var prev = ownerMap;
+    ownerMap = {};
+    var counts = {};
+    gates.forEach(function (g) { counts[g] = 0; });
+    keys.forEach(function (k) {
+      var o = ownerOf(angOf(fnv1a(k)), ring);
+      ownerMap[k] = o;
+      counts[o]++;
+    });
+    if (countMoved) {
+      var moved = 0;
+      keys.forEach(function (k) { if (prev[k] !== undefined && prev[k] !== ownerMap[k]) moved++; });
+      lastMoved = { n: moved, gates: gates.length };
+    }
+    render(ring, counts);
+  }
+
+  function render(ring, counts) {
+    var svg = $("ring-svg");
+    var cx = 150, cy = 150, R = 118;
+    var s = "";
+    s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="var(--line-strong)" stroke-width="2"/>';
+    // ownership arcs
+    for (var i = 0; i < ring.length; i++) {
+      var a0 = ring[i].ang;
+      var a1 = ring[(i + 1) % ring.length].ang;
+      s += '<path d="' + arcPath(cx, cy, R, a0, a1) + '" fill="none" stroke="' +
+           colorFor(ring[i].gate) + '" stroke-width="9" opacity="0.35" stroke-linecap="round"/>';
+    }
+    // key dots
+    keys.forEach(function (k) {
+      var p = polar(cx, cy, R - 26, angOf(fnv1a(k)));
+      s += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="4.2" fill="' +
+           colorFor(ownerMap[k]) + '" opacity="0.9"><title>' + k + ' → Gate ' + ownerMap[k] + '</title></circle>';
+    });
+    // gate markers (one per physical gate, at its first vnode)
+    gates.forEach(function (g) {
+      var first = null;
+      for (var i = 0; i < ring.length; i++) if (ring[i].gate === g) { first = ring[i]; break; }
+      var p = polar(cx, cy, R, first.ang);
+      s += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="9" fill="' + colorFor(g) + '" stroke="var(--paper)" stroke-width="2.5"/>';
+      var t = polar(cx, cy, R + 20, first.ang);
+      s += '<text x="' + t[0].toFixed(1) + '" y="' + t[1].toFixed(1) + '" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="var(--ink)">' + g + '</text>';
+    });
+    svg.innerHTML = s;
+
+    // legend
+    var lg = "";
+    gates.forEach(function (g) {
+      lg += '<div><span class="sw" style="background:' + colorFor(g) + '"></span>Gate ' + g +
+            (vnodesPerGate > 1 ? ' × ' + vnodesPerGate + ' positions' : '') + '</div>';
+    });
+    $("ch-legend").innerHTML = lg;
+
+    // load bars
+    var total = keys.length, maxShare = 0, lb = "";
+    gates.forEach(function (g) {
+      var pct = Math.round(counts[g] / total * 100);
+      if (pct > maxShare) maxShare = pct;
+      lb += '<div class="loadrow"><span>Gate ' + g + '</span>' +
+            '<span class="track"><span class="fill" style="display:block;width:' + pct + '%;background:' + colorFor(g) + '"></span></span>' +
+            '<span class="pct">' + pct + '%</span></div>';
+    });
+    $("ch-loads").innerHTML = lb;
+
+    var fair = Math.round(100 / gates.length);
+    var maxEl = $("ch-maxshare"), shareBadge = $("ch-share-badge");
+    maxEl.textContent = maxShare + "%";
+    if (maxShare <= fair + 15) { shareBadge.textContent = "near fair share (" + fair + "%)"; shareBadge.className = "badge ok"; }
+    else if (maxShare <= fair + 30) { shareBadge.textContent = "some skew — try 8 positions per gate"; shareBadge.className = "badge warn"; }
+    else { shareBadge.textContent = "heavy skew"; shareBadge.className = "badge bad"; }
+
+    var movedEl = $("ch-moved"), movedBadge = $("ch-moved-badge");
+    var naiveEl = $("ch-naive"), naiveBadge = $("ch-naive-badge");
+    if (lastMoved) {
+      var pct = Math.round(lastMoved.n / total * 100);
+      movedEl.textContent = lastMoved.n + " (" + pct + "%)";
+      movedBadge.textContent = pct <= 40 ? "only neighbours moved ✓" : "watch the arcs";
+      movedBadge.className = "badge " + (pct <= 40 ? "ok" : "warn");
+      // naive comparison for the last membership change: n_before -> n_after
+      var before = lastMoved.gatesBefore, after = lastMoved.gates;
+      var naivePct;
+      if (after > before) naivePct = Math.round(before / after * 100);  // adding a server: N/(N+1) move
+      else naivePct = Math.round(after / before * 100);                // removing a server: (N-1)/N move
+      naiveEl.textContent = "~" + naivePct + "%";
+      naiveBadge.textContent = "vs ring's " + pct + "%";
+    } else {
+      movedEl.textContent = "—"; naiveEl.textContent = "—";
+    }
+  }
+
+  function log(msg) {
+    var el = $("ch-log");
+    var d = document.createElement("div");
+    d.innerHTML = '<span class="t">›</span> ' + msg;
+    el.appendChild(d);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  $("ch-add").addEventListener("click", function () {
+    if (gates.length >= GATE_NAMES.length) return;
+    var g = GATE_NAMES[gates.length];
+    gates.push(g);
+    var before = gates.length - 1;
+    // compute with previous ring first: need prev owners — recompute pattern via membershipChange
+    // Simpler: snapshot owners before push. We already pushed; redo properly:
+    gates.pop();
+    var ringBefore = buildRing();
+    var prev = {};
+    keys.forEach(function (k) { prev[k] = ownerOf(angOf(fnv1a(k)), ringBefore); });
+    gates.push(g);
+    var ring = buildRing();
+    ownerMap = {}; var counts = {};
+    gates.forEach(function (gg) { counts[gg] = 0; });
+    keys.forEach(function (k) { var o = ownerOf(angOf(fnv1a(k)), ring); ownerMap[k] = o; counts[o]++; });
+    var moved = 0;
+    keys.forEach(function (k) { if (prev[k] !== ownerMap[k]) moved++; });
+    var after = gates.length;
+    lastMoved = { n: moved, gates: after, gatesBefore: before };
+    render(ring, counts);
+    var pct = Math.round(moved / keys.length * 100);
+    var naive = Math.round(before / after * 100);
+    log("Gate " + g + " opened — " + moved + "/" + keys.length +
+        " fans rerouted (" + pct + "%). Naive mod-N would have moved ~" + naive + "%.");
+  });
+
+  $("ch-remove").addEventListener("click", function () {
+    if (gates.length <= 2) return;
+    var ringBefore = buildRing();
+    var prev = {};
+    keys.forEach(function (k) { prev[k] = ownerOf(angOf(fnv1a(k)), ringBefore); });
+    var closed = gates.pop();
+    var ring = buildRing();
+    ownerMap = {}; var counts = {};
+    gates.forEach(function (gg) { counts[gg] = 0; });
+    keys.forEach(function (k) { var o = ownerOf(angOf(fnv1a(k)), ring); ownerMap[k] = o; counts[o]++; });
+    var moved = 0;
+    keys.forEach(function (k) { if (prev[k] !== ownerMap[k]) moved++; });
+    lastMoved = { n: moved, gates: gates.length, gatesBefore: gates.length + 1 };
+    render(ring, counts);
+    var pct = Math.round(moved / keys.length * 100);
+    log("Gate " + closed + " closed — " + moved + "/" + keys.length + " fans rerouted (" + pct + "%)" +
+        (vnodesPerGate > 1 ? "; orphaned fans scattered across every remaining gate." : "."));
+  });
+
+  function setVnodes(n, btn) {
+    vnodesPerGate = n;
+    $("ch-vn1").classList.toggle("on", n === 1);
+    $("ch-vn8").classList.toggle("on", n === 8);
+    lastMoved = null;
+    recompute(false);
+    log(n === 1 ? "Single position per gate — watch the arcs: some gates own far more ring than others."
+                : "8 turnstile positions per gate — the small arcs average out and every gate nears its fair share.");
+  }
+  $("ch-vn1").addEventListener("click", function () { setVnodes(1); });
+  $("ch-vn8").addEventListener("click", function () { setVnodes(8); });
+
+  $("ch-reset").addEventListener("click", function () {
+    gates = ["A", "B", "C"];
+    vnodesPerGate = 1;
+    $("ch-vn1").classList.add("on");
+    $("ch-vn8").classList.remove("on");
+    ownerMap = {}; lastMoved = null;
+    $("ch-log").innerHTML = "";
+    recompute(false);
+    log("Concourse reset — 3 gates, " + KEY_COUNT + " fans on the ring.");
+  });
+
+  recompute(false);
+  log("Concourse open — 3 gates, " + KEY_COUNT + " fans. Open or close a gate and watch how few fans move.");
+})();
+</script>
+</body>
+</html>
