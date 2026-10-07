@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Rate Limiting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch .field-line {
+      position: absolute; border: 2px solid rgba(255,255,255,.5); border-radius: 4px;
+      pointer-events: none;
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 220px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .chart { display: flex; align-items: flex-end; gap: 4px; height: 110px; margin: 16px 0 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+    .chart .bbar { flex: 1; background: var(--blue); border-radius: 3px 3px 0 0; min-height: 2px; }
+    .chart .bbar.bad { background: var(--accent); }
+    .chart-cap { font-size: .82rem; color: var(--muted); }
+    .token-pips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 4px; min-height: 26px; }
+    .token-pips .pip {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid var(--line-strong); background: transparent;
+    }
+    .token-pips .pip.full { background: var(--green); border-color: var(--green); }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer h5 { margin: 14px 0 6px; font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .drill {
+      background: var(--purple-soft); border: 1px solid var(--purple);
+      border-radius: var(--radius); padding: 20px 22px; margin: 20px 0; max-width: 46rem;
+    }
+    .drill h4 { margin: 0 0 8px; }
+    .drill .rubric { border-top: 1px dashed var(--purple); padding-top: 12px; }
+    .verdict {
+      border: 2px solid var(--green); border-radius: var(--radius);
+      padding: 18px 22px; margin: 22px 0; max-width: 46rem; background: var(--green-soft);
+    }
+    .verdict h4 { margin: 0 0 8px; color: var(--green); }
+    .verdict p { max-width: none; margin: 6px 0; }
+    .nav-next {
+      display: block; margin-top: 60px; padding: 22px 24px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      text-decoration: none; color: inherit; box-shadow: var(--shadow);
+    }
+    .nav-next:hover { border-color: var(--ink); }
+    .nav-next .lbl { font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .nav-next .t { font-size: 1.2rem; font-weight: 700; margin-top: 4px; }
+    footer.page-foot { margin-top: 56px; color: var(--muted); font-size: .88rem; border-top: 1px solid var(--line); padding-top: 20px; }
+    .kicker { font-size: .82rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 30px 0 -8px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <nav class="crumbs"><a href="../index.html">All lessons</a> &rsaquo; Lesson 11</nav>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 11 &middot; Core Building Blocks</span>
+    <h1>Rate Limiting</h1>
+    <p class="whyline">Every public API has a bouncer — something that decides how many requests a client may make before being told to wait. Without one, a single greedy script can drown your backend, one tenant can starve the rest, and a brute-force attack gets unlimited guesses. This lesson covers the five limiting algorithms (with the math), where to enforce limits, how to do it across many servers, and how to design a rate limiter in an interview.</p>
+    <div class="meta">
+      <span>~30 min read</span>
+      <span>1 interactive lab</span>
+      <span>4 Q&amp;A with model answers</span>
+      <span>3 practice drills</span>
+    </div>
+  </header>
+
+  <div class="toc">
+    <h2>In this lesson</h2>
+    <ol>
+      <li><a href="#what-is">What is rate limiting?</a> — the idea defined from zero</li>
+      <li><a href="#turnstiles">The running example: the derby turnstiles</a></li>
+      <li><a href="#fixed-window">Algorithm 1: fixed window counter</a> — simple, and the boundary-burst flaw</li>
+      <li><a href="#sliding-log">Algorithm 2: sliding window log</a> — exact, and expensive</li>
+      <li><a href="#sliding-counter">Algorithm 3: sliding window counter</a> — the Cloudflare formula</li>
+      <li><a href="#token-bucket">Algorithm 4: token bucket</a> — burst allowance by design</li>
+      <li><a href="#leaky-bucket">Algorithm 5: leaky bucket</a> — the traffic shaper</li>
+      <li><a href="#enforce">Where to enforce it</a> — edge, gateway, service; the 429 contract</li>
+      <li><a href="#distributed">Distributed rate limiting</a> — Redis, Lua, hot keys</li>
+      <li><a href="#identify">Identifying the client</a> — API key, user, IP, tiers</li>
+      <li><a href="#design">Design a rate limiter</a> — the 5-step walk-through + traps</li>
+      <li><a href="#lab">Lab: the ticket-bucket simulator</a></li>
+      <li><a href="#qa">Q&amp;A — with full model answers</a></li>
+      <li><a href="#drills">Practice drills</a></li>
+      <li><a href="#cheatsheet">Cheat sheet: picking the algorithm + the 60-second framing</a></li>
+      <li><a href="#talk">How to talk about rate limiting in sixty seconds</a></li>
+    </ol>
+  </div>
+
+  <section id="what-is">
+    <div class="section-head"><span class="section-num">01</span><h2>What is rate limiting?</h2></div>
+    <p class="lede">A <strong>rate limiter</strong> is a bouncer for your API: it caps how many requests one client may make inside a time window, and rejects the extras — usually with HTTP status <code>429 Too Many Requests</code>. "100 requests per minute per API key" is a rate limit. Request #101 inside that minute doesn't get served; it gets a polite rejection telling the client when to come back.</p>
+
+    <div class="definition">
+      <strong class="term">Rate limiting</strong>
+      <p><strong>Capping the number of requests a single client may make within a fixed time window</strong>, and rejecting (not queueing) anything beyond the cap. The rejected request fails fast with a <code>429</code> so the client — not your backend — absorbs the wait.</p>
+    </div>
+
+    <h3>Why it matters — four reasons, each a real outage class</h3>
+    <ol>
+      <li><strong>Protect the backend from overload.</strong> A runaway script, a misconfigured retry loop, or a viral moment can send 50× normal traffic. Without a limiter, your database falls over and <em>everyone's</em> requests fail. With one, only the offender gets 429s.</li>
+      <li><strong>Fairness across tenants.</strong> In a multi-tenant system (many customers sharing your servers), one greedy tenant's bulk export shouldn't starve the other 999. Per-tenant limits turn "noisy neighbor" from an outage into a policy.</li>
+      <li><strong>Cost control on metered APIs.</strong> Every request costs you compute, bandwidth, or a per-call fee to an upstream provider. A limit is a ceiling on your bill — and the basis of your pricing tiers.</li>
+      <li><strong>Defense against abuse.</strong> Login endpoints, password resets, and signup forms are brute-force and scraping targets. Capping guesses per minute per IP turns a 10-million-guess attack into a 60-guess-per-hour trickle.</li>
+    </ol>
+
+    <h3>Rate limiting vs throttling vs debouncing — the three cousins</h3>
+    <div class="definition">
+      <strong class="term">Throttling</strong>
+      <p><strong>Slowing requests down instead of rejecting them.</strong> The request still gets served — it just waits its turn in a queue. If rate limiting is a bouncer who turns you away, throttling is a velvet rope that makes you wait in line. People often use the two words interchangeably; in an interview, state your meaning: "by throttling I mean delaying excess requests; by rate limiting I mean rejecting them."</p>
+    </div>
+    <div class="definition">
+      <strong class="term">Debouncing</strong>
+      <p>A <strong>client-side</strong> pattern: <strong>wait until the user stops doing something, then fire one request.</strong> Search-as-you-type waits ~300 ms after the last keystroke before calling the API, so typing "haaland" sends 1 request instead of 7. Debouncing <em>merges</em> requests; rate limiting <em>caps</em> them. Different problem, different layer.</p>
+    </div>
+    <p>The one-liner to keep: <strong>rate limiting rejects, throttling delays, debouncing merges.</strong> This lesson is about the first one — the bouncer, not the queue.</p>
+  </section>
+
+  <section id="turnstiles">
+    <div class="section-head"><span class="section-num">02</span><h2>The running example: the derby turnstiles</h2></div>
+    <p class="lede">Every algorithm in this lesson lands on the same stadium. Keep it in your head: one derby, one gate, and a crowd that arrives in bursts.</p>
+
+    <div class="pitch">
+      <div class="field-line" style="top:18px;left:18px;right:18px;bottom:18px;"></div>
+      <span class="tag">The running example: derby day at the gate</span>
+      <h4>60,000 fans, one stand, turnstiles with rules</h4>
+      <p>It's the derby and 60,000 fans are pouring toward the North Stand. The concourse inside can safely hold only so many people at once — if everyone rushes in together, the crush is dangerous. So the stewards run the turnstiles with a rule: <strong>at most N fans per minute through each gate.</strong> Every idea in this lesson is a different way of enforcing that sentence.</p>
+      <p>The ticket bucket at the main gate makes it concrete: the steward holds a bucket of entry tickets. A runner tops the bucket up with fresh tickets at a steady pace. A fan gets in only by taking a ticket — <strong>no ticket, no entry; empty bucket, everybody waits.</strong> That bucket is the token bucket algorithm, and you'll meet it in section 6.</p>
+    </div>
+
+    <p>Mapping for the whole lesson: a <strong>fan</strong> is a request, a <strong>turnstile</strong> is the limiter, the <strong>concourse</strong> is your backend, and the <strong>per-minute rule</strong> is the limit. Keep the bucket image handy — you'll keep coming back to it.</p>
+  </section>
+
+  <section id="fixed-window">
+    <div class="section-head"><span class="section-num">03</span><h2>Algorithm 1: fixed window counter</h2></div>
+    <p class="lede">The simplest possible limiter: a counter and a clock. Count requests in the current minute; when the minute flips, throw the counter away and start over.</p>
+
+    <h3>How it works</h3>
+    <p>Divide time into fixed windows — say, one minute each: 11:59:00–11:59:59, 12:00:00–12:00:59, and so on. Keep one counter per client per window. On each request: if the counter for the current window is below the limit, increment and allow; otherwise reject. When the clock crosses into a new window, the counter resets to zero.</p>
+    <pre>window = floor(now / 60 seconds)        // which minute is it?
+count = counters[client][window] or 0
+if count &lt; LIMIT:
+    counters[client][window] = count + 1
+    allow
+else:
+    reject (429)</pre>
+    <p>Stadium version: the steward's clicker resets to zero every time the big clock ticks to a new minute. "100 fans per minute" means the clicker may reach 100 before the reset.</p>
+
+    <h3>The boundary-burst flaw — do the math</h3>
+    <p>Here's where the junior answer stops and the senior answer starts. Watch what happens at the boundary between two windows. Limit: <strong>100 requests per minute</strong>.</p>
+    <ul>
+      <li>At <strong>11:59:59.5</strong> the client fires <strong>100 requests</strong> — all counted in the 11:59 window. Clicker hits 100. All allowed.</li>
+      <li>At <strong>12:00:00.2</strong> the client fires <strong>100 more requests</strong> — the window flipped, the counter reset, so all 100 are allowed again.</li>
+    </ul>
+    <p>The limiter did exactly what it was told, and the result is absurd: <strong>200 requests landed within about 700 milliseconds</strong> against a rule that was supposed to mean "100 per minute." The client gets <strong>2N requests through in an arbitrarily short interval</strong> around any window boundary — up to twice the configured limit.</p>
+    <div class="warn-box">
+      <p><strong>The boundary-burst rule to quote:</strong> a fixed window counter guarantees at most <strong>N requests per window</strong>, but only <strong>2N requests per any sliding 60-second interval</strong>. If your backend can only survive N per minute, fixed window alone doesn't protect it — the burst fits inside a sub-second gap the limiter never sees. Stadium version: 100 fans slip through at 11:59:59 and 100 more at 12:00:01 — the concourse gets 200 fans in two seconds, and the clicker says everything was legal.</p>
+    </div>
+    <p>Why does anyone use it then? One counter per client per window is tiny state, the math is trivial, and the reset is automatic. It's fine when 2N briefly is harmless — generous internal limits, or per-user limits where the limit is set with headroom. When 2N would hurt, you need one of the sliding algorithms next.</p>
+  </section>
+
+  <section id="sliding-log">
+    <div class="section-head"><span class="section-num">04</span><h2>Algorithm 2: sliding window log</h2></div>
+    <p class="lede">The exact answer: remember the timestamp of <em>every</em> request, and on each new request count only the ones inside the trailing window. No boundary can be gamed, because there are no boundaries — just the last 60 seconds, wherever they fall.</p>
+
+    <h3>How it works</h3>
+    <p>Keep a list of timestamps per client. On each request: drop every timestamp older than <code>now − window</code>; count what's left; if the count is below the limit, append <code>now</code> and allow, else reject.</p>
+    <pre>log = timestamps[client]                      // sorted list
+log = [t for t in log if t &gt; now - 60s]      // drop the expired
+if len(log) &lt; LIMIT:
+    log.append(now)
+    allow
+else:
+    reject (429)</pre>
+    <p>Replay the boundary trick against this: the client fires 100 requests at 11:59:59.5 — all logged. At 12:00:00.2 it fires 100 more. The limiter drops nothing (all 200 timestamps are within the trailing 60 seconds), counts 200 ≥ 100, and rejects every request in the second batch. <strong>The 2N burst is impossible.</strong> The guarantee is now the honest one: at most N requests in <em>any</em> 60-second interval.</p>
+    <p>Stadium version: instead of a clicker that resets, the steward writes down the entry time of every single fan and, before letting the next one in, counts how many entries in the book are less than a minute old. No minute-boundary exists to game.</p>
+
+    <h3>The price: memory — quantify it</h3>
+    <p>Exactness costs one stored timestamp per request. A timestamp is 8 bytes as a 64-bit integer. Now scale it: one hot API key doing <strong>1,000,000 requests per second</strong> with a <strong>60-second window</strong> keeps <strong>60 million timestamps</strong> — that's <code>60M × 8 bytes = 480 MB</code> for <strong>one key</strong>, just for the raw timestamps.</p>
+    <p>And that's the fantasy number. In Redis you'd implement this as a sorted set (more in section 9), where each entry carries a score, a member string, and pointers — realistically <strong>90+ bytes per entry</strong>. That same key would eat <strong>several gigabytes</strong> of Redis memory. For a thousand hot keys, you're buying a Redis fleet to store timestamps.</p>
+    <div class="callout">
+      <h4>The senior line</h4>
+      <p><strong>"Sliding window log is O(n) memory per key — exact, and I only pay for it where exactness is worth it."</strong> Use it for low-volume, high-stakes limits: login attempts (5 per minute per account — the log holds at most a handful of timestamps), password resets, signup. Never for per-key limits on a hot API path. When the interviewer asks "what breaks at scale," this paragraph is the answer.</p>
+    </div>
+  </section>
+
+  <section id="sliding-counter">
+    <div class="section-head"><span class="section-num">05</span><h2>Algorithm 3: sliding window counter</h2></div>
+    <p class="lede">The compromise the industry actually ships: fixed-window counters (tiny memory), but weighted so the previous window's count fades out smoothly instead of vanishing at the boundary. This is the algorithm Cloudflare documents for its own rate limiting.</p>
+
+    <div class="definition">
+      <strong class="term">Sliding window counter (approximate)</strong>
+      <p>Keep the last <strong>two</strong> fixed-window counters — the previous window and the current one. Estimate the trailing-window count as <strong>previous × overlap + current</strong>, where <strong>overlap</strong> is the fraction of the previous window that still falls inside the trailing 60 seconds. Memory: two integers per client. No per-request storage.</p>
+    </div>
+
+    <h3>Deriving the formula</h3>
+    <p>Let the window length be <code>T</code> (60 s) and let <code>t</code> be how many seconds into the <em>current</em> window we are. The trailing 60-second interval reaches back into the previous window by <code>T − t</code> seconds — that's the <strong>overlap</strong>. The overlap fraction is:</p>
+    <pre>overlap = (T − t) / T
+estimate = prev_count × overlap + cur_count</pre>
+    <p>The intuition: we don't know <em>when</em> inside the previous window its requests arrived, so we assume they were spread evenly and count only the fraction that still overlaps our trailing window. Even spread is an <strong>approximation</strong> — hence the name — but it's a cheap and good one.</p>
+
+    <h3>Worked example — and the boundary trick, defeated</h3>
+    <p>Limit: 100/min, T = 60 s. Previous window (11:59): <strong>100 requests</strong>. Now it's 11:59:30 — 30 seconds into the current window — and the current window has <strong>40 requests</strong> so far. <code>overlap = (60 − 30)/60 = 0.5</code>. Estimate = <code>100 × 0.5 + 40 = 90</code> &lt; 100 → <strong>allow</strong>.</p>
+    <p>Now the attack: the client did the 2N trick — 100 requests at 11:59:59.5, 100 more at 12:00:00.2. It's now 12:00:01, one second into the new window: <code>prev = 100</code>, <code>cur = 100</code>, <code>overlap = 59/60 ≈ 0.983</code>. Estimate = <code>100 × 0.983 + 100 = 198.3</code> &gt; 100 → <strong>reject</strong>. The fixed-window flaw is gone, at the cost of two integers per client.</p>
+    <p>Stadium version: the steward keeps two clickers — last minute's and this minute's — and estimates the crowd in the last 60 seconds as "half of last minute's count (we're halfway through this minute) plus this minute's count so far." Good enough to keep the concourse safe, no notebook of timestamps needed.</p>
+
+    <h3>The error bound — the trap question, answered</h3>
+    <p>"Prove the estimate can never exceed the true count by more than one window." Here's the proof sketch to give in the room. The estimate's only fiction is the previous window: it assumes those requests were spread evenly, counting <code>prev × overlap</code>. The true trailing count includes only the previous-window requests that <em>actually</em> fall in the overlap — call that <code>actual</code>. The overestimate is <code>prev × overlap − actual</code>, which is biggest when <code>actual = 0</code> (all of the previous window's requests landed in its first, non-overlapping part). Then the error is <code>prev × overlap</code> — <strong>at most the previous window's full count: one window's worth.</strong></p>
+    <p>So the estimate <strong>errs conservative</strong>: it can reject a request that was technically fine (it counted phantom requests), but it never lets through much more than the limit. For a limiter, conservative is the safe direction — you'd rather 429 an innocent request occasionally than let a burst through.</p>
+  </section>
+
+  <section id="token-bucket">
+    <div class="section-head"><span class="section-num">06</span><h2>Algorithm 4: token bucket</h2></div>
+    <p class="lede">The ticket bucket from the gate, formalized: a bucket that holds tokens, refills at a steady rate, and spends one token per request. It is the only algorithm here that <em>wants</em> bursts — up to the bucket's size.</p>
+
+    <div class="definition">
+      <strong class="term">Token bucket</strong>
+      <p>Each client has a <strong>bucket</strong> holding at most <strong>C tokens</strong> (capacity). Tokens are added at a steady <strong>refill rate R per second</strong>. Each request <strong>spends one token</strong>; if the bucket is empty, the request is rejected. Refilling is capped — a full bucket doesn't overflow.</p>
+    </div>
+
+    <h3>The two numbers and what each controls</h3>
+    <ul>
+      <li><strong>Capacity C — the burst allowance.</strong> A full bucket lets C requests through instantly, back to back, with zero spacing. That's the ticket bucket with C tickets in it.</li>
+      <li><strong>Refill rate R — the sustained rate.</strong> Over the long run, the client can make at most R requests per second, because that's all the tokens that ever arrive.</li>
+    </ul>
+    <p>Stadium version, precisely: the steward's bucket holds 10 tickets (C = 10); the runner adds 1 ticket per second (R = 1/s). Ten fans sprint through together — then the eleventh waits, and after that one fan per second, because that's the ticket supply.</p>
+
+    <h3>Worked example — steady state vs burst</h3>
+    <p>C = 10, R = 1 token/sec. The bucket starts full.</p>
+    <ul>
+      <li><strong>t = 0:</strong> the client fires <strong>10 requests at once</strong> — all allowed, bucket now empty. This is the designed burst: 10× the sustained rate, perfectly legal.</li>
+      <li><strong>t = 0:</strong> an 11th request arrives — <strong>rejected (429)</strong>. No token, no entry.</li>
+      <li><strong>t = 3 s:</strong> 3 tokens have refilled. The client fires 5 requests — <strong>3 allowed, 2 rejected</strong>.</li>
+      <li><strong>Steady state:</strong> a client firing exactly 1 request/sec never sees a rejection — each request consumes the token that just arrived. A client firing 2/sec drains the bucket and then gets every other request rejected.</li>
+    </ul>
+    <p>Refill math, since interviewers love it: refilling an empty bucket of capacity C at rate R takes <strong>C / R seconds</strong> (10 tokens ÷ 1/s = 10 s). And the long-run average can never exceed R — tokens are created at R per second, and a request needs a token, so the arrival rate of served requests is bounded by R no matter what.</p>
+    <pre>// lazy refill: no background timer needed
+tokens = min(C, tokens + R × (now − last_refill_time))
+last_refill_time = now
+if tokens &gt;= 1:
+    tokens −= 1; allow
+else:
+    reject (429)</pre>
+    <p>The <strong>lazy refill</strong> is the implementation detail worth naming: you don't run a timer adding tokens every millisecond. You just record when you last looked, and compute how many tokens <em>would have</em> arrived since. Same result, zero background work — this is how the lab below is built.</p>
+    <div class="green-box">
+      <p><strong>Why token bucket is the default for public APIs:</strong> real clients are bursty — a page load fires 12 API calls at once, then nothing for a minute. Token bucket forgives the burst (up to C) while capping the sustained rate (R). Fixed windows punish the page load; token bucket was built for it. AWS API Gateway's throttling and Stripe's rate limits are token-bucket-shaped for exactly this reason.</p>
+    </div>
+  </section>
+
+  <section id="leaky-bucket">
+    <div class="section-head"><span class="section-num">07</span><h2>Algorithm 5: leaky bucket</h2></div>
+    <p class="lede">The mirror image of the token bucket: requests pour into a bucket, and the bucket <strong>leaks at a constant rate</strong>. Bursts get absorbed; what comes out the bottom is a perfectly smooth stream.</p>
+
+    <div class="definition">
+      <strong class="term">Leaky bucket</strong>
+      <p>A <strong>queue with a constant drip</strong>: incoming requests join the bucket; one request leaves (is processed) every <code>1/R</code> seconds. If the bucket is full when a request arrives, that request is <strong>rejected</strong>. The output rate is constant R no matter how bursty the input.</p>
+    </div>
+
+    <h3>How it works, concretely</h3>
+    <p>Bucket size 10, leak rate 1 request/sec. Ten requests arrive at once — they fill the bucket and are released one per second over the next 10 seconds. The downstream service sees a metronome: <em>tick, tick, tick</em> — never a burst. An 11th request arriving while the bucket is full is rejected.</p>
+    <pre>if bucket_size &lt; CAPACITY:
+    bucket.enqueue(request)     // will be processed at the steady drip
+    allow (accepted for processing)
+else:
+    reject (429)                // bucket full — no room</pre>
+    <p>Stadium version: a narrow corridor after the turnstiles that physically fits one fan every two seconds. A surge of fans piles up <em>in the corridor</em> (the bucket); the concourse beyond sees exactly one fan every two seconds. If the corridor fills wall to wall, the steward stops admitting — that's the rejection.</p>
+
+    <h3>Token bucket vs leaky bucket — the comparison</h3>
+    <table class="cmp">
+      <tr><th></th><th>Token bucket</th><th>Leaky bucket</th></tr>
+      <tr><td><strong>Bursts</strong></td><td>Allowed by design — up to C requests instantly</td><td>Absorbed — the output is always a smooth R/sec</td></tr>
+      <tr><td><strong>What it protects</strong></td><td>The <em>average</em> load on the backend (bursts are tolerated)</td><td>The <em>instantaneous</em> load (downstream never sees a spike)</td></tr>
+      <tr><td><strong>Memory</strong></td><td>Two numbers per client: token count + last-refill time</td><td>A queue of waiting requests per client (bounded by capacity)</td></tr>
+      <tr><td><strong>Rejected request…</strong></td><td>Fails immediately — "no token, try later"</td><td>Fails immediately too — "corridor's full, try later"</td></tr>
+      <tr><td><strong>Reach for it when</strong></td><td>Clients are naturally bursty (page loads, SDK retries) and the backend tolerates bursts</td><td>The downstream is fragile to spikes (video encoding, a legacy mainframe, a metered third-party API)</td></tr>
+      <tr><td><strong>Seen in the wild</strong></td><td>AWS API Gateway throttling, Stripe's limits</td><td>nginx <code>limit_req</code> (without <code>nodelay</code> it delays excess requests up to the burst, then rejects — textbook leaky bucket)</td></tr>
+    </table>
+    <div class="callout">
+      <h4>The sentence that settles "which one?"</h4>
+      <p><strong>"Token bucket controls the average and forgives bursts; leaky bucket controls the instantaneous rate and smooths everything."</strong> If the interviewer asks which you'd pick for a public API, the usual answer is token bucket — real clients burst. If they then say "but the downstream is a single-threaded legacy billing system," you switch to leaky bucket and explain <em>why the requirement changed the answer</em>. That's the senior move: the requirement picks the algorithm, not habit.</p>
+    </div>
+  </section>
+
+  <section id="enforce">
+    <div class="section-head"><span class="section-num">08</span><h2>Where to enforce it</h2></div>
+    <p class="lede">A limiter is a layer, not a library call. Put it as close to the client as you can afford — every layer the abusive request penetrates is work your systems did for nothing.</p>
+
+    <h3>The enforcement ladder, outside in</h3>
+    <ol>
+      <li><strong>CDN / edge</strong> — Cloudflare, Akamai, Fastly. The request dies in a data center near the attacker, before it ever touches your infrastructure. Best place for volumetric abuse and DDoS-shaped traffic. This is where the coarse IP-level limits live.</li>
+      <li><strong>Reverse proxy / load balancer</strong> — nginx <code>limit_req</code>, Envoy's rate limit filter. You already terminate traffic here; adding the limit costs almost nothing and protects every service behind the proxy at once.</li>
+      <li><strong>API gateway</strong> — Kong, AWS API Gateway, Apigee. The gateway already knows the tenant, the plan tier, and the API key — so this is where <strong>tiered, per-key limits</strong> naturally live ("free tier: 100/min, pro: 10,000/min").</li>
+      <li><strong>In-service middleware</strong> — a rate-limit middleware in your app framework (Express, Django, Spring). The last line of defense, and the only place that can do <strong>resource-level</strong> limits: the login endpoint gets 5/min per account even though the API overall allows 1,000/min.</li>
+    </ol>
+    <p>Stadium version: edge is the police cordon streets away (stops the mob before it reaches the ground); the proxy is the outer gate; the gateway is the ticket check that knows your seat tier; in-service is the steward at the specific vomitory door. A real stadium uses all four — so does a real API. And note the cost logic from the queues lesson: <strong>rejecting early is cheaper</strong> — a request killed at the edge never consumed your app servers, your database, or your on-call's sleep.</p>
+
+    <h3>The 429 contract — what a good rejection looks like</h3>
+    <p>When the limiter rejects, it must say three things: <strong>what the limit is, how much is left, and when to retry.</strong> The standard headers:</p>
+    <table class="cmp">
+      <tr><th>Header</th><th>Meaning</th><th>Example</th></tr>
+      <tr><td><code>X-RateLimit-Limit</code></td><td>The cap for this window</td><td><code>100</code></td></tr>
+      <tr><td><code>X-RateLimit-Remaining</code></td><td>Requests left before the cap</td><td><code>0</code></td></tr>
+      <tr><td><code>X-RateLimit-Reset</code></td><td>When the window resets (unix timestamp, or seconds until reset — document which)</td><td><code>1696598460</code></td></tr>
+      <tr><td><code>Retry-After</code></td><td>How many seconds the client should wait before retrying (or an HTTP date)</td><td><code>23</code></td></tr>
+    </table>
+    <p>Send the <code>X-RateLimit-*</code> headers on <strong>every</strong> response, not just rejections — a well-behaved client watches <code>Remaining</code> hit single digits and slows down before it ever sees a 429. And the 429 body itself should be machine-readable JSON in your API's normal envelope, not an HTML error page:</p>
+    <pre>HTTP/1.1 429 Too Many Requests
+Retry-After: 23
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1696598460
+
+{
+  "error": "rate_limit_exceeded",
+  "message": "You have made 100 requests in the last 60 seconds. Slow down and retry.",
+  "retry_after_seconds": 23,
+  "limit": 100,
+  "window_seconds": 60,
+  "docs": "https://api.example.com/docs/rate-limits"
+}</pre>
+    <div class="warn-box">
+      <p><strong>Two 429 details interviewers check:</strong> <strong>one</strong>, <code>Retry-After</code> must be honored by <em>your own</em> SDKs and retry logic — a client that retries instantly on 429 turns one rejection into a retry storm (section 11's thundering herd). <strong>Two</strong>, never return 429 from an endpoint the client needs in order to <em>learn</em> the limit — the docs link and the headers on successful responses are how clients stay under the cap in the first place.</p>
+    </div>
+  </section>
+
+  <section id="distributed">
+    <div class="section-head"><span class="section-num">09</span><h2>Distributed rate limiting</h2></div>
+    <p class="lede">One server's counter is a toy. Production has eight app servers behind a load balancer, and a client whose requests land on a different server each time. This is where the senior depth lives.</p>
+
+    <h3>The N× over-admit problem</h3>
+    <p>Give each of 8 servers its own fixed-window counter with a limit of 100/min per API key. A client sprays requests evenly across all 8. Each server sees ~1/8 of the traffic and each happily allows its own 100/min. Global total: <strong>800/min against a 100/min policy — 8× over-admission.</strong> In general, per-server counters over-admit by up to <strong>N×</strong>, where N is the server count. Stadium version: twelve gates, each steward with his own "100 per minute" clicker — the stand admits 1,200 per minute while the safety certificate says 100.</p>
+    <p>The fix is a <strong>shared counter</strong> every server checks: in practice, Redis — fast enough (sub-millisecond), with data structures that fit each algorithm.</p>
+
+    <h3>The Redis approach, in three steps of sophistication</h3>
+    <h4>Step 1: INCR + EXPIRE — and the race</h4>
+    <p>The naive pattern: <code>INCR rl:{key}:{minute}</code> to bump the counter, then <code>EXPIRE key 60</code> so it resets. Two separate commands — and <strong>two commands are not atomic</strong>. If the app server crashes (or the connection drops) <em>between</em> the INCR and the EXPIRE, the key is left with <strong>no TTL — it never expires</strong>. The counter keeps its value forever, every future request sees count ≥ limit, and that client is 429'd <strong>permanently</strong> until someone manually deletes the key. One crash, one immortal key, one locked-out customer.</p>
+    <h4>Step 2: the atomic Lua script</h4>
+    <p>Redis executes a Lua script <strong>atomically</strong> — it's single-threaded, so no other command can interleave mid-script. Bundle the check-and-expire into one script:</p>
+    <pre>-- KEYS[1] = the counter key, ARGV[1] = window seconds, ARGV[2] = limit
+local current = redis.call('INCR', KEYS[1])
+if current == 1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+if current &gt; tonumber(ARGV[2]) then
+  return 0   -- rejected
+else
+  return 1   -- allowed
+end</pre>
+    <p>The crash window is gone: INCR and the conditional EXPIRE happen as one indivisible step. (Modern Redis also offers <code>SET key 0 EX 60 NX</code> before INCR, but the Lua pattern is the one interviewers expect you to write.) For the token bucket in Redis, name-drop <strong>redis-cell's <code>CL.THROTTLE</code></strong> — a Redis module that implements the whole token bucket as a single command.</p>
+    <h4>Step 3: sorted-set sliding window log</h4>
+    <p>For the exact algorithm at modest volume, Redis sorted sets are the natural fit — score = timestamp, member = unique request ID:</p>
+    <pre>ZREMRANGEBYSCORE key 0 (now - window)   -- drop expired timestamps
+ZADD key now unique_request_id            -- log this request
+ZCARD key                                 -- count survivors
+EXPIRE key window                         -- don't leak keys for idle clients</pre>
+    <p>Run it as a Lua script (or a pipeline) so the four commands are atomic. Note the member must be unique per request (a UUID or <code>timestamp:counter</code>) — the score alone can't be the member because two requests in the same millisecond would collapse into one entry.</p>
+
+    <h3>The hot-key problem</h3>
+    <div class="definition">
+      <strong class="term">Hot key</strong>
+      <p>A single Redis key that <strong>receives a disproportionate share of all operations</strong> — e.g. the rate-limit counter for your biggest tenant's API key. Redis is single-threaded per instance: every request for that tenant queues on the same key, and the key becomes a throughput bottleneck (and in Redis Cluster, it pins to one slot on one node).</p>
+    </div>
+    <p>Mitigations, cheapest first:</p>
+    <ul>
+      <li><strong>Shard the key:</strong> split one counter into K sub-keys (<code>rl:{key}:0 … rl:{key}:k-1</code>); each request picks a random sub-key and the effective limit is K × sub-limit. Precision loosens (a sub-key can fill while others are empty), but the hot key is gone.</li>
+      <li><strong>Local buckets + reconciliation:</strong> each app server keeps an in-memory token bucket (no Redis round trip) and periodically gossips its usage to peers, or a background job reconciles. Fuzzy limits — over-admission bounded by the gossip interval — but zero coordination per request.</li>
+      <li><strong>Accept approximate:</strong> for most abuse-prevention limits, ±10% accuracy is fine. Say so out loud — precision is a cost, and naming what you'd trade it for is the senior move.</li>
+    </ul>
+
+    <h3>Centralized vs decentralized</h3>
+    <table class="cmp">
+      <tr><th></th><th>Centralized (Redis)</th><th>Decentralized (local buckets + gossip)</th></tr>
+      <tr><td><strong>Accuracy</strong></td><td>Exact (single shared counter)</td><td>Approximate — over-admits between reconciliations</td></tr>
+      <tr><td><strong>Per-request cost</strong></td><td>A Redis round trip (~0.5 ms) on the critical path</td><td>Zero — pure in-memory check</td></tr>
+      <tr><td><strong>Failure mode</strong></td><td>Redis down = limiter down (see fail-open vs fail-closed, section 11)</td><td>No single point of failure</td></tr>
+      <tr><td><strong>Scales to</strong></td><td>Redis throughput; hot keys need sharding</td><td>Linearly — each server is independent</td></tr>
+      <tr><td><strong>Use when</strong></td><td>Billing-adjacent limits, abuse prevention — where exactness matters</td><td>High-volume edge protection — where speed matters more than precision</td></tr>
+    </table>
+
+    <h3>Clock-skew caveat</h3>
+    <p>Sliding-window algorithms compare timestamps from <strong>different app servers</strong>. If server A's clock is 2 seconds ahead of server B's (NTP drift is real, typically milliseconds but occasionally seconds after a leap second or a VM pause), their window edges disagree and counts shift. The fix: take <code>now</code> from Redis itself (<code>TIME</code> command) inside the Lua script instead of trusting the app server's clock — one clock, no skew. For short windows, just budget the skew into the limit and say so.</p>
+  </section>
+
+  <section id="identify">
+    <div class="section-head"><span class="section-num">10</span><h2>Identifying the client</h2></div>
+    <p class="lede">A limiter is only as good as its key. Limit by the wrong identifier and you either punish innocents or let the abuser walk around the limit.</p>
+
+    <table class="cmp">
+      <tr><th>Limit by</th><th>What it is</th><th>Strength</th><th>Weakness</th></tr>
+      <tr><td><strong>API key</strong></td><td>The credential on the request</td><td>Identifies the actual customer; survives IP changes</td><td>Only works for authenticated APIs</td></tr>
+      <tr><td><strong>User / account ID</strong></td><td>The logged-in user behind the key</td><td>Stops one user burning a shared org key's budget unfairly</td><td>Requires auth; a user with 5 keys still has 5 budgets unless you aggregate</td></tr>
+      <tr><td><strong>IP address</strong></td><td>The source IP of the TCP connection</td><td>The only option for unauthenticated endpoints (login, signup)</td><td><strong>NAT/CGNAT:</strong> a university, an office, or a mobile carrier puts <em>thousands</em> of humans behind one public IP — one abuser's limit punishes them all</td></tr>
+      <tr><td><strong>Resource + tenant</strong></td><td>Per-endpoint or per-resource limits ("login: 5/min/account", "exports: 2/hour/tenant")</td><td>Protects the expensive operations specifically, instead of one blunt global cap</td><td>More keys to manage; needs the gateway to know the resource</td></tr>
+    </table>
+    <div class="definition">
+      <strong class="term">NAT / CGNAT (Carrier-Grade NAT)</strong>
+      <p><strong>Network address translation:</strong> many devices share one public IP address. Your phone's mobile carrier routes thousands of subscribers through a handful of IPs. So "limit by IP" can mean "limit a whole neighborhood by one shared budget" — the reason IP limits must be generous, and why authenticated identifiers are preferred wherever they exist.</p>
+    </div>
+
+    <h3>Tiered limits — the VIP gate vs general admission</h3>
+    <p>Free tier: 100 requests/min. Pro tier: 10,000/min. Enterprise: custom. The gateway reads the plan from the auth token's claims (or a plan lookup) and selects the bucket — the stadium's VIP gate with its own, wider turnstile next to general admission. Two details that matter:</p>
+    <ul>
+      <li><strong>Enforce the tier at the gateway</strong>, where the key and plan are already known — not deep in each service.</li>
+      <li><strong>Header-based limits on shared gateways:</strong> behind a CDN or shared ingress, the app server sees the edge's IP, not the client's. The edge must forward the real identifier in a header (<code>X-Forwarded-For</code>, <code>X-Api-Key</code>) — and the app must <strong>only trust that header from its own edge</strong>, never from the open internet, or any client can spoof their identifier and dodge the limit.</li>
+    </ul>
+    <div class="callout">
+      <h4>The layering rule</h4>
+      <p>Use <strong>all three granularities at once</strong>: a generous <strong>IP-level</strong> limit at the edge (catches dumb floods), a <strong>per-key/per-tier</strong> limit at the gateway (the business policy), and tight <strong>per-resource</strong> limits in-service (login 5/min, exports 2/hour). An attacker who rotates IPs still hits the key limit; a legitimate power user never feels the IP limit. Defense in depth, each layer with its own key.</p>
+    </div>
+  </section>
+
+  <section id="design">
+    <div class="section-head"><span class="section-num">11</span><h2>Design a rate limiter</h2></div>
+    <p class="lede">The classic interview question, answered as a five-step walk-through. Each step has the numbers — interviewers promote candidates who quantify.</p>
+
+    <h3>Step 1 — Requirements</h3>
+    <ul>
+      <li><strong>Functional:</strong> per-API-key limits (100/min free, 10k/min pro), per-IP coarse limits at the edge, per-resource tight limits (login 5/min). Reject with 429 + <code>Retry-After</code> + <code>X-RateLimit-*</code> headers. Clients must see remaining quota on every response.</li>
+      <li><strong>Non-functional:</strong> the limit check adds &lt; 1 ms at p99 (it's on every request's critical path); the limiter must not become a single point of failure; ±5% accuracy is acceptable (abuse prevention, not billing).</li>
+      <li><strong>Out of scope:</strong> billing metering, per-endpoint analytics — say so, don't build them.</li>
+    </ul>
+
+    <h3>Step 2 — Capacity estimation (do the arithmetic out loud)</h3>
+    <p>Assume <strong>50M requests/day</strong> ≈ 580 requests/sec average, with a <strong>5× peak</strong> → ~<strong>3,000 QPS peak</strong>. Each check is one Redis Lua script (INCR + conditional EXPIRE): ~0.3 ms. One Redis node handles ~100k ops/sec — so <strong>a single Redis primary absorbs the peak 30× over</strong>, with a replica for failover. State per key: one counter + TTL ≈ 200 bytes; <strong>1M active keys → ~200 MB</strong> — fits in RAM comfortably. The math says: this is a small Redis, not a distributed systems moonshot. Say that; it shows judgment.</p>
+
+    <h3>Step 3 — API design</h3>
+    <pre>// middleware on the gateway — every request passes through it
+key = "rl:" + api_key + ":" + current_minute
+allowed = redis.eval(FIXED_WINDOW_LUA, key, window=60, limit=tier_limit(api_key))
+if not allowed:
+    return 429, headers(Retry-After, X-RateLimit-*)
+else:
+    serve request, with X-RateLimit-Remaining on the way out</pre>
+    <p>The tier lookup (<code>tier_limit</code>) comes from the auth token's plan claim — cached, not a database call per request.</p>
+
+    <h3>Step 4 — Data model</h3>
+    <p>Key format <code>rl:{api_key}:{window_start_minute}</code> → integer counter, TTL = window length. One key per client per minute: old windows expire automatically, so there's nothing to clean up. For the login endpoint, the same pattern with key <code>rl:login:{account_id}:{window}</code> and limit 5 — resource-level limiting is just a different key.</p>
+
+    <h3>Step 5 — Deep dives: the traps, landed before they're asked</h3>
+    <div class="verdict">
+      <h4>Senior-depth traps — land these unprompted</h4>
+      <p><strong>"Your limiter is a single point of failure."</strong> "Redis runs as primary + replica with Sentinel failover. And if Redis is unreachable, the limiter <strong>fails open</strong> — allows the request and fires an alert — because a down limiter must not take down the API. The exception: security-critical endpoints (login brute-force protection) <strong>fail closed</strong>, because an open gate there is worse than an outage."</p>
+      <p><strong>"Prove the sliding-window counter can't over-admit by more than a window."</strong> "The only fiction is the previous window's distribution. The overestimate is <code>prev × overlap − actual_overlap_count</code>, maximized when the previous window's requests all landed outside the overlap — so the error is bounded by one full window's count. It errs conservative: occasional false 429, never a burst through."</p>
+      <p><strong>"Every client retries the instant Retry-After expires — a thundering herd."</strong> "A <strong>thundering herd</strong> is N clients waking at the same millisecond and re-hitting the limit together. Fix it on both sides: the server jitters <code>Retry-After</code> per client (23 s, 27 s, 31 s…), and our own SDKs retry with <strong>exponential backoff + jitter</strong> — wait 1 s, then 2 s, then 4 s, each plus a random fraction — so retries spread instead of synchronizing."</p>
+      <p><strong>"One tenant's runaway script eats the whole org's budget."</strong> "Hierarchical limits: per-user <em>and</em> per-tenant. The runaway user gets 429'd individually while the rest of the tenant is untouched. One blunt org-level cap is the junior design."</p>
+    </div>
+    <div class="definition">
+      <strong class="term">Fail open · Fail closed</strong>
+      <p><strong>Fail open:</strong> when the limiter itself breaks, <strong>allow the request</strong> — availability wins, abuse risk rises, and an alert fires. <strong>Fail closed:</strong> when the limiter breaks, <strong>reject the request</strong> — protection wins, the API is down for everyone. Default to open; close only where abuse is worse than downtime.</p>
+    </div>
+    <div class="definition">
+      <strong class="term">Thundering herd</strong>
+      <p>Many clients <strong>retrying at the same instant</strong> — e.g. all waking when an identical <code>Retry-After</code> expires — so the second wave hits as one synchronized spike. The cure is <strong>jitter</strong>: a small random spread added to every wait, so the wake-ups scatter.</p>
+    </div>
+  </section>
+
+  <section id="lab">
+    <div class="section-head"><span class="section-num">12</span><h2>Lab: the ticket-bucket simulator</h2></div>
+    <p class="lede">You're the steward with the ticket bucket. Set the bucket size and the refill pace, then fire requests at it — one at a time or in bursts — and watch the bucket drain, refill in real time, and reject when it's empty. Every control is explained before you touch it.</p>
+
+    <div class="lab">
+      <h3>The ticket bucket</h3>
+      <p class="howto"><strong>What each control does:</strong> <em>Bucket capacity</em> is how many tickets the bucket holds — your burst allowance. <em>Refill rate</em> is how many tickets per second the runner adds — your sustained rate. <em>Fire 1 request</em> sends a single fan to the gate; <em>fire 10-request burst</em> sends ten at once, like a page load. <strong>Tokens refill in real time while you think</strong> — fire a burst, wait a few seconds, and watch the green dots come back. The bar chart records every volley: blue for allowed, red for rejected.</p>
+
+      <div class="slider-row">
+        <label for="rl-cap">Bucket capacity (burst allowance)</label>
+        <input type="range" id="rl-cap" min="1" max="50" step="1" value="10">
+        <output id="rl-cap-out">10 tickets</output>
+      </div>
+
+      <div class="slider-row">
+        <label for="rl-rate">Refill rate (sustained rate)</label>
+        <input type="range" id="rl-rate" min="1" max="20" step="1" value="2">
+        <output id="rl-rate-out">2 tickets/sec</output>
+      </div>
+
+      <div class="controls">
+        <button class="btn primary" id="rl-fire1">Fire 1 request</button>
+        <button class="btn" id="rl-burst">Fire 10-request burst</button>
+        <button class="btn" id="rl-reset">Reset</button>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <div class="node-name">Tickets in bucket</div>
+          <div class="score" id="rl-tokens">10</div>
+          <span class="badge ok" id="rl-tokens-badge">full</span>
+        </div>
+        <div class="stat">
+          <div class="node-name">Allowed</div>
+          <div class="score" id="rl-allowed">0</div>
+        </div>
+        <div class="stat">
+          <div class="node-name">Rejected (429)</div>
+          <div class="score" id="rl-rejected">0</div>
+        </div>
+        <div class="stat">
+          <div class="node-name">Rejection rate</div>
+          <div class="score" id="rl-rate-stat">0%</div>
+        </div>
+      </div>
+
+      <div class="token-pips" id="rl-pips" aria-hidden="true"></div>
+      <div class="chart-cap">Tickets in the bucket right now — green dots are available tickets. Wait a few seconds and watch them refill.</div>
+
+      <div class="chart" id="rl-chart" aria-hidden="true"></div>
+      <div class="chart-cap">Each volley, left to right: blue = allowed, red = rejected (429).</div>
+
+      <div class="log" id="rl-log"></div>
+    </div>
+
+    <div class="callout">
+      <h4>What to take from the lab</h4>
+      <p><strong>One:</strong> a full bucket absorbs the whole 10-request burst instantly — that's the burst allowance C, and no fixed-window limiter treats a burst this kindly. <strong>Two:</strong> hammer the burst button repeatedly and rejections climb: the sustained rate is capped at R no matter how hard you press. <strong>Three:</strong> stop pressing and the dots come back at R per second — the refill math is <code>tokens = min(C, tokens + R × elapsed)</code>, computed lazily, no background timer.</p>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">13</span><h2>Q&amp;A — with full model answers</h2></div>
+    <p class="lede">Four questions, the way an interviewer would ask them. Read the context first — it tells you what they're really testing.</p>
+    <div class="qa">
+
+      <div class="question">
+        <div class="qnum">Q1 · ARCHITECTURE</div>
+        <div class="qtext">"Design a rate limiter for our public API. 3,000 requests per second at peak, per-API-key limits, and it can't add noticeable latency."</div>
+        <div class="context">The full walk-through question. They want requirements → numbers → API → data model → deep dives, in that order, without rambling.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Gateway middleware backed by Redis, one atomic Lua script per request, tiered per-key limits, fail-open on Redis failure.</strong> The numbers say a single Redis primary handles the peak 30× over."</p>
+          <h5>Reasoning</h5>
+          <p>"Requirements first: per-key limits (100/min free, 10k/min pro, from the auth token's plan claim), a coarse per-IP limit at the edge for dumb floods, and tight per-resource limits in-service — login gets 5/min per account regardless of tier. Every response carries <code>X-RateLimit-Limit/Remaining/Reset</code>; rejections are 429 with <code>Retry-After</code> and a JSON body. Non-functionally: the check must add under a millisecond at p99, and ±5% accuracy is fine — this is abuse prevention, not billing.</p>
+          <p>Capacity: 3,000 QPS peak, one Redis Lua script per request at ~0.3 ms — a single Redis node does ~100k ops/sec, so one primary plus a replica for failover is plenty. State is one counter + TTL per key per minute, ~200 bytes; a million active keys is ~200 MB. This is a small Redis, not a distributed systems moonshot.</p>
+          <p>API: gateway middleware computes <code>rl:{api_key}:{current_minute}</code>, runs the fixed-window Lua script (INCR + conditional EXPIRE, atomically — no crash-between-commands race), and either serves with the remaining-quota headers or returns 429. Old windows expire on their own; nothing to clean up. I'd start with fixed window for simplicity and note the 2N boundary behavior, upgrading hot keys to the sliding-window counter (<code>prev × overlap + cur</code>) where the boundary burst would actually hurt.</p>
+          <p>Deep dives, unprompted: Redis is primary + replica with Sentinel so the limiter isn't a single point of failure — and if Redis is unreachable the limiter <strong>fails open</strong> with an alert, because a down limiter must not down the API; the login endpoint alone fails closed. <code>Retry-After</code> is jittered per client and our SDKs use backoff + jitter, so 429s don't synchronize into a thundering herd. And the hottest tenant keys get sharded into sub-keys if a hot key ever shows up."</p>
+          <h5>What earns top marks</h5>
+          <p>The arithmetic said out loud (3k QPS vs 100k ops/sec), the Lua atomicity named as the fix for the INCR/EXPIRE race, and fail-open vs fail-closed stated as a <em>decision with a reason</em> — not a default you stumbled into.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2 · DIAGNOSIS</div>
+        <div class="qtext">"Our limiter is configured for 100 requests per minute, but the metrics show a client doing 200 requests within a single second and getting zero rejections. Explain."</div>
+        <div class="context">The boundary-burst flaw. They want the mechanism, the 2N math, and the fix — not just "use a better algorithm."</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Fixed-window boundary burst.</strong> The client put 100 requests at the tail of one window and 100 at the head of the next — each window's counter stayed legal while 200 requests landed ~a second apart. The fix is a sliding window counter."</p>
+          <h5>Reasoning</h5>
+          <p>"The mechanism: a fixed window counter guarantees at most N requests <em>per window</em>, but the promise you actually wanted was at most N per <em>any</em> 60-second interval. Those are different promises, and the gap is exactly 2N at the boundary: 100 requests at 11:59:59.5 count against the 11:59 window, 100 more at 12:00:00.2 count against the 12:00 window after the reset. Both counters read ≤ 100. Nothing malfunctioned — the algorithm's guarantee is just weaker than it looks.</p>
+          <p>The fix I'd ship is the sliding window counter: keep the previous and current window counts and estimate the trailing window as <code>prev × overlap + cur</code>, where <code>overlap = (60 − seconds_into_current_window)/60</code>. Replaying the attack at 12:00:01: prev = 100, cur = 100, overlap ≈ 0.983, estimate ≈ 198 &gt; 100 — rejected. Two integers of state per client, no per-request storage, and the estimate errs conservative: it can only over-count by at most one window's worth, so it may 429 an innocent request but never lets a burst through."</p>
+          <h5>What earns top marks</h5>
+          <p>Stating the two different guarantees ("per window" vs "per any interval") before naming the fix, and quantifying the error bound of the replacement instead of just asserting it's better.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3 · DISTRIBUTED</div>
+        <div class="qtext">"We run eight API servers sharing one Redis for rate limiting, using INCR followed by EXPIRE. Two problems have bitten us. Name them and fix both."</div>
+        <div class="context">They're testing the atomicity race and the hot key — the two classic Redis limiter failures. "Two problems" is a hint to structure the answer in two beats.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>One: the INCR/EXPIRE race — a crash between the two commands leaves an immortal key that 429s the client forever. Two: the hot key — your biggest tenant's counter serializes on Redis's single thread. Fix one with a Lua script, the other with key sharding.</strong>"</p>
+          <h5>Reasoning</h5>
+          <p>"Problem one is atomicity. INCR and EXPIRE are two commands; if the app server crashes or the connection drops between them, the key keeps its count but never gets a TTL. The counter never resets, every future request reads count ≥ limit, and that client is rejected permanently until someone deletes the key by hand. The fix is a Lua script — Redis executes scripts atomically, single-threaded, so the INCR and the conditional EXPIRE become one indivisible step. No interleaving, no immortal key.</p>
+          <p>Problem two is the hot key. Eight servers each doing a Lua script per request against <em>one</em> key for your biggest tenant means every request for that tenant queues on the same key on the same Redis node. The fix is sharding: split the counter into K sub-keys, have each request pick one at random, and treat the limit as K × sub-limit. You trade a little precision — one sub-key can fill while others have room — for the removal of the bottleneck. If even that's not enough, the escape hatch is local in-memory buckets per server with periodic gossip: zero coordination per request, fuzzy limits, no hot key at all."</p>
+          <h5>What earns top marks</h5>
+          <p>Describing the <em>user-visible</em> consequence of the race (permanent 429s, not just "a race condition"), and naming precision as the explicit price of sharding — "I'd accept ±10% here because this is abuse prevention, not billing."</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4 · JUDGMENT</div>
+        <div class="qtext">"Redis goes down at 2 AM. Your rate limiter can't reach it. Do you fail open or fail closed — and does your answer change for the login endpoint?"</div>
+        <div class="context">A judgment question with a deliberate twist at the end. They want a default, a reason, and the exception — stated as policy, not waffling.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Fail open everywhere, with an alert — except the login and auth endpoints, which fail closed.</strong> The default protects availability; the exception protects against the attack the limiter exists to stop."</p>
+          <h5>Reasoning</h5>
+          <p>"Fail open means: limiter broken → allow the request. The reasoning is blast radius. If the rate limiter fails closed, then a Redis outage — which has nothing to do with my API's actual health — becomes a full API outage for every customer. The limiter is a protective layer; a protective layer must never be more dangerous than what it protects against. So the default is open, plus a paging alert, plus a fallback to local in-memory buckets so there's still <em>some</em> coarse protection while Redis is down.</p>
+          <p>The login endpoint flips the calculus. Its rate limit exists to stop brute-force password guessing — and fail-open there means an attacker gets unlimited guesses exactly when our defenses are down, which is precisely when they'd attack. A locked-out login page during a Redis outage is bad; an unguarded login page is worse. So: security-critical endpoints fail closed, everything else fails open. I'd want that split written down as policy before the 2 AM page, not decided during it."</p>
+          <h5>What earns top marks</h5>
+          <p>The blast-radius framing ("a protective layer must never be more dangerous than what it protects"), the alert + local-bucket fallback showing the open failure isn't just "allow everything and hope," and treating the login exception as pre-written policy rather than an on-the-spot improvisation.</p>
+        </div></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">14</span><h2>Practice drills</h2></div>
+    <p class="lede">Untimed — think like you're whiteboarding. Write your answer, then check the rubric.</p>
+
+    <div class="drill">
+      <h4>Drill 1 — The boundary, with numbers</h4>
+      <p>A fixed-window limiter allows <strong>200 requests/minute</strong>. A client sends 200 requests between 11:59:58 and 11:59:59, then 200 more between 12:00:00 and 12:00:01. (a) How many requests land inside the 3-second span 11:59:59–12:00:01, and what multiple of the intended rate is that? (b) At 12:00:01, what does the sliding-window-counter estimate read (prev = 200, cur = 200), and is the next request allowed?</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>(a) 400 requests in ~3 seconds</strong> — 2× the configured rate. Full marks for naming it the 2N boundary burst and stating the two guarantees: ≤ N per window vs ≤ N per any 60-second interval.</li>
+          <li><strong>(b) overlap = (60 − 1)/60 ≈ 0.983; estimate = 200 × 0.983 + 200 ≈ 396.7 &gt; 200 → rejected.</strong> Full marks for the arithmetic, not just "it rejects."</li>
+          <li><strong>Half marks</strong> for "switch to sliding window" with no numbers; <strong>zero</strong> for "the limiter is broken" — nothing malfunctioned, the guarantee was just weaker than assumed.</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> the explicit contrast — fixed window saw two legal windows (200 ≤ 200, 200 ≤ 200) while the trailing 60 seconds held 400 — then the estimate math showing the sliding counter sees the 400.</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 2 — Token bucket arithmetic</h4>
+      <p>Token bucket, capacity <strong>C = 20</strong>, refill <strong>R = 2/sec</strong>, bucket starts full. (a) The client fires 30 requests instantly: how many allowed, how many rejected, tokens left? (b) The client then waits 5 seconds and fires 30 more: allowed / rejected / tokens left? (c) What is the maximum sustained rate the client can hold forever without rejections?</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>(a) 20 allowed, 10 rejected, 0 tokens left.</strong> The burst allowance is exactly C — no more.</li>
+          <li><strong>(b) 5 seconds × 2/sec = 10 tokens refilled → 10 allowed, 20 rejected, 0 tokens left.</strong> Full marks for showing the refill computation <code>min(20, 0 + 2×5)</code>.</li>
+          <li><strong>(c) 2 requests/sec</strong> — the sustained rate can never exceed R, because tokens are created at R/sec and each request spends one. Full marks for the one-sentence proof, not just the number.</li>
+          <li><strong>Deduction</strong> for answering (c) with anything involving C — capacity controls burst size, never the long-run rate.</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> clean separation of the two knobs in every answer — "C answered (a), R answered (b) and (c)" — stated explicitly.</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 3 — Eight servers, one limit</h4>
+      <p>Eight app servers sit behind a load balancer. A tenant's API key has a global limit of <strong>1,000 requests/min</strong>. Each server runs its own fixed-window counter at 1,000/min. (a) Worst case, how many requests per minute can the tenant actually make? (b) Redesign with Redis: give the key format, the atomicity fix, and one scaling risk of your design with its mitigation.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>(a) 8,000/min — 8× over-admission.</strong> Each server sees ~1/8 of traffic and allows its own 1,000. Full marks for the general rule: per-server counters over-admit by up to N×.</li>
+          <li><strong>Key format:</strong> <code>rl:{api_key}:{window_start_minute}</code> with TTL = 60 s. Full marks for the TTL — no cleanup job needed.</li>
+          <li><strong>Atomicity fix:</strong> a Lua script doing INCR + conditional EXPIRE atomically; full marks for the failure it prevents — a crash between INCR and EXPIRE leaves an immortal key that 429s the client forever.</li>
+          <li><strong>Scaling risk + mitigation:</strong> the hot key (one key for the biggest tenant serializes on Redis's single thread) → shard into K sub-keys with K × sub-limit, accepting slightly looser precision; or local buckets + gossip. Full marks only if the <em>price</em> of the mitigation is named.</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> all four beats in order — the N× math, the key, the race with its user-visible consequence, the hot key with its price — without being asked twice.</p>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">✓</span><h2>Cheat sheet: picking the algorithm + the 60-second framing</h2></div>
+    <p class="lede">Which algorithm for which situation — then the one-paragraph framing that opens any rate-limiting answer.</p>
+    <div class="green-box">
+      <p><strong>1. What are you protecting?</strong> Backend overload → limit at the edge/proxy, reject early. One greedy tenant → per-tenant limits (fairness). Brute force / scraping → exact low-volume counters on the sensitive endpoints. Cost → tiered per-key limits at the gateway.</p>
+      <p><strong>2. Pick the algorithm:</strong> need bursts forgiven → <strong>token bucket</strong> (C = burst, R = sustained). Need output perfectly smooth → <strong>leaky bucket</strong> (fragile downstream). Need exactness, low volume → <strong>sliding window log</strong> (login attempts). Need cheap + no 2N boundary → <strong>sliding window counter</strong> (<code>prev × overlap + cur</code>, two integers per key). Simplest thing that works, 2N tolerable → <strong>fixed window</strong>.</p>
+      <p><strong>3. Enforce outside-in:</strong> edge (coarse IP) → proxy (nginx <code>limit_req</code>) → gateway (per-key tiers) → in-service middleware (per-resource). Every layer the bad request penetrates is work you did for nothing.</p>
+      <p><strong>4. The 429 contract:</strong> <code>X-RateLimit-Limit/Remaining/Reset</code> on <em>every</em> response; 429 carries <code>Retry-After</code> plus a JSON body with the limit, the window, and a docs link. Your own SDKs honor <code>Retry-After</code> with backoff + jitter.</p>
+      <p><strong>5. Distributed:</strong> one shared counter in Redis via an atomic Lua script (INCR + conditional EXPIRE — never two separate commands). Shard hot keys into sub-keys; take <code>now</code> from Redis to dodge clock skew. Fail open with an alert; fail closed only for auth endpoints.</p>
+      <p><strong>6. The 60-second framing:</strong> "Rate limiting caps requests per client per window and rejects the excess with 429. I'd enforce it at the gateway with per-key tiers from the auth token, back it with Redis through one atomic Lua script per request, use a token bucket where clients burst and a sliding window counter where the fixed-window 2N boundary would hurt, identify by API key with per-resource limits on sensitive endpoints, and fail open on Redis failure except auth, which fails closed."</p>
+    </div>
+  </section>
+
+  <section id="talk">
+    <div class="section-head"><span class="section-num">60s</span><h2>How to talk about rate limiting in sixty seconds</h2></div>
+    <p class="lede">When the question is "design a rate limiter" or "how would you stop one tenant drowning the API," run this structure. Verdict first, numbers second, traps unprompted.</p>
+    <ol>
+      <li><strong>State the policy in one sentence.</strong> "Per-API-key limits — 100/min free, 10k/min pro — enforced at the gateway, rejected with 429 and a <code>Retry-After</code> the client can honor."</li>
+      <li><strong>Name the algorithm and why.</strong> "Token bucket: capacity for the burst a page load needs, refill rate for the sustained cap. Two numbers per client, lazy refill, no timers." If they probe the boundary: "fixed window allows 2N at the minute edge; sliding window counter kills that with <code>prev × overlap + cur</code>."</li>
+      <li><strong>Go distributed before they ask.</strong> "One Redis, one atomic Lua script per request — INCR plus conditional EXPIRE, never two commands, or a crash leaves an immortal key. 3k QPS against a 100k ops/sec node is comfortable."</li>
+      <li><strong>Name what breaks.</strong> Hot keys get sharded; <code>Retry-After</code> is jittered so 429s don't herd; Redis down means fail open with an alert — fail closed only on login."</li>
+      <li><strong>Close with the key choice.</strong> "API key at the gateway, IP only at the edge for unauthenticated floods, per-resource limits in-service — layered, so rotating IPs doesn't dodge the key limit."</li>
+    </ol>
+    <div class="verdict">
+      <h4>Senior-depth traps — land these unprompted</h4>
+      <p><strong>Fixed window's guarantee is weaker than it looks.</strong> "≤ N per window" is not "≤ N per any 60 seconds" — the boundary admits 2N. Name both promises.</p>
+      <p><strong>Two Redis commands are not atomic.</strong> The INCR/EXPIRE crash leaves a key with no TTL — permanent 429s for that client. Lua or it didn't happen.</p>
+      <p><strong>A protective layer must never be more dangerous than what it protects.</strong> Fail open on limiter failure — except where the limiter <em>is</em> the security (login), which fails closed.</p>
+    </div>
+  </section>
+
+  <a class="nav-next" href="consistent-hashing.html">
+    <div class="lbl">Previous lesson · Lesson 10</div>
+    <div class="t">Consistent Hashing →</div>
+  </a>
+
+  <footer class="page-foot">
+    Lesson 11 of the daily system design series · <a href="../index.html">All lessons</a>
+  </footer>
+</div>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+
+  var capacity = 10;      // C: burst allowance
+  var refillRate = 2;     // R: tokens per second
+  var tokens = capacity;  // start full
+  var lastTs = Date.now();
+  var allowed = 0;
+  var rejected = 0;
+  var volleys = [];       // {allowed, rejected} per volley, for the chart
+
+  var elCap = $("rl-cap"), elCapOut = $("rl-cap-out"),
+      elRate = $("rl-rate"), elRateOut = $("rl-rate-out"),
+      elTokens = $("rl-tokens"), elTokensBadge = $("rl-tokens-badge"),
+      elAllowed = $("rl-allowed"), elRejected = $("rl-rejected"),
+      elRateStat = $("rl-rate-stat"), elPips = $("rl-pips"),
+      elChart = $("rl-chart"), elLog = $("rl-log");
+
+  function log(msg, cls) {
+    var div = document.createElement("div");
+    if (cls) div.className = cls;
+    var t = ((Date.now() - startTs) / 1000).toFixed(1);
+    div.innerHTML = '<span class="t">[' + t + 's]</span> ' + msg;
+    elLog.prepend(div);
+    while (elLog.children.length > 30) elLog.removeChild(elLog.lastChild);
+  }
+
+  // Lazy refill: compute tokens that would have arrived since last check.
+  // No background timer — the bucket refills in real time between your clicks.
+  function refill() {
+    var now = Date.now();
+    var elapsed = (now - lastTs) / 1000;
+    if (elapsed > 0) {
+      tokens = Math.min(capacity, tokens + refillRate * elapsed);
+      lastTs = now;
+    }
+  }
+
+  function renderPips() {
+    elPips.innerHTML = "";
+    var whole = Math.floor(tokens + 1e-9);
+    for (var i = 0; i < capacity; i++) {
+      var pip = document.createElement("span");
+      pip.className = "pip" + (i < whole ? " full" : "");
+      elPips.appendChild(pip);
+    }
+  }
+
+  function renderChart() {
+    elChart.innerHTML = "";
+    var max = 1;
+    for (var i = 0; i < volleys.length; i++) {
+      var tot = volleys[i].allowed + volleys[i].rejected;
+      if (tot > max) max = tot;
+    }
+    for (var j = 0; j < volleys.length; j++) {
+      var v = volleys[j];
+      var bar = document.createElement("div");
+      bar.className = "bbar";
+      bar.style.height = Math.max(4, ((v.allowed + v.rejected) / max) * 100) + "%";
+      bar.style.display = "flex";
+      bar.style.flexDirection = "column";
+      bar.style.justifyContent = "flex-end";
+      if (v.rejected > 0) {
+        var rej = document.createElement("div");
+        rej.className = "bbar bad";
+        rej.style.flex = v.rejected + " " + v.rejected + " 0%";
+        rej.style.minHeight = "2px";
+        rej.style.borderRadius = "3px 3px 0 0";
+        bar.appendChild(rej);
+      }
+      if (v.allowed > 0) {
+        var ok = document.createElement("div");
+        ok.style.flex = v.allowed + " " + v.allowed + " 0%";
+        ok.style.minHeight = "2px";
+        ok.style.background = "var(--blue)";
+        if (v.rejected === 0) ok.style.borderRadius = "3px 3px 0 0";
+        bar.appendChild(ok);
+      }
+      elChart.appendChild(bar);
+    }
+  }
+
+  function render() {
+    refill();
+    var whole = Math.floor(tokens + 1e-9);
+    elTokens.textContent = whole + " / " + capacity;
+    if (whole >= capacity) {
+      elTokensBadge.textContent = "full";
+      elTokensBadge.className = "badge ok";
+    } else if (whole === 0) {
+      elTokensBadge.textContent = "empty — 429s";
+      elTokensBadge.className = "badge bad";
+    } else {
+      elTokensBadge.textContent = "refilling";
+      elTokensBadge.className = "badge warn";
+    }
+    elAllowed.textContent = allowed;
+    elRejected.textContent = rejected;
+    var total = allowed + rejected;
+    elRateStat.textContent = total === 0 ? "0%" : Math.round((rejected / total) * 100) + "%";
+    renderPips();
+    renderChart();
+  }
+
+  function fire(n) {
+    refill();
+    var ok = 0, no = 0;
+    for (var i = 0; i < n; i++) {
+      if (tokens >= 1) { tokens -= 1; ok++; allowed++; }
+      else { no++; rejected++; }
+    }
+    volleys.push({ allowed: ok, rejected: no });
+    if (volleys.length > 30) volleys.shift();
+    if (no === 0) log("volley of " + n + ": <b>" + ok + " allowed</b>, 0 rejected — bucket had room", "");
+    else log("volley of " + n + ": " + ok + " allowed, <b>" + no + " rejected (429)</b> — bucket ran dry", "");
+    render();
+  }
+
+  elCap.addEventListener("input", function () {
+    capacity = parseInt(elCap.value, 10);
+    elCapOut.textContent = capacity + " tickets";
+    tokens = Math.min(tokens, capacity);
+    log("bucket capacity set to " + capacity + " (burst allowance)", "");
+    render();
+  });
+
+  elRate.addEventListener("input", function () {
+    refillRate = parseInt(elRate.value, 10);
+    elRateOut.textContent = refillRate + " tickets/sec";
+    log("refill rate set to " + refillRate + "/sec (sustained rate)", "");
+    render();
+  });
+
+  $("rl-fire1").addEventListener("click", function () { fire(1); });
+  $("rl-burst").addEventListener("click", function () { fire(10); });
+  $("rl-reset").addEventListener("click", function () {
+    tokens = capacity; lastTs = Date.now();
+    allowed = 0; rejected = 0; volleys = [];
+    elLog.innerHTML = "";
+    log("bucket reset — full at " + capacity + " tickets", "");
+    render();
+  });
+
+  var startTs = Date.now();
+  log("steward ready — bucket full at " + capacity + " tickets, refilling at " + refillRate + "/sec. Fire a burst.", "");
+  render();
+})();
+</script>
+</body>
+</html>
