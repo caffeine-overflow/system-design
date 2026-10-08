@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Pub/Sub &amp; Event-Driven Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch .field-line {
+      position: absolute; border: 2px solid rgba(255,255,255,.5); border-radius: 4px;
+      pointer-events: none;
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 220px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .chart { display: flex; align-items: flex-end; gap: 3px; height: 110px; margin: 16px 0 6px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+    .chart .bbar { flex: 1; background: var(--blue); border-radius: 3px 3px 0 0; min-height: 2px; }
+    .chart-cap { font-size: .82rem; color: var(--muted); }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer h5 { margin: 14px 0 6px; font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .drill {
+      background: var(--purple-soft); border: 1px solid var(--purple);
+      border-radius: var(--radius); padding: 20px 22px; margin: 20px 0; max-width: 46rem;
+    }
+    .drill h4 { margin: 0 0 8px; }
+    .drill .rubric { border-top: 1px dashed var(--purple); padding-top: 12px; }
+    .verdict {
+      border: 2px solid var(--green); border-radius: var(--radius);
+      padding: 18px 22px; margin: 22px 0; max-width: 46rem; background: var(--green-soft);
+    }
+    .verdict h4 { margin: 0 0 8px; color: var(--green); }
+    .verdict p { max-width: none; margin: 6px 0; }
+    .nav-next {
+      display: block; margin-top: 60px; padding: 22px 24px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      text-decoration: none; color: inherit; box-shadow: var(--shadow);
+    }
+    .nav-next:hover { border-color: var(--ink); }
+    .nav-next .lbl { font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .nav-next .t { font-size: 1.2rem; font-weight: 700; margin-top: 4px; }
+    footer.page-foot { margin-top: 56px; color: var(--muted); font-size: .88rem; border-top: 1px solid var(--line); padding-top: 20px; }
+    .kicker { font-size: .82rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 30px 0 -8px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <nav class="crumbs"><a href="../index.html">All lessons</a> &rsaquo; Lesson 12</nav>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 12 &middot; Core Building Blocks</span>
+    <h1>Pub/Sub &amp; Event-Driven Architecture</h1>
+    <p class="whyline">Message queues send work to <em>one</em> worker. But what about when one thing happens and <em>many</em> services each need to react on their own? That's publish/subscribe: one event, broadcast once, and every interested service gets its own copy. This lesson covers the fan-out model, when to pick it over queues, the failure modes that only show up at senior depth, and how event-driven patterns like choreography and orchestration actually work.</p>
+    <div class="meta">
+      <span>~15 min read</span>
+      <span>1 interactive lab</span>
+      <span>4 Q&amp;A with model answers</span>
+      <span>3 practice drills</span>
+    </div>
+  </header>
+
+  <div class="toc">
+    <h2>In this lesson</h2>
+    <ol>
+      <li><a href="#what-is-pubsub">What is pub/sub?</a> — the idea defined from zero</li>
+      <li><a href="#message-flow">How a message actually flows</a> — publish → broker → fan-out</li>
+      <li><a href="#queues-vs-pubsub">Queues vs pub/sub</a> — the crisp contrast table</li>
+      <li><a href="#fanout-math">Fan-out math</a> — one event × N subscribers = N deliveries</li>
+      <li><a href="#delivery-semantics">Delivery semantics</a> — duplicates, loss, ordering, idempotent subscribers</li>
+      <li><a href="#patterns">Event-driven patterns</a> — notification, carried state, event sourcing, choreography, orchestration, saga</li>
+      <li><a href="#failure-modes">The four failure modes</a> — schema coupling, event storms, causality, the "eventual everything" trap</li>
+      <li><a href="#real-world">Real-world systems</a> — Kafka, Redis, SNS→SQS, NATS, webhooks</li>
+      <li><a href="#lab">Lab: the goal fan-out simulator</a></li>
+      <li><a href="#qa">Q&amp;A — with full model answers</a></li>
+      <li><a href="#drills">Practice drills</a></li>
+      <li><a href="#cheatsheet">Cheat sheet: the 6 pub/sub decisions</a> — plus pub/sub in 60 seconds</li>
+      <li><a href="#talk">How to talk about pub/sub in the room</a></li>
+    </ol>
+  </div>
+
+  <section id="what-is-pubsub">
+    <div class="section-head"><span class="section-num">01</span><h2>What is pub/sub?</h2></div>
+    <p class="lede">Pub/sub — <strong>publish/subscribe</strong> — is a messaging pattern where one program <strong>publishes</strong> an event exactly once, and any number of <strong>interested programs</strong> each receive their own copy, without the publisher knowing any of them. If a message queue is a task handed to one worker, pub/sub is a whistle blown once that everyone on the pitch hears.</p>
+
+    <div class="pitch">
+      <div class="field-line" style="top:18px;left:18px;right:18px;bottom:18px;"></div>
+      <span class="tag">⚽ The running example: the goal is scored</span>
+      <h4>One event, five reactions, zero waiting</h4>
+      <p>It's the 89th minute. The striker scores. The referee's assistant presses one button — <strong>"goal scored, minute 89"</strong> — and that single event has to reach five completely different places: the <strong>scoreboard</strong> updates to 2–1, the <strong>commentator feed</strong> gets the goal call, the <strong>highlights clipper</strong> starts cutting the last 30 seconds of footage, <strong>betting settlement</strong> pays out on all "next goal" wagers, and <strong>fan notifications</strong> ping every supporter's phone.</p>
+      <p>Nobody here should wait on anyone else. The scoreboard shouldn't fail because the betting system is down. The assistant referee shouldn't have to call five people. One publish, five independent reactions — that's pub/sub. Every idea in this lesson lands on this goal.</p>
+    </div>
+
+    <div class="definition">
+      <strong class="term">Publisher · Subscriber · Event</strong>
+      <p>A <strong>publisher</strong> is the program that creates an event and sends it once — like the referee's assistant pressing the goal button. A <strong>subscriber</strong> is a program that <strong>signs up to receive</strong> certain kinds of events and reacts to them on its own — the scoreboard, the clipper, the notifications service. An <strong>event</strong> is a short, named record that <strong>something already happened</strong>: past tense, immutable, timestamped — <code>{"type": "goal.scored", "minute": 89, "match": "MCI-ARS"}</code>.</p>
+    </div>
+    <div class="definition">
+      <strong class="term">Broker · Topic</strong>
+      <p>A <strong>broker</strong> is the middleman that receives published events and copies them to every subscriber. A <strong>topic</strong> (also called a <strong>channel</strong>) is the named stream subscribers sign up to — "goals", "orders.placed", "payments.failed". The publisher addresses the event to the <strong>topic</strong>; the broker works out who gets a copy.</p>
+    </div>
+
+    <h3>The three-way split nobody knows: space, time, and who</h3>
+    <p>A direct function call couples three things: <strong>space</strong> (the caller must know <em>where</em> the callee is — its address), <strong>time</strong> (both must be alive <em>at the same moment</em>), and <strong>who</strong> (the caller must know exactly <em>which</em> callee it wants). Pub/sub decouples all three:</p>
+    <ul>
+      <li><strong>Decoupled in space:</strong> the publisher doesn't know the subscribers' addresses. It publishes to a topic name, not to a URL. Add a sixth subscriber — a new "goal of the season" voting service — and the publisher's code doesn't change at all. In football terms: the whistle-blower doesn't need the phone numbers of everyone in the stadium.</li>
+      <li><strong>Decoupled in time:</strong> the publisher and the subscriber don't have to be awake at the same moment. The broker holds the event until the subscriber is ready. If fan-notifications is deploying during the goal, the event waits for it — nothing is lost.</li>
+      <li><strong>Decoupled in "who":</strong> the publisher doesn't know <em>how many</em> subscribers exist, or what they do with the event. The assistant referee doesn't need to know there's a betting-settlement service at all.</li>
+    </ul>
+    <p>That third one — the <strong>"who"</strong> — is what message queues don't give you. A queue worker <em>is</em> known: someone configured the queue to feed that specific worker. Pub/sub is the pattern for when the set of reactors is <strong>open-ended and changes over time</strong>.</p>
+  </section>
+
+  <section id="message-flow">
+    <div class="section-head"><span class="section-num">02</span><h2>How a message actually flows</h2></div>
+    <p class="lede">One publish, then the broker does the multiplying. Follow the goal event from the assistant referee's button to five independent copies.</p>
+
+    <h3>The three beats: publish → broker → fan-out</h3>
+    <pre>publish (once)  →  broker (copies × N)  →  N subscribers (each gets its own copy)</pre>
+    <ol>
+      <li><strong>Publish.</strong> The publisher builds the event and sends it to the broker, addressed to a topic — e.g. topic <code>goals</code>. It fires and forgets: <strong>publish doesn't wait for any subscriber to finish</strong>. The assistant referee's button press returns instantly; the scoreboard will catch up on its own.</li>
+      <li><strong>Broker receives.</strong> The broker accepts the event, <strong>persists it</strong> (writes it to disk or memory, depending on the system — section 8 covers which), and figures out which topics the event matches. This is also where it may <strong>filter or route</strong> the event: some brokers let subscribers match on attributes, like "only goals in the 2nd half."</li>
+      <li><strong>Fan-out.</strong> The broker makes <strong>one copy per subscriber</strong> and delivers each copy <strong>independently</strong>. The scoreboard's copy, the clipper's copy, and the notifications' copy are separate deliveries — if the notifications service is slow, the scoreboard still gets its goal update on time.</li>
+    </ol>
+
+    <h3>Push vs pull: who makes the call?</h3>
+    <div class="definition">
+      <strong class="term">Push · Pull</strong>
+      <p>In <strong>push</strong> delivery, the <strong>broker calls the subscriber</strong> — it actively sends each copy the moment it arrives (SNS pushing to an HTTP endpoint, webhooks). In <strong>pull</strong> delivery, the <strong>subscriber calls the broker</strong> — it repeatedly asks "anything new for me?" and the broker hands over what's waiting (Kafka consumers, SQS polling).</p>
+    </div>
+    <ul>
+      <li><strong>Push</strong> is lower-latency: the copy leaves the moment the goal happens. But it demands the subscriber be reachable and fast — if notifications can't keep up, the broker either queues up (memory pressure) or drops. Think: the stadium PA system announcing the goal to everyone at once.</li>
+      <li><strong>Pull</strong> lets each subscriber set its own pace: the highlights clipper can batch-fetch every 5 seconds while the scoreboard polls every 100 ms. But it trades latency for that control — you're never faster than your poll interval. Think: each department checking the official match log on its own schedule.</li>
+    </ul>
+
+    <h3>What the broker guarantees — and what it pointedly doesn't</h3>
+    <div class="callout">
+      <h4>🧠 The broker's contract</h4>
+      <p><strong>It does:</strong> accept the event durably (so a publisher crash right after publish doesn't lose the goal), copy it to every <em>currently subscribed</em> listener, and let each subscriber fail and retry <strong>independently</strong>. A downed betting service doesn't block the scoreboard's copy — delivery per subscriber is a separate track.</p>
+      <p><strong>It doesn't:</strong> know what the event <em>means</em> (it's just bytes — "goal.scored" is a string to the broker), guarantee every subscriber sees events in the same <em>order</em> (section 5), or guarantee exactly-once delivery (section 5). And crucially: <strong>it doesn't know about subscribers that arrive late</strong> unless the broker keeps history — a classic Redis pub/sub broker forgets everything the instant it forwards it, so a subscriber that connects after the goal never sees it. Systems with <strong>retention</strong> (Kafka keeps events for days) fix this: late subscribers replay from the log.</p>
+    </div>
+  </section>
+
+  <section id="queues-vs-pubsub">
+    <div class="section-head"><span class="section-num">03</span><h2>Queues vs pub/sub</h2></div>
+    <p class="lede">Lesson 9's queue and today's pub/sub look alike — both have a broker in the middle. But they answer opposite questions: <strong>"who does this task?"</strong> vs <strong>"who needs to know this happened?"</strong> If you get this table, you'll never mix them up again.</p>
+
+    <table class="cmp">
+      <tr><th></th><th>Message queue (Lesson 9)</th><th>Pub/sub (this lesson)</th></tr>
+      <tr><td><strong>The question</strong></td><td>"Who does this task?"</td><td>"Who needs to know this happened?"</td></tr>
+      <tr><td><strong>Copies per message</strong></td><td><strong>One.</strong> A message is consumed exactly once, then deleted on ack.</td><td><strong>N.</strong> One copy per subscriber, delivered independently.</td></tr>
+      <tr><td><strong>Consumers</strong></td><td><strong>Competing consumers:</strong> N workers share one queue; each message goes to exactly one worker.</td><td><strong>Independent subscribers:</strong> every subscriber gets every message on its topics.</td></tr>
+      <tr><td><strong>Football picture</strong></td><td>The coach hands <em>one</em> tactics board to <em>one</em> assistant. Whoever picks it up first does the job.</td><td>The referee blows the whistle and all 22 players <em>and</em> the crowd hear it. Everyone reacts on their own.</td></tr>
+      <tr><td><strong>Adding a consumer</strong></td><td>Splits the existing load — the new worker takes messages away from the others.</td><td>Adds load — the new subscriber gets its <em>own</em> copy of everything.</td></tr>
+      <tr><td><strong>Memory model</strong></td><td><strong>Delete on ack.</strong> Once a worker acknowledges, the message is gone. Late arrivals see nothing.</td><td>Varies: <strong>forgetful</strong> (Redis pub/sub — gone on delivery) or <strong>retained</strong> (Kafka — kept for days, late subscribers replay).</td></tr>
+      <tr><td><strong>Ordering</strong></td><td>Often ordered per queue (or per FIFO group).</td><td>Usually <strong>no global order</strong> across subscribers; some systems order per partition/key.</td></tr>
+      <tr><td><strong>Failure isolation</strong></td><td>A poison message blocks the head of the queue (handled by DLQ).</td><td>A slow subscriber only hurts <strong>itself</strong> — others drain their own copies at full speed.</td></tr>
+    </table>
+
+    <h3>So when do you pick which?</h3>
+    <ul>
+      <li><strong>Pick a queue</strong> when the message is a <strong>task to be done once</strong>: process this payment, render this thumbnail, dispatch this runner. You want competing consumers so you can scale workers, and you want delete-on-ack so nothing is done twice.</li>
+      <li><strong>Pick pub/sub</strong> when the message is a <strong>fact to be known by many</strong>: the goal was scored, the order shipped, the price changed. The set of interested parties is open-ended and grows over time.</li>
+      <li><strong>The one-line test:</strong> if a new service shows up tomorrow and needs the same events, do you want it to <em>share</em> the existing load (queue) or get <em>its own copy of everything</em> (pub/sub)?</li>
+    </ul>
+    <div class="callout">
+      <h4>🧠 Kafka does both — and that's the senior unifier</h4>
+      <p>In Kafka, the unit is the <strong>topic</strong> (a retained, ordered log). Each <strong>consumer group</strong> — a named set of cooperating consumers — gets its <strong>own copy of the whole log</strong> (pub/sub across groups: scoreboard-group, notifications-group). <em>Within</em> a group, the members <strong>split the topic's partitions</strong> between them, competing for messages like queue workers. So: <strong>pub/sub across groups, queue within a group.</strong> The same system answers both questions — the group boundary is the choice.</p>
+    </div>
+  </section>
+
+  <section id="fanout-math">
+    <div class="section-head"><span class="section-num">04</span><h2>Fan-out math</h2></div>
+    <p class="lede">Pub/sub's superpower — one event becomes many deliveries — is also its cost model. The publisher does <strong>O(1)</strong> work; the broker does <strong>O(N)</strong>. Senior rooms always ask what the multiplier costs.</p>
+
+    <h3>The one equation</h3>
+    <pre>deliveries/sec = events/sec × subscribers</pre>
+    <p>One whistle, and 22 players plus the crowd hear it. In systems: if the order service publishes <strong>1,000 events/sec</strong> and <strong>8 services</strong> subscribe, the broker performs <strong>8,000 deliveries/sec</strong>. The publisher only wrote 1,000 — the other 7,000 are the broker's copies. <strong>The publisher's cost is constant; the broker's cost scales with the subscriber count.</strong> Every new subscriber you add multiplies the broker's work for <em>every</em> event, forever.</p>
+
+    <h3>The worked cost example</h3>
+    <div class="green-box">
+      <p><strong>Given:</strong> 1,000,000 events per day, 4 subscribers, average message size 2 KB.</p>
+      <p><strong>Deliveries per day:</strong> 1,000,000 × 4 = <strong>4,000,000 deliveries/day</strong>.</p>
+      <p><strong>Data the broker moves:</strong> 4,000,000 × 2 KB = 8,000,000 KB ≈ <strong>8 GB/day</strong> of egress from the broker to subscribers.</p>
+      <p><strong>Storage if retained:</strong> only the originals are stored — 1,000,000 × 2 KB ≈ <strong>2 GB/day</strong> (per copy kept; retention multiplies by days, not subscribers).</p>
+      <p><strong>The point:</strong> the <em>egress</em> bill multiplies by subscribers; the <em>storage</em> bill doesn't. When someone says "pub/sub is cheap because you publish once," answer: publish is cheap, <em>fan-out is the invoice</em>.</p>
+    </div>
+
+    <h3>Per-subscriber failure isolation — why copies matter</h3>
+    <p>Back to the goal: betting settlement's database is down. It stops acknowledging its copies, so the broker buffers them for betting — and <strong>only</strong> for betting. The scoreboard's copy was already delivered; the scoreboard never knew there was a problem. <strong>Each subscriber's delivery track is independent: its own buffer, its own retries, its own backlog.</strong> This is the mirror image of Lesson 9's queue problem, where one poison message blocked the whole line: in pub/sub, a sick subscriber can't slow anyone else — the broker's copies are separate patients. The lab in section 9 lets you watch this live.</p>
+    <div class="warn-box">
+      <p><strong>⚠️ The isolation has a ceiling:</strong> "can't slow anyone else" holds only while the broker has room to buffer. If betting is down for three days and the broker's buffer for betting fills the broker's disk, <em>everyone</em> suffers. Isolation is real, but it's <strong>bounded by the broker's capacity</strong> — which is why per-subscriber backpressure (section 7, failure mode 4) and buffer limits are part of the design, not an afterthought.</p>
+    </div>
+  </section>
+
+  <section id="delivery-semantics">
+    <div class="section-head"><span class="section-num">05</span><h2>Delivery semantics</h2></div>
+    <p class="lede">The broker promises to deliver your copies — but under what guarantee? The same three semantics from Lesson 9 apply here, with pub/sub-specific wrinkles.</p>
+
+    <div class="definition">
+      <strong class="term">At-least-once · At-most-once</strong>
+      <p><strong>At-least-once</strong> means a subscriber may receive the same event <strong>more than once</strong>, but will never <em>miss</em> one it was subscribed for: the broker redelivers until it gets an acknowledgment. <strong>At-most-once</strong> means an event is delivered <strong>once or never</strong>: if the subscriber crashes mid-processing, that copy is gone. (Lesson 9's "exactly-once" isn't on offer end-to-end for the same reason as before: the write and the ack are two separate systems, and a crash can always land between them.)</p>
+    </div>
+
+    <h3>At-least-once duplication, pub/sub style</h3>
+    <p>The classic duplicate: fan-notifications is <strong>slow</strong> — it takes 40 seconds to send a batch of goal alerts, but the broker expects an acknowledgment within 30. The broker concludes the copy is lost and <strong>redelivers the same goal event</strong>, while the original processing is still running. Result: some fans get the goal ping <strong>twice</strong>. The duplicate wasn't a bug in the publisher — it was a <strong>slow subscriber</strong> tripping the broker's retry logic. In pub/sub this is the most common duplication source: one subscriber's pace, not a broker failure.</p>
+    <div class="definition">
+      <strong class="term">Idempotent subscriber</strong>
+      <p>A subscriber whose processing produces <strong>the same end state no matter how many times it sees the same event</strong> (Lesson 9 covered this for queue consumers; the rule carries over). The standard answer: give every event a unique <strong>event ID</strong>, and have each subscriber record the IDs it has already processed — check before acting, skip if seen.</p>
+    </div>
+
+    <h3>At-most-once: the scoreboard that missed the goal</h3>
+    <p>Pick at-most-once when a duplicate is worse than a loss. Betting settlement would rather <em>delay</em> than <em>double-pay</em> — but careful: at-most-once doesn't delay, it <strong>drops</strong>. Its real niche is firehose data where each datum is worthless and the stream is everything: live player-tracking coordinates, 60 per second. Losing one coordinate out of 3,600 in a minute is invisible; processing one twice could teleport the player. <strong>The rule: duplicates hurt → at-least-once + idempotency; losses are cheap and duplicates are dangerous → at-most-once.</strong></p>
+
+    <h3>Ordering: or the lack of it</h3>
+    <p>Here's the trap the senior room loves: the 89th-minute goal and the 90th-minute goal publish one second apart. The scoreboard receives them in order. But the highlights clipper — subscribed to the same topic — gets them <strong>reversed</strong> if its two copies travel different broker paths or one gets retried. <strong>Pub/sub does not guarantee global ordering across subscribers, and usually not even for one subscriber</strong> — unless the system offers it explicitly:</p>
+    <ul>
+      <li><strong>Kafka orders within a partition.</strong> A partition is an ordered sub-log of a topic; events with the same <strong>key</strong> (e.g. the match ID) always land in the same partition, so all of one match's events arrive in order. Different matches interleave freely — order is per-key, not global. That's why you key by the entity the order matters for.</li>
+      <li><strong>Forgetful brokers mostly don't bother.</strong> Classic Redis pub/sub delivers in publish order on a single connection, but the moment a retry or a second connection is involved, all bets are off — which is accepted as fine, because it's a broadcast channel, not a ledger.</li>
+      <li><strong>When order truly matters:</strong> key your events so related ones share an ordered lane (Kafka partition, SQS FIFO message group), and design subscribers to be <strong>tolerant of reordering anyway</strong> — e.g. the scoreboard applies "minute 89" before "minute 90" by timestamp, not by arrival order.</li>
+    </ul>
+    <div class="callout">
+      <h4>🧠 The senior one-liner for this section</h4>
+      <p>"At-least-once with idempotent subscribers is the default. I order by key when a single entity's sequence matters, and I design every subscriber to survive duplicates and mild reordering — because the broker's guarantees end at delivery."</p>
+    </div>
+  </section>
+
+  <section id="patterns">
+    <div class="section-head"><span class="section-num">06</span><h2>Event-driven patterns</h2></div>
+    <p class="lede">Once you stop calling services directly and start publishing events, two design choices appear: <strong>how much goes in the event</strong>, and <strong>who conducts the workflow</strong>. Get these wrong and the system "works" while becoming unmaintainable.</p>
+
+    <h3>How much goes in the event? Three answers.</h3>
+    <div class="definition">
+      <strong class="term">Event notification</strong>
+      <p>The event says only <strong>"something happened, here's the ID"</strong> — <code>{"type": "goal.scored", "goalId": "g-9917"}</code>. A subscriber that wants details <strong>calls the publisher's API</strong> to fetch the full goal record. When it wins: the event stays tiny and the schema almost never changes; it loses when ten subscribers all hammer the API for the same details — you've rebuilt the coupling you tried to escape.</p>
+    </div>
+    <div class="definition">
+      <strong class="term">Event-carried state transfer</strong>
+      <p>The event <strong>carries the full new state</strong> — <code>{"type": "goal.scored", "minute": 89, "scorer": "Haaland", "score": "2-1", ...}</code>. Subscribers act on the event alone and never call back. When it wins: subscribers are fully autonomous (the clipper works even if the match service is down); it loses when the payloads get fat and every new field tempts a <strong>schema change</strong> — which is failure mode 1 in section 7.</p>
+    </div>
+    <div class="definition">
+      <strong class="term">Event sourcing</strong>
+      <p>The event log <strong>is the source of truth</strong>: you don't store "current score = 2-1", you store every goal/kickoff/card event and <strong>replay the log to derive the current state</strong>. When it wins: audit trails ("prove the 89th-minute goal was recorded before the bet settled") and time-travel queries ("what was the score at minute 70?"). The price: replaying a whole season's log to answer "what's the score now" is expensive, so you keep <strong>snapshots</strong> (checkpoints of derived state every N events) — and the whole team must think in events, which is a real learning curve.</p>
+    </div>
+    <p class="kicker">Choosing between the three</p>
+    <p>Default to <strong>event-carried state transfer</strong> — it's the least coupling with the least machinery. Drop to <strong>notification</strong> when the payload is large or sensitive and subscribers are few. Reach for <strong>event sourcing</strong> only when you genuinely need history-as-truth (audits, temporal queries) — never as a default, because you're committing every future reader to replay logic.</p>
+
+    <h3>Who conducts? Choreography vs orchestration</h3>
+    <div class="definition">
+      <strong class="term">Choreography</strong>
+      <p>Each service <strong>reacts to events and emits its own</strong>; there is no central controller. The goal event arrives → the clipper starts cutting → the clipper publishes <code>clip.ready</code> → notifications sees it and pings fans. The workflow emerges from services reacting to each other, like players reading the game: the winger sees the striker's run and crosses <strong>without anyone telling them to</strong>.</p>
+    </div>
+    <div class="definition">
+      <strong class="term">Orchestration</strong>
+      <p>A central <strong>orchestrator</strong> runs the workflow: it issues commands, waits for replies, and decides the next step. The set-piece coach: the corner routine is drawn up, each player's run is assigned, and the taker signals when to start. Nothing happens by reading the game — it happens because the <strong>conductor called it</strong>.</p>
+    </div>
+    <table class="cmp">
+      <tr><th></th><th>Choreography</th><th>Orchestration</th></tr>
+      <tr><td><strong>Football picture</strong></td><td>Open play: players react to what they see.</td><td>The set piece: the coach's routine, called on signal.</td></tr>
+      <tr><td><strong>Adding a step</strong></td><td>Add a subscriber; touch nothing else. Fast to extend.</td><td>Edit the orchestrator's workflow. One place changes.</td></tr>
+      <tr><td><strong>Seeing the whole flow</strong></td><td>Hard — the "workflow" exists only as scattered reactions. Debugging needs tracing (section 7, mode 3).</td><td>Easy — the workflow is <strong>code you can read</strong> in one place.</td></tr>
+      <tr><td><strong>Failure handling</strong></td><td>Each service handles its own failures; nobody has the full picture.</td><td>The orchestrator sees the failure and picks the compensation.</td></tr>
+    </table>
+    <div class="definition">
+      <strong class="term">Saga pattern</strong>
+      <p>A way to run a <strong>multi-step transaction across services without distributed locking</strong>: break it into a sequence of local transactions, and if any step fails, run <strong>compensating actions</strong> (the undo steps) for what already succeeded. The textbook orchestration use-case: booking the away trip — <strong>orchestrator</strong> books hotel ✓, books flights ✗ → runs compensation "cancel hotel". In choreography style the same saga is a chain of events (hotel.booked → flights service tries → flights.failed → hotel service hears it and cancels itself) — which works until step 3 of 7 fails and you can't tell who's supposed to undo what.</p>
+    </div>
+    <div class="verdict">
+      <h4>The pick rule</h4>
+      <p><strong>Choreography</strong> for simple, stable flows with few steps — "goal scored → five independent reactions" needs no conductor. <strong>Orchestration</strong> the moment a workflow has <strong>ordering, branching, or compensation</strong> — if step 3 depends on step 2's result, or a failure must undo earlier steps, write the conductor. The senior tell: <em>choreography optimizes for adding steps; orchestration optimizes for understanding the flow.</em></p>
+    </div>
+  </section>
+
+  <section id="failure-modes">
+    <div class="section-head"><span class="section-num">07</span><h2>The four failure modes</h2></div>
+    <p class="lede">These are the four ways event-driven systems actually break in production — and the four questions senior rooms ask to check you've operated one, not just read about one.</p>
+
+    <h3>1. Schema coupling: the event nobody can change</h3>
+    <div class="definition">
+      <strong class="term">Schema · Schema coupling</strong>
+      <p>The <strong>schema</strong> is the agreed shape of an event: which fields exist and what types they are. <strong>Schema coupling</strong> is what happens when the publisher can't change that shape without breaking subscribers — the decoupling you bought in section 1 quietly evaporates the moment the contract is rigid.</p>
+    </div>
+    <p>The trap: <code>goal.scored</code> starts as <code>{"minute": 89, "scorer": "Haaland"}</code>. Six months later you need <code>"assist"</code> and <code>"xG"</code>. Ten subscribers parse the event; two of them <strong>crash on unknown fields</strong> because someone wrote strict validation. Renaming <code>"scorer"</code> to <code>"scorerId"</code> breaks all ten at once — and because subscribers are decoupled and owned by other teams, you discover this <strong>at deploy time</strong>, not compile time.</p>
+    <ul>
+      <li><strong>The fix, stated as a rule:</strong> events are a <strong>public API with a deprecation policy</strong>. Add fields (never remove or rename), make every subscriber tolerate unknown fields, and version explicitly (<code>goal.scored.v2</code> as a new topic, or a <code>version</code> field) when the shape must break.</li>
+      <li><strong>The senior sentence:</strong> "Pub/sub decouples services in space and time, but the <em>schema</em> re-couples them — so I version events like an API and never break a field."</li>
+    </ul>
+
+    <h3>2. Event storms and the infinite loop</h3>
+    <div class="definition">
+      <strong class="term">Event storm · Feedback loop</strong>
+      <p>An <strong>event storm</strong> is a runaway cascade where events trigger more events faster than subscribers can drain them — volume exploding, not a bug in any single handler. A <strong>feedback loop</strong> is its nastiest form: service A publishes an event that service B reacts to by publishing an event that A reacts to — an <strong>A → B → A cycle that never ends</strong>.</p>
+    </div>
+    <p>Concrete loop, with our goal: the <strong>scoreboard</strong> subscribes to <code>goal.scored</code> and, after updating, helpfully publishes <code>scoreboard.updated</code>. The <strong>stats service</strong> subscribes to <code>scoreboard.updated</code> and publishes a derived <code>match.stats.changed</code> event. The <strong>commentator feed</strong> subscribes to <code>match.stats.changed</code> and — to keep its ticker fresh — republishes a normalized <code>goal.scored</code> "correction" with identical content. The scoreboard sees a "new" goal event and updates again… The stadium hears the 89th-minute goal <strong>forever</strong>: each cycle multiplies the broker's deliveries, buffers fill, and real events drown. Nothing is broken in any one service — the <em>topology</em> is the bug.</p>
+    <ul>
+      <li><strong>Prevention, three layers:</strong> (1) <strong>idempotency by event ID</strong> — the scoreboard has seen goal <code>g-9917</code>, so the "correction" is a no-op; (2) <strong>cause-tracking</strong>: every derived event carries the ID of the event that caused it, and a service refuses to act on an event it can see it already caused (cycle detection); (3) <strong>no republishing what you consumed</strong> as a design review rule — derived events get new names and new topics.</li>
+      <li><strong>The circuit breaker for storms:</strong> rate-limit or shed at the broker (cap deliveries/sec per topic) so a storm degrades instead of drowning the system — the same instinct as Lesson 11's rate limiting, applied to events.</li>
+    </ul>
+
+    <h3>3. Debugging causality: there is no call stack</h3>
+    <div class="definition">
+      <strong class="term">Correlation ID</strong>
+      <p>A single unique ID generated at the start of a user action and <strong>copied into every event and log line</strong> that action causes — the thread that stitches a scattered workflow back together.</p>
+    </div>
+    <p>The fan's complaint: "I got the goal notification but the clip never arrived." In a synchronous system you'd follow the call stack. Here there isn't one — the goal event fanned out to five independent tracks, and the failure is in exactly one of them, hours of logs away from the others. Without a correlation ID you're grepping five services' logs by timestamp and hoping. <strong>With one, it's a single query:</strong> <code>correlationId = "evt-9917"</code> shows goal published → clipper received → clipper crashed on an ffmpeg error → notifications succeeded. The rule: <strong>the publisher mints the correlation ID, every subscriber propagates it into every event it emits and every line it logs.</strong> This is also how you answer "who caused this event" in the loop above.</p>
+
+    <h3>4. The "eventual everything" trap: when you actually need a synchronous read</h3>
+    <p>Event-driven thinking is seductive: make <em>everything</em> an event and the architecture diagrams look beautifully decoupled. Then the product manager asks for "the page that shows whether my bet was settled" — and the settlement is an event that <em>might have been processed already</em>. The user stares at "pending" for a bet that paid out a minute ago, because no service holds the <strong>current, queryable state</strong>.</p>
+    <p><strong>The rule: events are for <em>notifying</em>, not for <em>reading</em>.</strong> The moment a human or a UI needs the answer <em>now</em> — "was my bet settled?", "is my order shipped?" — some service must hold that state in a database you can query synchronously. The standard shape: subscribers consume events <strong>and maintain a read model</strong> (their own little database of derived state), and the UI reads the read model, not the event log. Events flow in; queries hit the database. If your design has events but nowhere to <code>SELECT</code>, you've built a write-only system.</p>
+    <div class="warn-box">
+      <p><strong>⚠️ The room-ready summary of all four:</strong> schema coupling (version your events like an API), event storms (idempotency + cause-tracking + never republish what you consumed), causality (correlation IDs end-to-end), and eventual-everything (someone must hold queryable state — events notify, databases answer).</p>
+    </div>
+  </section>
+
+  <section id="real-world">
+    <div class="section-head"><span class="section-num">08</span><h2>Real-world systems</h2></div>
+    <p class="lede">Five tools, one paragraph each, with the honest trade-off. The question is never "which is best" — it's "which one's price fits this requirement."</p>
+
+    <h3>Kafka — the league's official archive</h3>
+    <p>Kafka stores each <strong>topic</strong> as a durable, append-only <strong>log</strong>, split into ordered <strong>partitions</strong>. Events are kept for a configured <strong>retention period</strong> (commonly days), so a subscriber that arrives late — or a brand-new analytics service — can <strong>replay history from any point</strong> using its own <strong>offset</strong> (its personal bookmark in the log). Ordering holds <strong>within a partition</strong>; a <strong>consumer group</strong> (section 3) gets pub/sub across groups and queue-style splitting within. The trade: it handles millions of events/sec and full replay, but you operate a distributed cluster (or pay a managed vendor) — <strong>Kafka is the pick when history and replay matter to many consumers</strong>, overkill when they don't.</p>
+
+    <h3>Redis pub/sub vs Redis Streams — shouting in the tunnel vs the match log</h3>
+    <p>Classic Redis pub/sub is <strong>fire-and-forget</strong> — "fire-and-forget" meaning the broker sends the event to whoever is connected <em>right now</em> and keeps no copy: publish while a subscriber is reconnecting and that goal is gone for them forever. It's blisteringly fast and dead simple, which is exactly the trade: <strong>speed for durability</strong>. <strong>Redis Streams</strong> is the grown-up sibling: a persistent, replayable log with <strong>consumer groups</strong> and explicit acknowledgments — basically "Kafka-lite inside Redis." Pick classic pub/sub for ephemeral broadcasts (live dashboards, "someone scored" pings where missing one is fine); pick Streams the moment a missed event is a bug.</p>
+
+    <h3>SNS → SQS fan-out — the AWS assembly line</h3>
+    <p><strong>SNS</strong> (Simple Notification Service) is the AWS topic: you publish once, and SNS fans out to whatever is subscribed — and the canonical subscriber is an <strong>SQS queue</strong>, one per team. So the goal event hits the SNS topic, and SNS drops a copy into the scoreboard team's queue, the notifications team's queue, and so on. Each team gets a <strong>durable, independently-retried queue</strong> with its own dead-letter handling — per-subscriber isolation (section 4) as a managed service. The trade: it's AWS-only, cross-region fan-out adds latency, and strict ordering needs the FIFO variants. <strong>The pick when you're on AWS, want zero broker ops, and each subscriber wants its own retryable queue.</strong></p>
+
+    <h3>NATS — the lightweight winger</h3>
+    <p>NATS is a minimal, high-throughput messaging system: publish/subscribe (and request/reply) with tiny operational overhead — a single binary, no ZooKeeper-style coordination service. <strong>JetStream</strong> adds persistence, replay, and consumer groups on top. The trade: a smaller ecosystem and fewer managed offerings than Kafka, so you get simplicity at the cost of community tooling and battle-tested scale stories. <strong>The pick for internal services that need fast pub/sub without operating a Kafka cluster</strong> — the winger who beats Kafka on agility but won't win the aerial duels at massive scale.</p>
+
+    <h3>Webhooks — the poor man's pub/sub</h3>
+    <p>A <strong>webhook</strong> is pub/sub with no broker at all: the publisher makes an <strong>HTTP POST</strong> directly to each subscriber's registered URL when the event happens. It works — Stripe and GitHub run enormous webhook systems on it — but notice what's missing: <strong>no buffering</strong> (subscriber down = delivery fails unless <em>you</em> build retries), <strong>no fan-out multiplication</strong> (the publisher does the N deliveries itself), and <strong>no replay</strong>. Fine at low volume with few subscribers; past that, you've hand-built a worse broker. <strong>The pick for integrating with external parties</strong> (you can't ask Stripe to join your Kafka cluster) — not for your internal backbone.</p>
+  </section>
+
+  <section id="lab">
+    <div class="section-head"><span class="section-num">09</span><h2>Lab: the goal fan-out simulator</h2></div>
+    <p class="lede">One widget, one lesson: <strong>the publisher's work is constant; the broker's work multiplies.</strong> Move the sliders and watch what the broker actually does — especially when one subscriber can't keep up.</p>
+
+    <div class="lab">
+      <h3>⚽ Goal fan-out simulator</h3>
+      <p class="howto"><strong>How to use it:</strong> set how many goal-events per second get published, and how many services subscribe. The simulator computes the broker's real workload live. Turn on the slow subscriber to watch failure isolation in action — its backlog grows while everyone else's stays flat. Each bar in the chart is one subscriber's buffered backlog (messages waiting for it), i.e. the broker's per-subscriber buffer from section 4.</p>
+
+      <div class="slider-row">
+        <label for="ps-eps">Events published / sec</label>
+        <input type="range" id="ps-eps" min="10" max="500" step="10" value="120" />
+        <output id="ps-eps-out">120 /sec</output>
+      </div>
+      <div class="slider-row">
+        <label for="ps-subs">Subscriber count</label>
+        <input type="range" id="ps-subs" min="1" max="12" step="1" value="6" />
+        <output id="ps-subs-out">6</output>
+      </div>
+      <div class="slider-row">
+        <label for="ps-size">Average message size</label>
+        <select id="ps-size">
+          <option value="256">256 bytes</option>
+          <option value="1024" selected>1 KB</option>
+          <option value="4096">4 KB</option>
+        </select>
+      </div>
+      <div class="controls">
+        <button class="btn" id="ps-slow">Make one subscriber 10× slower: OFF</button>
+        <button class="btn" id="ps-worked">Load the worked example</button>
+        <button class="btn" id="ps-reset">Reset</button>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <div class="node-name">Publisher writes</div>
+          <div class="score" id="ps-pub">120</div>
+          <div class="badge ok">O(1) — constant</div>
+        </div>
+        <div class="stat">
+          <div class="node-name">Broker deliveries / sec</div>
+          <div class="score" id="ps-del">720</div>
+          <div class="badge warn" id="ps-del-badge">O(N) — multiplies</div>
+        </div>
+        <div class="stat">
+          <div class="node-name">Broker egress</div>
+          <div class="score" id="ps-egress">0.7</div>
+          <div class="badge ok">MB/sec</div>
+        </div>
+        <div class="stat">
+          <div class="node-name">Buffered for slow sub</div>
+          <div class="score" id="ps-buf">0</div>
+          <div class="badge ok" id="ps-buf-badge">isolated</div>
+        </div>
+      </div>
+
+      <div class="chart" id="ps-chart"></div>
+      <div class="chart-cap">Each bar = one subscriber's buffered backlog (its own copy waiting). Normal subscribers drain to zero; a slow one accumulates.</div>
+
+      <div class="log" id="ps-log"></div>
+
+      <div class="callout" style="margin-top:18px">
+        <h4>🧠 The worked example, step by step</h4>
+        <p>Press <strong>"Load the worked example"</strong>: 200 events/sec × 6 subscribers × 1 KB. Deliveries = 200 × 6 = <strong>1,200/sec</strong>. Egress = 1,200 × 1 KB = <strong>1.2 MB/sec</strong>. The publisher wrote 200/sec; the broker did 6× that. Now turn on the slow subscriber: it drains at 20/sec (one-tenth of its 200/sec share), so its backlog grows by <strong>180 messages every second</strong> — while the other five bars sit at zero. The broker must hold that backlog <em>and</em> track a separate <strong>cursor</strong> (read position) per subscriber, or the slow one would either lose events or hold everyone back.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">10</span><h2>Q&amp;A — with full model answers</h2></div>
+    <p class="lede">Four questions that come up constantly, each with the spoken answer — verdict first, reasoning, and what earns the top mark.</p>
+    <div class="qa">
+
+      <div class="question">
+        <div class="qnum">Q1 · DESIGN</div>
+        <div class="qtext">"Design a notification service: how does pub/sub help?"</div>
+        <div class="context">They want the fan-out shape, not a Kafka feature tour: one domain event, many independent notification channels.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Pub/sub turns one domain event into independent deliveries per channel, so a slow or broken channel never blocks the others.</strong> I'd publish one <code>goal.scored</code>-style event per thing worth notifying about, and let the push service, email service, SMS service, and in-app feed each subscribe independently."</p>
+          <h5>Reasoning</h5>
+          <p>"The core services publish <em>facts</em> — 'bet settled', 'goal scored' — to topics, knowing nothing about notifications. Each channel is a subscriber with its own buffer, retries, and pace: if the SMS provider is down for an hour, its copies queue up in the broker while push and email keep flowing. That's the per-subscriber isolation from the fan-out math: one publish, N independent delivery tracks.</p>
+          <p>Two design details I'd state unprompted. First, <strong>at-least-once with idempotent subscribers</strong>: a slow SMS subscriber will get redelivered copies, so each notification carries a unique event ID and the channel dedupes on it — nobody wants the goal ping twice. Second, <strong>ordering by key where it matters</strong>: 'goal' then 'full-time' for the same match must arrive in order, so I'd key events by match ID onto ordered partitions and still have subscribers apply by timestamp, not arrival order.</p>
+          <p>And the trap I'd name myself: notifications are the classic 'eventual everything' failure — so the read side ('did my notification send?') is a queryable status store updated by the subscribers, not the event log. Events notify; the database answers."</p>
+          <h5>What earns top marks</h5>
+          <p>The isolation argument tied to a concrete failure (one channel down, others unaffected), the idempotency mechanism named (event IDs + dedupe), and volunteering the read-model trap before being asked.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2 · JUDGMENT</div>
+        <div class="qtext">"When would you NOT use events?"</div>
+        <div class="context">A restraint question. They want the cases where pub/sub is the wrong tool, stated as rules.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Three cases: when the caller needs the answer now, when exactly one worker must do the task, and when the flow needs a conductor.</strong> Events are a decoupling tool — if there's nothing to decouple, they're pure overhead."</p>
+          <h5>Reasoning</h5>
+          <p>"First, <strong>request/response</strong>: 'is this seat available?' needs an answer before the user taps buy. Publishing an event and waiting for a reply event is a distributed request with worse latency and no stack trace — just make the synchronous call. The rule: events notify, databases and APIs answer.</p>
+          <p>Second, <strong>single-worker tasks</strong>: 'process this payment' should go to exactly one worker with delete-on-ack — that's a queue, not pub/sub. Broadcasting a payment task to five subscribers is how you charge someone five times.</p>
+          <p>Third, <strong>workflows with ordering, branching, or compensation</strong>: booking hotel → flights → tickets, where a flight failure must cancel the hotel. That's orchestration with a conductor, not choreography — events alone give you no place to put the 'undo' logic, and debugging it is archaeology across five services' logs.</p>
+          <p>And one more I'd mention: <strong>low-fan-out, stable consumers</strong>. If exactly two services will ever consume an event and that never changes, a direct call or a queue is simpler — pub/sub's value is proportional to how open-ended the subscriber set is."</p>
+          <h5>What earns top marks</h5>
+          <p>Rules stated as positive tests ("needs the answer now → synchronous"), the payment-charged-five-times example for the queue case, and naming the <em>cost</em> of events (latency, no stack trace, schema coupling) rather than just listing alternatives.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3 · FAILURE MODES</div>
+        <div class="qtext">"How do you prevent an event loop from cascading?"</div>
+        <div class="context">They're checking for the A→B→A feedback loop — the topology bug from section 7. Three layers, in order.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Idempotency by event ID stops the damage, cause-tracking stops the cycle, and a design rule stops it being built in the first place.</strong> Plus a broker-level rate cap so a loop degrades instead of drowning the system."</p>
+          <h5>Reasoning</h5>
+          <p>"The concrete loop: the scoreboard updates on <code>goal.scored</code> and republishes <code>scoreboard.updated</code>; the stats service derives <code>match.stats.changed</code>; the commentator feed republishes a normalized <code>goal.scored</code> — and the cycle runs forever, multiplying deliveries each round.</p>
+          <p>Layer one: <strong>every subscriber is idempotent on event ID</strong> — the scoreboard has already processed goal <code>g-9917</code>, so the republished copy is a no-op. The loop spins, but nothing <em>happens</em> twice. Layer two: <strong>cause-tracking</strong> — every derived event carries the ID of the event that caused it, and a service refuses to act on an event whose cause chain includes itself. That's actual cycle detection, not just damage control. Layer three, the review rule: <strong>never republish what you consumed under a name someone else consumes</strong> — derived events get new names and new topics, so consumption graphs stay acyclic by construction.</p>
+          <p>And the safety net: <strong>rate-limit per topic at the broker</strong>. If a loop ever escapes the three layers, deliveries/sec per topic gets capped — the storm degrades instead of filling every buffer and starving real events."</p>
+          <h5>What earns top marks</h5>
+          <p>The concrete A→B→A example (not just "loops are bad"), the three layers in prevention order (damage → cycle → construction), and the broker rate cap as the last-resort safety net.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4 · ARCHITECTURE</div>
+        <div class="qtext">"Choreography vs orchestration — pick one for order fulfillment."</div>
+        <div class="context">Order fulfillment has payment, inventory, shipping, and refunds — ordering, branching, and compensation. This is the orchestration trap question.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Orchestration, with a saga.</strong> Order fulfillment is exactly the shape choreography fails at: ordered steps with compensation."</p>
+          <h5>Reasoning</h5>
+          <p>"The flow: charge payment → reserve inventory → book shipping → confirm. Each step's input depends on the previous step's result, and failures need <em>undo</em>: if shipping fails after payment succeeded, someone must refund. In choreography that's a chain of events — payment.charged → inventory service reserves → inventory.reserved → shipping service books → shipping.failed → …and now who refunds? The payment service has to subscribe to a failure event three hops away and remember what to undo. The workflow exists nowhere; it's scattered across five services' reaction logic, and debugging a stuck order is log archaeology.</p>
+          <p>With an <strong>orchestrator running a saga</strong>, the workflow is code you can read in one place: it issues the charge, awaits the result, reserves inventory, and on any failure runs the <strong>compensating actions</strong> for what already succeeded — refund payment, release inventory. The conductor sees the whole flow, owns the failure handling, and the 'what happens when step 3 of 4 fails' question has one answer instead of five.</p>
+          <p>The price I'd name: the orchestrator is a single logical point of coordination — so it must be stateless-and-retryable or itself highly available, and adding a genuinely independent step (say, a loyalty-points side effect) still goes through choreography on the side. <strong>Orchestrate the transaction, choreograph the side effects.</strong>"</p>
+          <h5>What earns top marks</h5>
+          <p>Picking orchestration <em>because of compensation</em> (not vibes), the "who refunds?" question that kills choreography, and the closing hybrid — orchestrate the transaction, choreograph the side effects — which shows the two aren't religions.</p>
+        </div></details>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">11</span><h2>Practice drills</h2></div>
+    <p class="lede">Untimed — think like you're whiteboarding. Write your answer, then check the rubric.</p>
+
+    <div class="drill">
+      <h4>Drill 1 — Price the fan-out</h4>
+      <p>A match-events service publishes 500 events/sec. Seven services subscribe; average message size is 2 KB. One subscriber — the highlights clipper — is 5× slower than its share. Compute (a) the broker's deliveries/sec, (b) broker egress in MB/sec, and (c) how fast the clipper's backlog grows per second. Then state what the broker must track so the clipper doesn't slow the other six.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>(a) 3,500 deliveries/sec.</strong> 500 × 7 — the multiplier is the point. Full marks only with the multiplication shown.</li>
+          <li><strong>(b) 7 MB/sec.</strong> 3,500 × 2 KB = 7,000 KB ≈ 7 MB/sec. Accept 6.7–7 MB/sec; the working matters, not the rounding.</li>
+          <li><strong>(c) 400 messages/sec.</strong> The clipper's fair share is 500/sec; at 5× slower it drains 100/sec, so the backlog grows by 400/sec — 24,000 messages in a minute.</li>
+          <li><strong>The broker must track per-subscriber buffers and cursors</strong> (read positions) — the clipper's backlog is <em>its</em> buffer; the other six drain their own copies at full speed. Full marks for the word <em>isolation</em>: a slow subscriber hurts only itself, bounded by broker capacity.</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> all three numbers with the arithmetic visible, plus the isolation sentence — and the caveat that isolation holds only while the broker has buffer room (the section 4 warn-box).</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 2 — Spot the loop</h4>
+      <p>Three services: <strong>Scoreboard</strong> subscribes to <code>goal.scored</code> and publishes <code>scoreboard.updated</code>. <strong>Stats</strong> subscribes to <code>scoreboard.updated</code> and publishes <code>match.stats.changed</code>. <strong>Feed</strong> subscribes to <code>match.stats.changed</code> and republishes <code>goal.scored</code> with normalized formatting. (1) Trace what happens after one real goal. (2) Name the failure mode. (3) Give two of the three prevention layers.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>(1) The trace:</strong> goal → scoreboard updates → stats derives → feed republishes <code>goal.scored</code> → scoreboard sees a "new" goal and updates again → the cycle repeats forever, each round multiplying broker deliveries. Full marks for noting that <em>nothing is broken in any single service</em> — the topology is the bug.</li>
+          <li><strong>(2) Feedback loop</strong> (an event storm's nastiest form) — an A→B→A cycle.</li>
+          <li><strong>(3) Any two:</strong> idempotency by event ID (republished goal is a no-op); cause-tracking (feed sees the event's cause chain includes itself and refuses); the design rule — never republish what you consumed under a name someone else consumes (derived events get new names/topics). The broker per-topic rate cap is a valid bonus third.</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> the trace drawn as a cycle with the "topology is the bug" line, and prevention stated as <em>layers</em> (damage → cycle → construction) rather than a grab bag.</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 3 — Choreograph or conduct?</h4>
+      <p>You're designing away-day trip booking: reserve hotel → book flights → buy match tickets → send the itinerary. If flights fail after the hotel is reserved, the hotel must be cancelled. Pick choreography or orchestration, justify in two sentences, and name the pattern you'd use for the failure path.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>Pick: orchestration.</strong> Full marks for either justification hitting both beats: (1) steps are ordered — each depends on the previous result; (2) failures need <em>undo</em> (cancel the hotel), which needs a conductor that sees the whole flow.</li>
+          <li><strong>Pattern: saga with compensating actions</strong> — each step is a local transaction, and a failure runs the compensations for completed steps (cancel hotel, refund tickets).</li>
+          <li><strong>Deductions</strong> for picking choreography "because it's more decoupled" — decoupling is not the goal here; a correct, understandable failure path is. Partial credit for the hybrid: orchestrate the booking transaction, choreograph the side effects (e.g. notify the group chat via events on the side).</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> the sentence "the workflow must be code you can read in one place" (or equivalent), the compensating-action mechanism named, and the hybrid close.</p>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">✓</span><h2>Cheat sheet: the 6 pub/sub decisions</h2></div>
+    <p class="lede">Every event-driven design is these six decisions, in this order. Tape this to your mental whiteboard.</p>
+    <div class="green-box">
+      <p><strong>1. Queue or pub/sub?</strong> Task for one worker → <strong>queue</strong> (delete on ack, competing consumers). Fact for many reactors → <strong>pub/sub</strong> (one copy each, independent tracks). The test: does a new consumer <em>share</em> the load or get <em>its own copy</em>?</p>
+      <p><strong>2. What's in the event?</strong> Default to <strong>event-carried state transfer</strong> (full state, no callbacks). <strong>Notification</strong> (ID only) when payloads are fat. <strong>Event sourcing</strong> only when history-as-truth is a requirement (audits, time-travel). Version events like an API: add fields, never rename.</p>
+      <p><strong>3. Choreography or orchestration?</strong> Independent reactions → <strong>choreography</strong> (players reading the game). Ordered steps, branching, or undo → <strong>orchestration</strong> (the set-piece coach), with a <strong>saga</strong> for the failure path. Orchestrate the transaction, choreograph the side effects.</p>
+      <p><strong>4. At least once — so what?</strong> Assume duplicates (slow subscribers trip redelivery) and mild reordering. <strong>Every subscriber idempotent on event ID</strong>; order by key when one entity's sequence matters; apply by timestamp, not arrival order.</p>
+      <p><strong>5. How does it fail?</strong> <strong>Correlation ID</strong> minted by the publisher, propagated through every event and log line. <strong>Idempotency + cause-tracking + never-republish-what-you-consumed</strong> against loops. Per-topic rate caps so a storm degrades. And someone holds <strong>queryable state</strong> — events notify, databases answer.</p>
+      <p><strong>6. Which tool, and why?</strong> <strong>Kafka</strong> for replay-at-scale; <strong>Redis Streams</strong> for light durable pub/sub inside Redis (classic pub/sub only when loss is fine); <strong>SNS→SQS</strong> for AWS with zero ops; <strong>NATS</strong> for minimal internal messaging; <strong>webhooks</strong> for external parties only. One requirement-tied reason — not a feature list.</p>
+    </div>
+    <div class="callout">
+      <h4>🎙️ Pub/sub in 60 seconds — the recital</h4>
+      <p>"Pub/sub decouples publishers from subscribers in space, time, and who: one event published once, and the broker fans it out — one copy per subscriber, each delivered on its own track, so a slow subscriber only hurts itself. The price is the multiplier: deliveries equal events times subscribers, and the broker does all of it. Assume at-least-once, so every subscriber is idempotent on event ID, and order by key where a single entity's sequence matters. Keep events small and versioned like an API, use choreography for independent reactions and orchestration with a saga the moment there's ordering or undo, and always keep a queryable read model — events notify, databases answer."</p>
+    </div>
+  </section>
+
+  <section id="talk">
+    <div class="section-head"><span class="section-num">🎯</span><h2>How to talk about pub/sub in the room</h2></div>
+    <p class="lede">When the question is "design notifications" or "how do these services talk to each other," run this five-step structure. It turns a tour of broker features into a senior answer.</p>
+    <ol>
+      <li><strong>Split the question: task or fact?</strong> One worker must do it → queue. Many must know it → pub/sub. Say which, and why, in one sentence.</li>
+      <li><strong>Draw the fan-out.</strong> One publish, N independent copies. Name the multiplier out loud ("500 events/sec × 7 subscribers = 3,500 deliveries/sec — the broker does the multiplying") and the isolation ("a downed SMS provider queues its own copies; push keeps flowing").</li>
+      <li><strong>Name the semantic.</strong> Say "at-least-once, so my subscribers are idempotent on event ID" — with the <em>concrete</em> mechanism (record processed IDs, skip if seen), and the slow-subscriber redelivery story if they ask.</li>
+      <li><strong>Conduct or choreograph.</strong> Independent reactions → choreography; ordering/branching/undo → orchestration with a saga and compensating actions. "Orchestrate the transaction, choreograph the side effects."</li>
+      <li><strong>Name one failure mode unprompted.</strong> Schema versioning, the A→B→A loop, correlation IDs, or the eventual-everything trap — pick the one closest to the design and land it before they ask.</li>
+    </ol>
+    <div class="verdict">
+      <h4>Senior-depth traps — land these unprompted</h4>
+      <p><strong>The multiplier is the invoice.</strong> "Publish once" is cheap; fan-out is the work. Every new subscriber multiplies every event's cost forever.</p>
+      <p><strong>Exactly-once is not on offer.</strong> The write and the ack are two systems; a crash lands between them. What's on offer is at-least-once plus idempotent subscribers.</p>
+      <p><strong>Decoupled in space and time, re-coupled by schema.</strong> The event contract is a public API — version it, never break a field, and tolerate unknown fields on the subscriber side.</p>
+      <p><strong>Events notify; databases answer.</strong> If no service holds queryable state, you've built a write-only system with great diagrams.</p>
+    </div>
+  </section>
+
+  <a class="nav-next" href="rate-limiting.html">
+    <div class="lbl">Previous lesson · Lesson 11</div>
+    <div class="t">Rate Limiting →</div>
+  </a>
+
+  <footer class="page-foot">
+    Lesson 12 of the daily system design series · <a href="../index.html">All lessons</a>
+  </footer>
+</div>
+<script>
+(function () {
+  "use strict";
+  var TICK_MS = 250;
+
+  var eps = 120;          // events published per second
+  var subs = 6;           // subscriber count
+  var msgBytes = 1024;    // average message size
+  var slowOn = false;     // one subscriber drains at 1/10 pace
+  var backlogs = [];      // per-subscriber buffered messages
+  var now = 0;
+  var logCount = 0;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var elEps = $("ps-eps"), elEpsOut = $("ps-eps-out"),
+      elSubs = $("ps-subs"), elSubsOut = $("ps-subs-out"),
+      elSize = $("ps-size"),
+      elPub = $("ps-pub"), elDel = $("ps-del"),
+      elEgress = $("ps-egress"), elBuf = $("ps-buf"),
+      elBufBadge = $("ps-buf-badge"),
+      elChart = $("ps-chart"), elLog = $("ps-log");
+
+  function log(msg, cls) {
+    var div = document.createElement("div");
+    if (cls) div.className = cls;
+    div.innerHTML = '<span class="t">[' + (now / 1000).toFixed(1) + 's]</span> ' + msg;
+    elLog.prepend(div);
+    while (elLog.children.length > 24) elLog.removeChild(elLog.lastChild);
+  }
+
+  function fmt(n) {
+    return Math.round(n).toLocaleString("en-US");
+  }
+
+  function renderChart() {
+    elChart.innerHTML = "";
+    var max = 1;
+    for (var i = 0; i < backlogs.length; i++) if (backlogs[i] > max) max = backlogs[i];
+    for (var j = 0; j < backlogs.length; j++) {
+      var bar = document.createElement("div");
+      bar.className = "bbar";
+      bar.style.height = Math.max(2, (backlogs[j] / max) * 100) + "%";
+      // the slow subscriber gets the accent colour so it stands out
+      if (slowOn && j === backlogs.length - 1) bar.style.background = "var(--accent)";
+      bar.title = "subscriber " + (j + 1) + ": " + fmt(backlogs[j]) + " buffered";
+      elChart.appendChild(bar);
+    }
+  }
+
+  function syncBacklogs() {
+    // keep one backlog slot per subscriber; reset on count change
+    var next = [];
+    for (var i = 0; i < subs; i++) next.push(backlogs[i] || 0);
+    backlogs = next;
+  }
+
+  function tick() {
+    now += TICK_MS;
+    var dt = TICK_MS / 1000;
+    var arrivals = eps * dt; // copies arriving per subscriber this tick
+
+    var totalBuffered = 0;
+    for (var i = 0; i < backlogs.length; i++) {
+      var drainRate = (slowOn && i === backlogs.length - 1) ? arrivals / 10 : arrivals;
+      backlogs[i] = Math.max(0, backlogs[i] + arrivals - drainRate);
+      totalBuffered += backlogs[i];
+    }
+
+    var deliveries = eps * subs;
+    var egressMB = (deliveries * msgBytes) / 1e6;
+
+    elPub.textContent = fmt(eps);
+    elDel.textContent = fmt(deliveries);
+    elEgress.textContent = egressMB >= 10 ? egressMB.toFixed(1) : egressMB.toFixed(2);
+    elBuf.textContent = fmt(totalBuffered);
+
+    if (slowOn) {
+      elBufBadge.textContent = "growing — others flat";
+      elBufBadge.className = "badge warn";
+    } else {
+      elBufBadge.textContent = "isolated";
+      elBufBadge.className = "badge ok";
+    }
+
+    renderChart();
+  }
+
+  elEps.addEventListener("input", function () {
+    eps = parseInt(elEps.value, 10);
+    elEpsOut.textContent = eps + " /sec";
+    log("publishing " + eps + " events/sec — the broker now owes " + fmt(eps * subs) + " deliveries/sec", "");
+  });
+  elSubs.addEventListener("input", function () {
+    subs = parseInt(elSubs.value, 10);
+    elSubsOut.textContent = subs;
+    syncBacklogs();
+    log(subs + " subscriber(s) — each gets its own copy: " + fmt(eps * subs) + " deliveries/sec", "");
+  });
+  elSize.addEventListener("change", function () {
+    msgBytes = parseInt(elSize.value, 10);
+    log("message size " + (msgBytes >= 1024 ? (msgBytes / 1024) + " KB" : msgBytes + " bytes") + " — egress scales with copies × size", "");
+  });
+
+  $("ps-slow").addEventListener("click", function () {
+    slowOn = !slowOn;
+    this.textContent = "Make one subscriber 10× slower: " + (slowOn ? "ON" : "OFF");
+    this.classList.toggle("on", slowOn);
+    if (slowOn) {
+      log("🐢 subscriber " + subs + " is now 10× slower — watch its bar grow while the others stay flat. Isolation in action.", "");
+    } else {
+      backlogs[backlogs.length - 1] = 0;
+      log("slow subscriber recovered — its backlog drained, others never noticed", "");
+    }
+  });
+
+  $("ps-worked").addEventListener("click", function () {
+    eps = 200; subs = 6; msgBytes = 1024; slowOn = false;
+    elEps.value = eps; elEpsOut.textContent = eps + " /sec";
+    elSubs.value = subs; elSubsOut.textContent = subs;
+    elSize.value = "1024";
+    $("ps-slow").textContent = "Make one subscriber 10× slower: OFF";
+    $("ps-slow").classList.remove("on");
+    syncBacklogs();
+    for (var i = 0; i < backlogs.length; i++) backlogs[i] = 0;
+    log("worked example: 200 × 6 = <b>1,200 deliveries/sec</b>, 1,200 × 1 KB = <b>1.2 MB/sec</b> egress — publisher wrote only 200", "");
+  });
+
+  $("ps-reset").addEventListener("click", function () {
+    eps = 120; subs = 6; msgBytes = 1024; slowOn = false; now = 0;
+    elEps.value = eps; elEpsOut.textContent = eps + " /sec";
+    elSubs.value = subs; elSubsOut.textContent = subs;
+    elSize.value = "1024";
+    $("ps-slow").textContent = "Make one subscriber 10× slower: OFF";
+    $("ps-slow").classList.remove("on");
+    syncBacklogs();
+    for (var i = 0; i < backlogs.length; i++) backlogs[i] = 0;
+    elLog.innerHTML = "";
+    log("simulator reset — 120 events/sec, 6 subscribers", "");
+  });
+
+  syncBacklogs();
+  log("goal published once — broker owes " + fmt(eps * subs) + " deliveries/sec. Move a slider.", "");
+  setInterval(tick, TICK_MS);
+})();
+</script>
+</body>
+</html>
