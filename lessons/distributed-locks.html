@@ -1,0 +1,1201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Distributed Locks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch .field-line {
+      position: absolute; border: 2px solid rgba(255,255,255,.5); border-radius: 4px;
+      pointer-events: none;
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 260px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .log .good { color: #7fd8a8; }
+    .log .bad { color: #ff8f7d; }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .scoreboard {
+      display: flex; align-items: center; justify-content: center; gap: 16px;
+      margin: 18px 0; padding: 18px;
+      border: 2px solid var(--ink); border-radius: 12px; background: var(--code); color: var(--code-ink);
+      font-family: "IBM Plex Mono", monospace;
+    }
+    .scoreboard .team { font-weight: 600; font-size: 1.1rem; }
+    .scoreboard .goals { font-size: 2.2rem; font-weight: 600; min-width: 3.2rem; text-align: center; }
+    .ops-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+    .op {
+      flex: 1 1 130px; border: 1px solid var(--line); border-radius: 10px;
+      padding: 10px 12px; background: var(--paper); font-size: .9rem;
+    }
+    .op .op-name { font-weight: 700; }
+    .op .op-state { font-family: "IBM Plex Mono", monospace; font-size: .8rem; color: var(--muted); }
+    .op.holder { border-color: var(--green); }
+    .op.holder .op-state { color: var(--green); }
+    .op.paused { border-color: var(--accent); }
+    .op.paused .op-state { color: var(--accent); }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer h5 { margin: 14px 0 6px; font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .drill {
+      background: var(--purple-soft); border: 1px solid var(--purple);
+      border-radius: var(--radius); padding: 20px 22px; margin: 20px 0; max-width: 46rem;
+    }
+    .drill h4 { margin: 0 0 8px; }
+    .drill .rubric { border-top: 1px dashed var(--purple); padding-top: 12px; }
+    .verdict {
+      border: 2px solid var(--green); border-radius: var(--radius);
+      padding: 18px 22px; margin: 22px 0; max-width: 46rem; background: var(--green-soft);
+    }
+    .verdict h4 { margin: 0 0 8px; color: var(--green); }
+    .verdict p { max-width: none; margin: 6px 0; }
+    .code-diff { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 18px 0; max-width: 46rem; }
+    @media (min-width: 720px) { .code-diff { grid-template-columns: 1fr 1fr; } }
+    .code-pane { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+    .code-pane .pane-head { padding: 10px 16px; font-weight: 700; font-size: .9rem; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+    .code-pane.broken .pane-head { background: var(--accent-soft); color: var(--accent); }
+    .code-pane.fixed .pane-head { background: var(--green-soft); color: var(--green); }
+    .code-pane pre { margin: 0; border-radius: 0; max-width: none; }
+    .nav-next {
+      display: block; margin-top: 60px; padding: 22px 24px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      text-decoration: none; color: inherit; box-shadow: var(--shadow);
+    }
+    .nav-next:hover { border-color: var(--ink); }
+    .nav-next .lbl { font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .nav-next .t { font-size: 1.2rem; font-weight: 700; margin-top: 4px; }
+    footer.page-foot { margin-top: 56px; color: var(--muted); font-size: .88rem; border-top: 1px solid var(--line); padding-top: 20px; }
+    .kicker { font-size: .82rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 30px 0 -8px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <nav class="crumbs"><a href="../index.html">All lessons</a> &rsaquo; Lesson 13</nav>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 13 &middot; Core Building Blocks</span>
+    <h1>Distributed Locks</h1>
+    <p class="whyline">One program needing exclusive access to something is easy: a lock in memory does the job. But when <em>ten copies</em> of your program run on <em>ten different servers</em>, no memory they share exists — and a lock inside one machine locks out nobody else. This lesson is about locking across machines: the Redis lock that gets you 90% there, the TTL pause that breaks it, and the fencing token that actually makes it safe. If you want exactly one thing to happen exactly once — charge this card once, book this seat once, count this goal once — this is the machinery.</p>
+    <div class="meta">
+      <span>~15 min read</span>
+      <span>1 interactive lab</span>
+      <span>4 Q&amp;A with model answers</span>
+      <span>3 practice drills</span>
+    </div>
+  </header>
+
+  <div class="toc">
+    <h2>In this lesson</h2>
+    <ol>
+      <li><a href="#what-is-lock">What is a distributed lock?</a> — the idea defined from zero</li>
+      <li><a href="#naive">The naive approaches and why they die</a> — app-local locks, SELECT FOR UPDATE, the lock service</li>
+      <li><a href="#redis-lock">Redis lock anatomy</a> — SET NX PX, the token, acquire, the broken release and the Lua fix</li>
+      <li><a href="#ttl-problem">The TTL problem</a> — leases, pauses, double execution — and fencing tokens</li>
+      <li><a href="#failure-modes">Failure modes of the lock store</a> — holder crashes, failover, split-brain, Redlock</li>
+      <li><a href="#when-not">When NOT to lock</a> — idempotency, optimistic concurrency, queues, single-writer</li>
+      <li><a href="#zookeeper">ZooKeeper / etcd in one table</a> — how the other lock service does it</li>
+      <li><a href="#lab">Lab: the scoreboard race simulator</a></li>
+      <li><a href="#qa">Q&amp;A — with full model answers</a></li>
+      <li><a href="#drills">Practice drills</a></li>
+      <li><a href="#cheatsheet">Cheat sheet: the 6 lock decisions</a> — plus locks in 60 seconds</li>
+      <li><a href="#talk">How to talk about locks in the room</a></li>
+    </ol>
+  </div>
+
+  <section id="what-is-lock">
+    <div class="section-head"><span class="section-num">01</span><h2>What is a distributed lock?</h2></div>
+    <p class="lede">A lock is a promise: <strong>"while I hold this, nobody else touches the thing."</strong> In one program it's trivial. Spread the program across servers and the promise needs a referee that everyone can see.</p>
+
+    <div class="pitch">
+      <div class="field-line" style="top:18px;left:18px;right:18px;bottom:18px;"></div>
+      <span class="tag">⚽ The running example: the shared scoreboard</span>
+      <h4>One scoreboard, three operators, zero double-counts</h4>
+      <p>Championship final. The stadium has <strong>one big scoreboard</strong>, but the match data comes from <strong>three operators</strong> — one watching the live feed, one watching VAR, one reading the referee's mic — each running on their own laptop, all updating the same board. A goal is scored. All three operators see it at the same instant and all three reach for the "add one goal" button.</p>
+      <p>Without coordination, the scoreboard reads <strong>3–0 when the real score is 1–0</strong>: each operator read "0", each added one, each wrote back. The lock is the rule that says <strong>only one operator may hold the "update the scoreboard" right at a time</strong> — like one referee's whistle counting, not three. Every idea in this lesson lands on this scoreboard.</p>
+    </div>
+
+    <div class="definition">
+      <strong class="term">Lock · Mutual exclusion</strong>
+      <p>A <strong>lock</strong> is a token of exclusive permission: the process that holds it may enter the <strong>critical section</strong> — the code that must run alone — and everyone else waits or walks away. <strong>Mutual exclusion</strong> is the property the lock guarantees: <strong>no two processes are inside the critical section at the same time.</strong></p>
+    </div>
+    <div class="definition">
+      <strong class="term">Distributed lock</strong>
+      <p>A lock that works across <strong>multiple machines</strong>. Inside one process you'd use a <strong>mutex</strong> (short for <em>mutual exclusion</em> — a lock that lives in one program's memory and coordinates its threads). But a mutex on server A is invisible to server B. A <strong>distributed lock</strong> moves the lock into a place <strong>all machines can reach</strong> — a shared lock service — so ten app servers can still agree on "who goes first."</p>
+    </div>
+
+    <h3>The single-process story, then why it breaks</h3>
+    <p>One server, four threads, one scoreboard. Thread 1 grabs the mutex, reads the score, adds the goal, writes it back, releases. Threads 2–4 queue politely. The mutex works because <strong>all four threads share the same memory</strong> — the lock is one flag they can all see.</p>
+    <p>Now scale out: three operators on three laptops, each running their own program. Laptop A's mutex is a flag in <em>its own memory</em> — laptop B cannot see it, so B's mutex does nothing to stop B. <strong>Each machine locking "successfully" in its own memory is exactly the same as no lock at all.</strong> That's the whole problem: mutual exclusion needs a <strong>single shared reference point</strong>, and across machines there isn't one by default. So you build one: a <strong>lock service</strong> — a small, always-on store (Redis, etcd, ZooKeeper) whose only job is handing out the "you may proceed" token to whoever asks first.</p>
+
+    <div class="callout">
+      <h4>🧠 The sentence that frames the whole lesson</h4>
+      <p>"A distributed lock is just a mutex whose memory lives on another machine." Every design decision — the TTL, the token, the fencing — is about what happens when the network, crashes, and pauses get between you and that far-away memory.</p>
+    </div>
+  </section>
+
+  <section id="naive">
+    <div class="section-head"><span class="section-num">02</span><h2>The naive approaches and why they die</h2></div>
+    <p class="lede">Before the real tool, the three things people try first — and the exact reason each one fails. Senior rooms want you to have killed these yourself.</p>
+
+    <h3>1. App-local locks (the mutex on each laptop)</h3>
+    <p>Give each operator program its own mutex. As shown above: laptop A's flag is invisible to laptop B, so all three operators still update the scoreboard at once. <strong>App-local locks coordinate threads; they cannot coordinate machines.</strong> This is the answer that dies in the first minute — but name it, because the follow-up question is always "so what <em>does</em> span machines?"</p>
+
+    <h3>2. The database row lock: <code>SELECT ... FOR UPDATE</code></h3>
+    <div class="definition">
+      <strong class="term">SELECT FOR UPDATE · Row lock</strong>
+      <p>In SQL, <code>SELECT ... FOR UPDATE</code> reads a row <strong>and locks it</strong> until your transaction commits or rolls back — anyone else trying to lock the same row waits. A <strong>row lock</strong> is exactly that: the database refusing to let two transactions touch the same row concurrently.</p>
+    </div>
+    <p>The design: keep a <code>locks</code> table with one row per scoreboard resource. To update the score, an operator opens a transaction, runs <code>SELECT * FROM locks WHERE name = 'scoreboard' FOR UPDATE</code>, does the update, commits. It genuinely works — the database <em>is</em> a shared reference point. So why not?</p>
+    <ul>
+      <li><strong>Your database becomes your lock server.</strong> Every lock acquisition is a transaction holding a connection and a row lock for the whole critical section. Lock traffic competes with your real query traffic on the same connection pool — a lock holder that pauses (section 4) now holds a database connection hostage too.</li>
+      <li><strong>The hot row.</strong> All three operators fight over <em>one row</em> — every acquisition serializes on it. That's fine at three operators; at three thousand lock acquisitions a second, the row becomes a contention furnace.</li>
+      <li><strong>Failover pain.</strong> If the database fails over to a replica mid-transaction, in-flight row locks evaporate — two operators can hold "the lock" on opposite sides of the failover. The lock store's own consistency (section 5) bites here just as hard.</li>
+    </ul>
+    <p>Verdict: <strong>correct for low contention, honest about the coupling.</strong> Fine for "two cron jobs must not overlap." A poor lock <em>service</em> at real concurrency.</p>
+
+    <h3>3. A dedicated lock service — the actual answer</h3>
+    <p>Run something whose <strong>whole job</strong> is lock state: fast, in-memory, single-purpose. The industry default is <strong>Redis</strong>; the consensus-store family (etcd, ZooKeeper — section 7) is the heavy-duty alternative. Why a separate service instead of the DB:</p>
+    <ul>
+      <li><strong>Latency:</strong> a Redis lock acquire is a sub-millisecond in-memory write, not a transaction with a commit.</li>
+      <li><strong>Isolation:</strong> lock traffic can't starve your application's queries — it has its own box, its own failure budget.</li>
+      <li><strong>TTL as a first-class citizen:</strong> locks that auto-expire if the holder dies (section 4) are built into the primitive, not bolted on with a watchdog column.</li>
+    </ul>
+    <div class="warn-box">
+      <p><strong>⚠️ The mental model to carry forward:</strong> the lock service is a <strong>referee with a short memory and a stopwatch</strong>. It hands the whistle to whoever asks first, and if the whistle-holder goes silent past the stopwatch, it hands the whistle to someone else. Everything in sections 3–5 is about the consequences of that stopwatch.</p>
+    </div>
+  </section>
+
+  <section id="redis-lock">
+    <div class="section-head"><span class="section-num">03</span><h2>Redis lock anatomy</h2></div>
+    <p class="lede">One Redis command does 90% of distributed locking in the industry. Learn its three letters and its one rule, and you can build the whole thing.</p>
+
+    <h3>The command</h3>
+    <pre>SET lock:scoreboard &lt;random-token&gt; NX PX 5000</pre>
+    <div class="definition">
+      <strong class="term">NX · PX</strong>
+      <p><strong>NX</strong> means "set this key <strong>only if it does not already exist</strong>" (Not eXists). It's the atomic "first one wins" — two operators racing to <code>SET NX</code> the same key get exactly one winner, decided inside Redis, with no race. <strong>PX 5000</strong> sets the key's <strong>TTL</strong> — Time To Live — to 5000 milliseconds: <strong>Redis deletes the key automatically after 5 seconds</strong> unless someone deletes or renews it first.</p>
+    </div>
+    <div class="definition">
+      <strong class="term">Token · TTL · Lease</strong>
+      <p>The <strong>token</strong> is a random unique value the acquirer invents — e.g. a UUID like <code>7f3a…c9e1</code> — stored as the key's value. It's how you prove later that <em>you</em> are the holder: "I hold lock:scoreboard" means "lock:scoreboard currently contains <em>my</em> token." The <strong>TTL</strong> (time to live) is how long the key survives without renewal. A TTL on a lock is called a <strong>lease</strong>: <strong>you hold the lock for at most the TTL</strong> — after that, the lock service considers it expired and hands it to the next asker, whether you're done or not.</p>
+    </div>
+    <p>Why a random token and not the value <code>"locked"</code>? Because <strong>release has to be selective</strong>: when your TTL expires and someone else acquires the lock, the key holds <em>their</em> token. If release were just <code>DEL lock:scoreboard</code>, you'd delete <em>their</em> lock — kicking the new holder out of a lock you no longer own. The token makes release answerable to "is this still <em>mine</em>?"</p>
+
+    <h3>The acquire loop</h3>
+    <pre>token = random_uuid()
+deadline = now() + 10_000          # give up trying after 10s
+while now() &lt; deadline:
+    if redis.SET("lock:scoreboard", token, NX, PX, 5000):
+        return token              # we hold the lock for ~5s
+    sleep(100ms)                  # someone else holds it; retry
+raise LockNotAcquired</pre>
+    <p>Two numbers, both deliberate: the <strong>retry sleep</strong> (100 ms) avoids hammering Redis with a hot spin, and the <strong>acquire timeout</strong> (10 s) guarantees a caller never waits forever — waiting forever is how one stuck lock holder freezes your whole fleet. If you can't get the lock in 10 seconds, fail loudly and let the caller decide (retry later, shed load, alert).</p>
+
+    <h3>The broken release — then the fix</h3>
+    <p>The naive release is a <strong>check-then-set race</strong>: two separate commands with a gap between them that another process can slip through.</p>
+    <div class="code-diff">
+      <div class="code-pane broken">
+        <div class="pane-head">❌ Broken release</div>
+<pre>if redis.GET("lock:scoreboard") == token:
+    # ← another operator's SET NX can land HERE
+    redis.DEL("lock:scoreboard")</pre>
+      </div>
+      <div class="code-pane fixed">
+        <div class="pane-head">✅ Fixed release (Lua)</div>
+<pre>if redis.call("GET", KEYS[1]) == ARGV[1] then
+    return redis.call("DEL", KEYS[1])
+else
+    return 0
+end</pre>
+      </div>
+    </div>
+    <p><strong>The bug, step by step:</strong> operator A's TTL expires. Operator B acquires — the key now holds B's token. Operator A wakes up and runs the broken release: the <code>GET</code> returns… wait, A's token no longer matches, so A's <code>GET == token</code> is false and A deletes nothing. Fine so far. Now the real race: A's <code>GET</code> returns A's token (still hers), and <em>before</em> A's <code>DEL</code> runs, A's TTL expires and B acquires. A's <code>DEL</code> then deletes <strong>B's lock</strong>. B is inside the critical section believing it's protected — and C can now acquire too. Two holders, one lock, scoreboard double-counted.</p>
+    <div class="definition">
+      <strong class="term">Lua script · Atomic compare-and-delete</strong>
+      <p>Redis runs <strong>Lua scripts</strong> — small programs you send to the server — <strong>atomically</strong>: while a script runs, no other command can interleave with it. The fixed release is a Lua script that does <strong>compare-and-delete</strong>: "delete this key <em>only if</em> its value is my token" as <strong>one indivisible step</strong>. The GET-check and the DEL can no longer be split by another client's acquire.</p>
+    </div>
+    <div class="green-box">
+      <p><strong>The 90% lock, stated as a recipe:</strong> acquire with <code>SET key &lt;random-token&gt; NX PX &lt;ttl&gt;</code> in a bounded retry loop; do the critical work; release with the atomic Lua compare-and-delete. The token proves ownership, NX makes acquisition race-free, PX bounds the damage of a dead holder, and Lua makes release race-free. Everything from here on is about the one thing this recipe does <em>not</em> protect you from: <strong>time running out while you're still working.</strong></p>
+    </div>
+  </section>
+
+  <section id="ttl-problem">
+    <div class="section-head"><span class="section-num">04</span><h2>The TTL problem</h2></div>
+    <p class="lede">This is the heart of the lesson. The TTL saves you from dead holders — and then a pause turns it into a double-execution machine. Follow the numbers.</p>
+
+    <h3>Why the TTL exists at all</h3>
+    <p>Operator A acquires the scoreboard lock, then her laptop <strong>crashes</strong> — kernel panic, power cut, the process just stops. Without a TTL, the key sits in Redis forever and no operator ever updates the scoreboard again: a <strong>deadlock by crash</strong>. The TTL is the escape hatch: <strong>the lock self-destructs after 5 seconds</strong>, so a dead holder can only wedge the system for 5 seconds, not forever. The lease is the price of surviving crashes. But it has a dark side: the lock service cannot tell <strong>"the holder crashed"</strong> apart from <strong>"the holder is slow."</strong> Both look identical from Redis's side: silence. So the TTL fires on the slow holder too — and that's the whole problem.</p>
+
+    <h3>The pause scenario, with numbers</h3>
+    <div class="definition">
+      <strong class="term">GC pause · Stop-the-world</strong>
+      <p>A <strong>GC pause</strong> is when a language's garbage collector freezes the program to reclaim memory. A <strong>stop-the-world</strong> pause freezes <em>everything</em> — your lock holder stops mid-critical-section, not executing a single instruction, while the rest of the world keeps moving. These are real: multi-second pauses happen under memory pressure in JVM/Go/.NET runtimes.</p>
+    </div>
+    <div class="warn-box">
+      <p><strong>⚽ The 8-second freeze — follow the clock:</strong></p>
+      <p><strong>t = 0.0s</strong> — Operator A acquires <code>lock:scoreboard</code> with <strong>TTL = 5s</strong> and token <code>A1</code>. She reads the score (0–0) and starts adding the goal.</p>
+      <p><strong>t = 1.0s</strong> — A's runtime hits a <strong>stop-the-world GC pause</strong>. A freezes mid-write. She is not crashed — she is <em>paused</em>, invisible to herself and everyone.</p>
+      <p><strong>t = 5.0s</strong> — A's lease expires in Redis. The key vanishes. As far as the lock service is concerned, the lock is free.</p>
+      <p><strong>t = 5.1s</strong> — Operator B, retrying in her acquire loop, wins <code>SET NX</code> with token <code>B2</code>. B reads the score — <strong>still 0–0</strong>, because A never finished her write — adds the goal, writes <strong>1–0</strong>, releases.</p>
+      <p><strong>t = 9.0s</strong> — A's GC pause ends (an <strong>8-second pause</strong>: 1.0s → 9.0s). A wakes up <strong>believing she still holds the lock</strong>. She finishes her write: score <strong>1–0</strong> — computed from the 0–0 she read at t=0.</p>
+      <p><strong>Result:</strong> the goal was counted twice in intent but written twice from the same stale read — and worse, if B's write and A's write had been <em>increments</em> rather than full rewrites, you'd see <strong>2–0 for one goal</strong>. Two operators were inside the critical section at once. <strong>The mutual exclusion guarantee broke, and nothing crashed, nothing logged an error, and both operators believe they did the right thing.</strong></p>
+    </div>
+    <p>This is why senior rooms push on it: the failure is <strong>silent and correct-looking</strong>. The recipe from section 3 is intact — token, NX, PX, Lua release — and the lock still broke. The TTL is a lease on <em>permission</em>, and a pause longer than the lease means you act on an expired permission. Two candidate fixes, one real one.</p>
+
+    <h3>Candidate fix 1: renewal / heartbeat (helps, doesn't solve)</h3>
+    <div class="definition">
+      <strong class="term">Lock renewal · Heartbeat</strong>
+      <p><strong>Renewal</strong> is a background thread in the holder that re-extends the TTL (e.g. every TTL/3) while the critical section runs — a <strong>heartbeat</strong> saying "I'm still alive, keep my lease." If the holder crashes, the heartbeats stop and the TTL expires as before.</p>
+    </div>
+    <p>Renewal raises the bar: now the pause has to outlast <em>the renewal interval's failure</em>, not just one TTL. But notice the hole: <strong>the renewal thread pauses too.</strong> A stop-the-world pause freezes the heartbeat thread along with the worker — an 8-second pause with a 1.6-second heartbeat interval still lets the lease expire at 5s. Renewal converts "pause &gt; TTL" into "pause &gt; (time until renewal thread notices)" — better odds, same failure shape. And it adds its own failure mode: <strong>if the renewal thread dies while the worker lives</strong> (an exception in the heartbeat loop), the lease expires mid-work and you're back to double execution — now with a component whose death is silent. Renewal is worth doing; it is not a correctness argument.</p>
+
+    <h3>The real fix: fencing tokens</h3>
+    <div class="definition">
+      <strong class="term">Fencing token</strong>
+      <p>A <strong>fencing token</strong> is a <strong>monotonically increasing number</strong> — each one strictly larger than the last — handed out by the lock service with every successful acquisition. The holder must <strong>include its token with every write</strong> to the protected resource, and the resource <strong>rejects any write carrying a token older than the highest it has seen</strong>. "Fencing" as in fencing <em>off</em> the stale holder: even if it wakes up and acts, its writes bounce off.</p>
+    </div>
+    <p>The mechanism needs two cooperating pieces:</p>
+    <ol>
+      <li><strong>The lock service issues increasing tokens.</strong> Redis's <code>INCR</code> on a counter key is the simple version: A acquires and gets fencing token <code>34</code>; after A's lease expires, B acquires and gets <code>35</code>. (In practice the token can be the Redis counter value returned alongside the lock grant.)</li>
+      <li><strong>The storage layer enforces them.</strong> The scoreboard store remembers the highest fencing token it has accepted — say <code>34</code>. Every "set score" request must carry a token; the store applies the write <strong>only if token &gt; last seen</strong>, otherwise rejects it.</li>
+    </ol>
+    <p>Replay the 8-second freeze with fencing: A holds lease with token <strong>34</strong>, pauses at t=1s. Lease expires at t=5s. B acquires, gets token <strong>35</strong>, writes 1–0 <strong>with token 35</strong> — the store records "highest seen = 35". A wakes at t=9s and tries to write with token <strong>34</strong> → <strong>rejected: 34 &lt; 35.</strong> A's stale write dies at the storage door. The score stays 1–0. Mutual exclusion at the <em>storage</em> level holds even though the <em>lock</em> level briefly didn't.</p>
+    <div class="callout">
+      <h4>🧠 The senior one-liner for this section</h4>
+      <p>"A TTL can't distinguish a crashed holder from a paused one, so a pause longer than the lease means two holders. I don't try to prevent that with timing — I make it harmless with fencing tokens: the storage rejects any write carrying an older token than it has already seen. The lock coordinates; the fencing token <em>protects</em>."</p>
+    </div>
+    <div class="warn-box">
+      <p><strong>⚠️ Fencing has a prerequisite:</strong> the <em>resource itself</em> must check the token. If your "storage" is a plain Redis key, a file, or a third-party API with no token check, fencing tokens are just numbers in a log — unenforced. Fencing is a <strong>contract between the lock service and the storage layer</strong>; both sides have to play. When the storage can't check (an external API), fall back to making the operation <strong>idempotent</strong> (section 6) so a double execution is a no-op.</p>
+    </div>
+  </section>
+
+  <section id="failure-modes">
+    <div class="section-head"><span class="section-num">05</span><h2>Failure modes of the lock store</h2></div>
+    <p class="lede">So far the lock <em>service</em> was a perfect referee. Now break the referee: crashes, failovers, and the quorum debate.</p>
+
+    <h3>1. Lock-holder crash — the case TTL was built for</h3>
+    <p>A acquires, then the process dies outright (not paused — dead). Heartbeats stop, the 5s TTL expires, B acquires cleanly. <strong>This is the happy path of the TTL design:</strong> worst case, the lock is wedged for one TTL. Note the asymmetry with section 4: a <em>crash</em> is safe because the holder can never act again; a <em>pause</em> is dangerous precisely because the holder comes back. When someone says "TTL handles failures," the precise version is: <strong>TTL handles crashes; it does not handle pauses.</strong></p>
+
+    <h3>2. Lock-store failover — the lock that forgot it was held</h3>
+    <div class="definition">
+      <strong class="term">Failover · Split-brain</strong>
+      <p><strong>Failover</strong> is when a primary node dies and a replica is <strong>promoted</strong> to take its place. <strong>Split-brain</strong> is the nightmare version: the old primary isn't actually dead — a network partition isolated it — so <strong>two nodes both believe they're the primary</strong> and both accept writes. Each half of the split sees a different truth.</p>
+    </div>
+    <p>The scenario: your Redis lock service is primary + async replica. A acquires <code>lock:scoreboard</code> on the primary. The <code>SET NX</code> hasn't <strong>replicated</strong> yet when the primary dies. The replica is promoted — <strong>it never saw A's lock</strong>. B asks the new primary for the lock and gets it. A is alive, holding what she believes is a valid lease, inside the critical section — and so is B. <strong>Two holders, zero pauses involved.</strong> The root cause: the lock store's own replication wasn't as strong as the guarantee you built on top of it. This is why the fencing-token discipline from section 4 matters <em>again</em> here: even with a perfect TTL story, a failover can mint two valid-seeming leases, and only storage-level fencing rejects the stale one.</p>
+
+    <h3>3. Clock skew — mentioned so you can dismiss it correctly</h3>
+    <div class="definition">
+      <strong class="term">Clock skew</strong>
+      <p><strong>Clock skew</strong> is the difference between two machines' clocks — server A thinks it's 12:00:00.000, server B thinks it's 12:00:00.150. Clocks drift; NTP keeps them close but never identical.</p>
+    </div>
+    <p>Here's the good news: <strong>the Redis recipe doesn't care about clock skew.</strong> The TTL is enforced by <em>Redis's own clock</em> — expiry is measured on one machine, not compared across machines. Nobody's local timestamp decides anything. Clock skew becomes your problem only in designs where <em>clients</em> compare timestamps (e.g. "my lease is valid until 12:00:05" computed locally) — which is a reason to prefer server-side TTLs. If a senior asks about clocks, the answer is: "expiry is measured by the lock service's clock alone, so skew between clients is irrelevant."</p>
+
+    <h3>Redlock: the quorum idea, in one paragraph</h3>
+    <div class="definition">
+      <strong class="term">Quorum</strong>
+      <p>A <strong>quorum</strong> is a majority vote: with 5 nodes, any 3 agree and the decision stands. The point is overlap — <strong>any two majorities share at least one node</strong>, so two conflicting decisions can't both win a majority.</p>
+    </div>
+    <p><strong>Redlock</strong> is Redis's official answer to the failover problem: run <strong>5 independent Redis masters</strong> (not replicas — independent), and acquire the lock on a <strong>majority (3+)</strong> of them within a bounded time. If 3 of 5 grant it, you hold it: a single node failing over can't resurrect a conflicting grant, because any other majority overlaps yours on at least one node that already said yes to you. The debate, honestly stated: critics (notably the <strong>Jepsen-style analyses</strong>) argue Redlock's safety still rests on timing assumptions — expiry measured across machines that can pause — so it doesn't achieve the ironclad guarantees of a consensus system, while adding real operational cost (5 masters to run). <strong>The common production posture: a single well-run Redis with short TTLs + fencing tokens at the storage layer.</strong> You get the practical safety without operating a fleet — and you say so out loud, which is what the senior room actually wants to hear.</p>
+    <div class="verdict">
+      <h4>The failure-mode summary</h4>
+      <p><strong>Holder crash</strong> → TTL expires, next holder proceeds (the designed case). <strong>Holder pause &gt; TTL</strong> → two holders; fencing tokens make the stale one's writes bounce. <strong>Store failover</strong> → the new primary may not know the lock; fencing again, or accept the window. <strong>Split-brain</strong> → two primaries, two grants; only fencing at storage (or a real consensus store) saves you. <strong>Clock skew</strong> → irrelevant here; expiry is the server's clock. The through-line: <strong>the lock coordinates, but only fencing <em>protects</em>.</strong></p>
+    </div>
+  </section>
+
+  <section id="when-not">
+    <div class="section-head"><span class="section-num">06</span><h2>When NOT to lock</h2></div>
+    <p class="lede">Locks are the heaviest coordination tool in the box: they serialize, they add a network round trip to every critical section, and they fail in silent ways. The senior move is reaching for them last. Four lighter tools, in order of preference.</p>
+
+    <h3>1. Idempotency first — make repeats harmless</h3>
+    <div class="definition">
+      <strong class="term">Idempotency</strong>
+      <p>An operation is <strong>idempotent</strong> if doing it twice has the same effect as doing it once (Lessons 9 and 12 used this for message consumers; it applies to critical sections too).</p>
+    </div>
+    <p>Back to the scoreboard: if each goal carries a unique <strong>goal ID</strong> and the scoreboard records "goal <code>g-9917</code> counted" before incrementing — skipping IDs it's seen — then two operators processing the same goal is a no-op the second time. <strong>No lock, no contention, no TTL, no fencing.</strong> Idempotency beats locking whenever the work can be made repeat-safe, because it removes the coordination entirely instead of managing it. Always ask first: "can I make the double-execution harmless instead of preventing it?"</p>
+
+    <h3>2. Optimistic concurrency — the version column</h3>
+    <div class="definition">
+      <strong class="term">Optimistic concurrency · CAS</strong>
+      <p><strong>Optimistic concurrency</strong> skips the lock and instead <strong>checks at write time</strong> that nothing changed since you read: the row carries a <strong>version number</strong>, and your write says "set score = 1, version = 5 <em>where version is still 4</em>." If someone else wrote first, the version moved and your write affects zero rows — you re-read and retry. <strong>CAS</strong> (compare-and-swap) is the same idea as a CPU/storage primitive: "swap this value only if it's still what I saw."</p>
+    </div>
+    <p>The scoreboard version: operator A reads (score 0, version 7). Operator B reads (score 0, version 7), writes (score 1, version 8) — succeeds. A writes (score 1, version 8) <strong>where version = 7</strong> — zero rows affected. A re-reads (score 1, version 8) and retries cleanly. <strong>No lock held during the read-modify window; contention only costs a retry.</strong> This wins when conflicts are <strong>rare</strong> — three operators, occasional simultaneous goals. It loses when conflicts are <strong>constant</strong>: if every write collides, everyone retries forever (that's <strong>livelock</strong> — all progress, no completion), and a lock's orderly queue beats a retry storm.</p>
+
+    <h3>3. Queue serialization — one worker, no lock needed</h3>
+    <p>Route all scoreboard updates through <strong>one queue with one consumer</strong> (Lesson 9's competing-consumers pattern run in reverse: a single consumer). The three operators don't touch the scoreboard — they <strong>publish "goal scored" events</strong>, and the lone scoreboard worker applies them in order. <strong>Serialization by construction:</strong> there's only one writer, so there's nothing to coordinate. The trade: the worker is a throughput ceiling and a single point of failure — but for many workloads that's a fine trade, and it composes beautifully with the async patterns from Lessons 9 and 12.</p>
+
+    <h3>4. Single-writer design — decide ownership up front</h3>
+    <p>The heaviest hammer, used at design time: <strong>partition the resource so each piece has exactly one owner.</strong> Scoreboard updates for the first half go to operator A's service, second half to B's — or shard by match ID so one service owns each match's board. If only one writer can ever touch a piece of state, locks are unnecessary <em>by construction</em>. This is the same instinct as sharding (Lesson 6): ownership replaces coordination.</p>
+
+    <h3>If you must lock: granularity and hold time</h3>
+    <p>Two rules that separate careful lock users from the rest:</p>
+    <ul>
+      <li><strong>Lock the smallest thing possible</strong> (granularity). Lock <code>lock:scoreboard:match-4821</code>, not <code>lock:scoreboard</code> — operators updating <em>different</em> matches shouldn't queue behind each other. Coarse locks serialize the world; fine locks serialize only the true conflicts.</li>
+      <li><strong>Hold it for the shortest time possible, and measure it.</strong> Measure your critical section's <strong>p99 hold time</strong> (the 99th percentile — the duration 99% of executions finish within), then set <strong>TTL to a few multiples of p99</strong> — e.g. p99 = 200 ms → TTL ≈ 1–2 s. Too short and pauses eat you alive; too long and a crashed holder wedges everyone for ages. "A few × p99" is the sizing rule to state out loud.</li>
+    </ul>
+    <div class="callout">
+      <h4>🧠 The restraint ladder, in one breath</h4>
+      <p>"Before a distributed lock I try, in order: <strong>idempotency</strong> (make repeats harmless), <strong>optimistic concurrency</strong> (version-check the write; best when conflicts are rare), <strong>queue serialization</strong> (one writer, no coordination), <strong>single-writer ownership</strong> (partition so nobody shares). The lock is for what's left: true mutual exclusion across writers that can't be designed away — and then I lock the smallest scope for the shortest measured time."</p>
+    </div>
+  </section>
+
+  <section id="zookeeper">
+    <div class="section-head"><span class="section-num">07</span><h2>ZooKeeper / etcd in one table</h2></div>
+    <p class="lede">Redis is the default, but the consensus-store family does locks differently — with stronger guarantees and more machinery. One table, then when you'd switch.</p>
+
+    <table class="cmp">
+      <tr><th></th><th>Redis (SET NX PX)</th><th>ZooKeeper / etcd</th></tr>
+      <tr><td><strong>How the lock works</strong></td><td><code>SET key token NX PX ttl</code> — first writer wins, key auto-expires.</td><td>Create an <strong>ephemeral sequential node</strong> under a lock path; the <strong>lowest sequence number holds the lock</strong>. <strong>Ephemeral</strong> means the node <strong>vanishes automatically when the client's session drops</strong>; <strong>sequential</strong> means the store appends an increasing number (<code>lock-0001</code>, <code>lock-0002</code>…) so contenders can order themselves.</td></tr>
+      <tr><td><strong>Waiting</strong></td><td>Poll in a retry loop (or pub/sub notify on key expiry).</td><td><strong>Watch</strong> the node ahead of you — the store <strong>notifies</strong> you when it disappears. No polling; this is the famous <strong>herd-effect-free</strong> queue.</td></tr>
+      <tr><td><strong>Expiry model</strong></td><td><strong>TTL</strong>: wall-clock lease, renewed by heartbeat.</td><td><strong>Session</strong>: the client holds a session with heartbeats; if the session dies, all its ephemeral nodes vanish. Conceptually a lease, but tied to <strong>liveness</strong> rather than a fixed timer.</td></tr>
+      <tr><td><strong>Consistency</strong></td><td>Single master (or Redlock quorum); async replicas can lose the lock on failover.</td><td><strong>Consensus</strong> (Zab for ZooKeeper, <strong>Raft</strong> for etcd): a majority agrees on every write, so a failover <strong>cannot</strong> forget a granted lock. Stronger by construction.</td></tr>
+      <tr><td><strong>Ordering / fairness</strong></td><td>None — whoever's <code>SET NX</code> lands first wins; a fast retry loop can starve others.</td><td><strong>Fair</strong>: sequential numbers form a queue — first to arrive is first to hold. No starvation.</td></tr>
+      <tr><td><strong>Football picture</strong></td><td>Whoever shouts "mine!" first gets the whistle; the whistle has a timer.</td><td>Everyone takes a numbered ticket at the referee's room; lowest number holds the whistle, and the room taps your shoulder when it's your turn.</td></tr>
+      <tr><td><strong>Cost</strong></td><td>One Redis, sub-ms, trivial to operate.</td><td>A 3–5 node consensus cluster to operate (or a managed etcd); higher latency per acquire.</td></tr>
+    </table>
+
+    <h3>When you'd switch</h3>
+    <p>Stay on Redis when the lock guards <strong>efficiency or convenience</strong> — "don't run this cron twice," "don't send this email twice" — where a rare double-execution is annoying, not catastrophic, and fencing or idempotency covers the gap. Reach for etcd/ZooKeeper when the lock guards <strong>correctness you can't recover from</strong> — leader election for the one writer that must exist, a schema migration that must run once — and when you want <strong>fair queuing</strong> rather than a retry stampede. The honest senior framing: <strong>Redis for speed and simplicity with fencing as the backstop; consensus stores when the lock itself must be the source of truth.</strong></p>
+    <div class="definition">
+      <strong class="term">Leader election</strong>
+      <p><strong>Leader election</strong> is distributed locking's most famous application: N identical servers agree that <strong>exactly one of them is the leader</strong> — the one that runs the cron, the one that writes. It's "a lock held indefinitely, with re-election when the leader dies." If you can explain locks, you can explain leader election in one sentence.</p>
+    </div>
+  </section>
+
+  <section id="lab">
+    <div class="section-head"><span class="section-num">08</span><h2>Lab: the scoreboard race simulator</h2></div>
+    <p class="lede">Three operators, one scoreboard, one goal each — run the race and watch what the TTL really guarantees. Toggle the GC pause past the TTL and see the double-count happen; then turn on fencing tokens and watch the stale write bounce.</p>
+
+    <div class="lab">
+      <h3>⚽ Scoreboard race simulator</h3>
+      <p class="howto"><strong>How to use it:</strong> three operators each try to record one goal on the shared scoreboard. <strong>Operator A always suffers a GC pause</strong> mid-write — you set how long. Set the lock <strong>TTL</strong>, choose whether the scoreboard enforces <strong>fencing tokens</strong>, then press <strong>Run the race</strong>. The log narrates every acquire, expiry, pause, and write with timestamps. Try: TTL 5s + pause 8s + fencing OFF (double-count), then the same with fencing ON (stale write rejected).</p>
+
+      <div class="slider-row">
+        <label for="lk-ttl">Lock TTL (lease length)</label>
+        <input type="range" id="lk-ttl" min="2" max="10" step="1" value="5" />
+        <output id="lk-ttl-out">5 s</output>
+      </div>
+      <div class="slider-row">
+        <label for="lk-pause">Operator A's GC pause</label>
+        <input type="range" id="lk-pause" min="0" max="12" step="1" value="8" />
+        <output id="lk-pause-out">8 s</output>
+      </div>
+      <div class="controls">
+        <button class="btn" id="lk-fencing">Fencing tokens: OFF</button>
+        <button class="btn primary" id="lk-run">Run the race</button>
+        <button class="btn" id="lk-reset">Reset</button>
+      </div>
+
+      <div class="scoreboard">
+        <span class="team">HOME</span>
+        <span class="goals" id="lk-home">0</span>
+        <span style="opacity:.6">–</span>
+        <span class="goals" id="lk-away">0</span>
+        <span class="team">AWAY</span>
+      </div>
+      <div class="chart-cap" id="lk-board-note" style="text-align:center">Each operator records one HOME goal. Correct final score: HOME 3.</div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <div class="node-name">Lock holder</div>
+          <div class="score" id="lk-holder" style="font-size:1.15rem">—</div>
+          <div class="badge ok" id="lk-holder-badge">free</div>
+        </div>
+        <div class="stat">
+          <div class="node-name">Goals recorded</div>
+          <div class="score" id="lk-goals">0</div>
+          <div class="badge ok" id="lk-goals-badge">expect 3</div>
+        </div>
+        <div class="stat">
+          <div class="node-name">Stale writes rejected</div>
+          <div class="score" id="lk-rejected">0</div>
+          <div class="badge ok" id="lk-rejected-badge">fencing off</div>
+        </div>
+        <div class="stat">
+          <div class="node-name">Verdict</div>
+          <div class="score" id="lk-verdict" style="font-size:1.15rem">—</div>
+          <div class="badge ok" id="lk-verdict-badge">not run</div>
+        </div>
+      </div>
+
+      <div class="ops-row" id="lk-ops"></div>
+
+      <div class="log" id="lk-log"></div>
+
+      <div class="callout" style="margin-top:18px">
+        <h4>🧠 What to notice</h4>
+        <p><strong>Pause longer than TTL, fencing off:</strong> A's lease expires mid-pause, B acquires and records her goal, then A wakes up and writes from her stale read — B and C's goals get silently overwritten (a lost update), the scoreboard ends wrong, and the log shows nobody errored. <strong>Same run, fencing on:</strong> B's write carries fencing token 35, A's stale write carries 34 — the scoreboard rejects A's write ("34 &lt; 35, already seen"), and the log marks it <span style="color:#ff8f7d">rejected</span>. Watch what happens next: A <em>sees</em> the rejection, re-acquires with a fresh token 37, re-reads the true score, and records her goal properly — fencing turned silent corruption into a detectable, retryable rejection. <strong>Pause shorter than TTL:</strong> nothing bad happens at all — the lease covers the pause, which is exactly why you size TTL as a few × p99.</p>
+      </div>
+
+      <h3 style="margin-top:28px">🔧 The release widget: broken vs fixed</h3>
+      <p class="howto"><strong>How to use it:</strong> press <strong>Step through the race</strong> to walk the delete-not-yours bug one event at a time. The left pane runs the <strong>broken</strong> release (GET then DEL as two commands); the right pane runs the <strong>Lua compare-and-delete</strong>. Watch whose lock gets deleted in each.</p>
+      <div class="controls">
+        <button class="btn primary" id="rl-step">Step through the race</button>
+        <button class="btn" id="rl-reset">Reset</button>
+      </div>
+      <div class="code-diff">
+        <div class="code-pane broken">
+          <div class="pane-head">❌ Broken: GET then DEL</div>
+          <pre id="rl-broken">-- press "Step through the race"
+-- each press advances one event</pre>
+        </div>
+        <div class="code-pane fixed">
+          <div class="pane-head">✅ Fixed: Lua compare-and-delete</div>
+          <pre id="rl-fixed">if redis.call("GET", KEYS[1]) == ARGV[1] then
+    return redis.call("DEL", KEYS[1])
+else
+    return 0
+end
+-- atomic: GET-check and DEL cannot be split</pre>
+        </div>
+      </div>
+      <div class="log" id="rl-log"></div>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">09</span><h2>Q&amp;A — with full model answers</h2></div>
+    <p class="lede">Four questions that come up constantly, each with the spoken answer — verdict first, reasoning, and what earns the top mark.</p>
+    <div class="qa">
+
+      <div class="question">
+        <div class="qnum">Q1 · DESIGN</div>
+        <div class="qtext">"How would you prevent double-booking the last seat on a flight?"</div>
+        <div class="context">The classic lock question wearing a product costume. They want the Redis recipe plus the TTL honesty, not just "use a lock."</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Serialize the booking decision per flight with a short-lived Redis lock — <code>SET NX PX</code> with a random token, released via Lua compare-and-delete — and protect the seat write with a fencing token or an idempotent booking record.</strong> The lock stops the race; the fencing stops the pause."</p>
+          <h5>Reasoning</h5>
+          <p>"Two passengers tap 'book' on the last seat at the same instant, hitting two different app servers. An app-local mutex is invisible across servers, so both servers would read '1 seat left' and both would write '0 seats left, booked twice.' The lock has to live somewhere both servers see: Redis. The booking service acquires <code>lock:flight:BA249</code> with <code>SET key &lt;random-token&gt; NX PX 2000</code> — first one wins atomically, the loser retries briefly or gets 'seat unavailable, try another flight.' Inside the critical section: re-check availability, write the booking, release with the Lua script that deletes only if the value is still my token — so I can never delete someone else's lock if my lease expired mid-write.</p>
+          <p>The TTL is sized deliberately: measure the p99 of the book-seat transaction — say 150 ms — and set the TTL to a few multiples, ~1–2 seconds. Short enough that a crashed holder only wedges the flight for a second; long enough that a normal booking never outruns it.</p>
+          <p>Then the part I'd volunteer unprompted: <strong>the TTL can't tell a crashed holder from a paused one.</strong> If the holder GC-pauses past the TTL, a second server acquires and books the seat, the first wakes up and books it again — double-booking with a perfectly correct lock. So the seat write carries a <strong>fencing token</strong>: the lock service issues increasing tokens per acquisition, and the booking store rejects any write with a token older than the highest it's seen. And belt-and-braces: the booking row itself is <strong>idempotent on a client booking ID</strong>, so even if both writes somehow land, the second is a duplicate of the same booking, not a second passenger."</p>
+          <h5>What earns top marks</h5>
+          <p>The full recipe (NX, PX, token, Lua release) stated crisply, the TTL sized from p99 rather than plucked from air, volunteering the pause problem before being asked, and the fencing-plus-idempotency backstop named as the thing that makes the lock <em>safe</em> rather than merely <em>fast</em>.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2 · MECHANICS</div>
+        <div class="qtext">"Why does the Redis lock use a random token? And why Lua for release?"</div>
+        <div class="context">A depth check on the recipe. They want the delete-not-yours race explained, not recited.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>The token proves <em>which</em> holder is releasing; Lua makes the check-and-delete atomic.</strong> Without the token you can't tell your lock from someone else's; without Lua, the check and the delete can be split by another client's acquire."</p>
+          <h5>Reasoning</h5>
+          <p>"The token exists because of expiry. Say my TTL is 5 seconds and my critical section overruns it — the key expires, another server acquires, and the key now holds <em>their</em> token. If release were a bare <code>DEL</code>, I'd walk in late and delete <em>their</em> lock while they're inside the critical section — kicking the rightful holder out. The random token turns 'delete the lock' into 'delete the lock <em>only if it's still mine</em>,' which is the only safe release.</p>
+          <p>But 'check the token, then delete' as two commands has a race in the gap between them: my <code>GET</code> returns my token — still mine — and <em>before</em> my <code>DEL</code> executes, my TTL expires and someone else acquires. My <code>DEL</code> then deletes <em>their</em> lock. The window is small but it's exactly the kind of race that only shows up at 3 a.m. under load. The Lua script fuses the GET-check and the DEL into <strong>one atomic step</strong> — Redis runs scripts without interleaving other commands — so the check and the delete can never be split. Token for ownership, Lua for atomicity; you need both."</p>
+          <h5>What earns top marks</h5>
+          <p>Walking the interleaving concretely (GET returns mine → TTL expires → other acquires → my DEL kills their lock) rather than saying "it's a race condition" abstractly, and the crisp division of labor: token = ownership, Lua = atomicity.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3 · FAILURE MODES</div>
+        <div class="qtext">"Your lock holder pauses for 8 seconds with a 5-second TTL. Walk me through what happens — and how you'd fix it."</div>
+        <div class="context">The heart-of-the-lesson question. They want the timeline with numbers, then fencing — not "make the TTL longer."</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Two holders, one silent double-execution — and longer TTLs don't fix it, they just move the cliff. The real fix is fencing tokens enforced at the storage layer.</strong>"</p>
+          <h5>Reasoning</h5>
+          <p>"Timeline: t=0, holder A acquires with TTL 5s and starts the critical section. t=1s, A's runtime hits a stop-the-world GC pause — A freezes mid-work, not dead, just silent. t=5s, the lease expires in Redis; from the lock service's view the lock is free — it cannot distinguish 'crashed' from 'paused,' silence looks identical. t=5.1s, holder B's retry loop wins <code>SET NX</code>, enters the critical section, and does the work. t=9s, A's 8-second pause ends; A wakes up <strong>believing she still holds the lock</strong> and finishes her write. Both did the critical section. Nothing crashed, nothing logged — both believe they were correct.</p>
+          <p>'Just make the TTL longer' is the tempting fix and it's wrong in an important way: a 30-second TTL survives an 8-second pause, but now a <em>crashed</em> holder wedges the lock for 30 seconds, and a 40-second pause breaks you again. You're trading one cliff for a taller cliff — timing can never distinguish pause from crash, so no TTL value is <em>correct</em>, only <em>lucky</em>.</p>
+          <p>The fix that doesn't depend on luck: <strong>fencing tokens.</strong> The lock service hands out a monotonically increasing token with each grant — A gets 34, B gets 35. Every write to the protected resource carries the token, and the storage layer applies a write only if its token exceeds the highest already seen. A's stale write arrives with 34 after B's 35 was recorded → rejected at the storage door. The lock coordinated as best it could; the fencing token <em>protected</em>. One caveat I'd state: the storage has to enforce it — if the resource is a third-party API with no token check, fencing is unenforced, and I'd fall back to making the operation idempotent so the double execution is a no-op."</p>
+          <h5>What earns top marks</h5>
+          <p>The timestamped walk-through (not hand-waving), the explicit rejection of "longer TTL" with the crashed-holder trade-off, fencing explained as a <em>storage-enforced</em> contract with its prerequisite named, and the idempotency fallback for unenforceable storage.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4 · JUDGMENT</div>
+        <div class="qtext">"When would you reach for ZooKeeper/etcd over Redis for locking — and when is a lock the wrong tool entirely?"</div>
+        <div class="context">Two judgments in one: the store choice and the restraint ladder. They want both answered crisply.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>etcd/ZooKeeper when the lock guards unrecoverable correctness and I want fair, consensus-backed grants; Redis for everything else. And before any lock, I'd try idempotency, optimistic concurrency, queue serialization, and single-writer ownership — in that order.</strong>"</p>
+          <h5>Reasoning</h5>
+          <p>"Redis is the default: one box, sub-millisecond acquires, TTL leases. Its weaknesses are the failover window — an async replica promoted without the lock grants a conflicting lease — and unfair acquisition: whoever's <code>SET NX</code> lands first wins, so a tight retry loop can starve everyone else. For 'don't run this cron twice' or 'don't double-send this email,' those are acceptable, covered by fencing or idempotency.</p>
+          <p>I'd switch to etcd or ZooKeeper when the lock is load-bearing for correctness: <strong>leader election</strong> — exactly one writer must exist — or a run-once migration. There I want three things Redis doesn't give: <strong>consensus-backed grants</strong> (a majority agrees, so failover can't forget a lock), <strong>ephemeral sequential nodes</strong> forming a fair queue (lowest number holds; watches notify instead of polling, so no herd effect and no starvation), and <strong>session-based expiry</strong> tied to client liveness rather than a wall-clock guess. The price is a 3–5 node cluster to operate and higher acquire latency — worth it when the lock itself must be the source of truth.</p>
+          <p>And the restraint ladder before <em>any</em> lock: first <strong>idempotency</strong> — give each goal a unique ID and skip seen ones, and the double-execution is harmless with zero coordination. Then <strong>optimistic concurrency</strong> — a version column, 'write only if version is still what I read,' retry on conflict; best when conflicts are rare, degenerates into a retry storm when they're constant. Then <strong>queue serialization</strong> — one consumer applies all updates in order, no lock needed. Then <strong>single-writer ownership</strong> — shard by match so one service owns each board. The lock is for what's left: genuine mutual exclusion across writers I can't design away — and then I lock the smallest scope for the shortest measured time, TTL at a few × p99 hold time."</p>
+          <h5>What earns top marks</h5>
+          <p>The store choice tied to <em>what the lock guards</em> (recoverable annoyance vs unrecoverable incorrectness), the three etcd/ZooKeeper advantages named concretely (consensus, fair sequential queue, session liveness), the restraint ladder in order with the conflict-rate caveat on optimistic concurrency, and the TTL-sizing rule stated out loud.</p>
+        </div></details>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">10</span><h2>Practice drills</h2></div>
+    <p class="lede">Untimed — think like you're whiteboarding. Write your answer, then check the rubric.</p>
+
+    <div class="drill">
+      <h4>Drill 1 — Trace the pause</h4>
+      <p>Holder A acquires <code>lock:payments</code> with TTL = 4s at t=0 and begins a charge that takes 1s of work. At t=0.5s A hits a stop-the-world pause lasting 6s. Holder B retries every 200ms. (1) At what time does B acquire the lock? (2) At what time does A wake up, and what does A believe? (3) Name the two things that would each independently prevent a double charge, and which layer each lives at.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>(1) t ≈ 4.0–4.2s.</strong> The lease expires at t=4s; B's next retry (every 200ms) wins <code>SET NX</code> almost immediately after. Accept any answer in 4.0–4.2s with the expiry reasoning.</li>
+          <li><strong>(2) t = 6.5s, believing she still holds the lock.</strong> Pause runs 0.5s → 6.5s. Full marks for the sentence "nothing tells A her lease expired" — the pause is invisible to the paused process.</li>
+          <li><strong>(3) Fencing token at the storage layer</strong> — the charge store rejects A's write carrying an older token than B's; <strong>idempotency at the application layer</strong> — the charge carries a unique payment ID and the second identical charge is a no-op. Full marks for naming the <em>layer</em> of each: fencing protects the write, idempotency makes the repeat harmless.</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> the timeline with timestamps, the "invisible to the paused process" line, and both fixes placed at their correct layers — plus the note that a longer TTL only moves the cliff (a 7s pause would break a 6s TTL the same way).</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 2 — Spot the release bug</h4>
+      <p>A teammate's release code is:<br><code>if redis.get("lock:report") == my_token: redis.delete("lock:report")</code><br>(1) Construct the exact interleaving that breaks it — name the three events in order. (2) Write the fix. (3) Explain why the token alone (without your fix) is insufficient.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>(1) The interleaving:</strong> (i) my <code>GET</code> returns my token — the check passes; (ii) <em>before</em> my <code>DEL</code> runs, my TTL expires and another holder acquires (key now holds <em>their</em> token); (iii) my <code>DEL</code> executes and deletes <em>their</em> lock. Full marks for all three events in order — the gap between check and delete is the whole bug.</li>
+          <li><strong>(2) The Lua compare-and-delete:</strong> <code>if redis.call("GET",KEYS[1])==ARGV[1] then return redis.call("DEL",KEYS[1]) else return 0 end</code> — full marks for noting Redis runs the script atomically, so no command can interleave.</li>
+          <li><strong>(3) The token tells you <em>whose</em> lock it is; it doesn't make the check-and-delete atomic.</strong> The token answers "is this still mine?" — but the answer can go stale between the asking and the acting. Full marks for the one-liner: "the token fixes ownership, Lua fixes atomicity."</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> the three-event interleave with the expiry placed <em>between</em> GET and DEL, and the crisp ownership-vs-atomicity split.</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 3 — Choose the tool</h4>
+      <p>Three scenarios. For each, pick: <strong>Redis lock</strong>, <strong>etcd/ZooKeeper lock</strong>, or <strong>no lock</strong> (name the lighter tool) — with one sentence of justification each.<br>(a) A nightly cron that emails a digest — must not run twice if two schedulers fire.<br>(b) Electing the single leader that assigns referees to matches — a second leader assigning overlapping crews would be a real incident.<br>(c) Incrementing a per-player goal counter fed by three operators, where each goal event carries a unique goal ID.</p>
+      <details class="reveal"><summary>Reveal rubric</summary><div class="body rubric">
+        <ul>
+          <li><strong>(a) Redis lock</strong> — a double email is annoying, not catastrophic; a short TTL lease with the cron's idempotency key as backstop is the proportionate tool. (No-lock with idempotency on the digest ID is also acceptable if argued: "the email send is idempotent on digest-date, so a lock adds nothing.")</li>
+          <li><strong>(b) etcd/ZooKeeper lock</strong> — the lock guards unrecoverable correctness (two leaders = real incident); you want consensus-backed grants, fair sequential queuing, and session-based expiry. Full marks for "the lock itself must be the source of truth."</li>
+          <li><strong>(c) No lock — idempotency.</strong> Record seen goal IDs; a repeated goal event is a no-op. Full marks for the sentence "coordination removed beats coordination managed" — and for noting a lock here would serialize three operators for no benefit.</li>
+        </ul>
+        <p><strong>What earns top marks:</strong> each pick tied to <em>what failure costs</em> (annoyance vs incident vs free), the (a) alternative accepted when argued from idempotency, and the restraint ladder visible in the reasoning.</p>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">✓</span><h2>Cheat sheet: the 6 lock decisions</h2></div>
+    <p class="lede">Every distributed-lock design is these six decisions, in this order. Tape this to your mental whiteboard.</p>
+    <div class="green-box">
+      <p><strong>1. Do I need a lock at all?</strong> Try in order: <strong>idempotency</strong> (repeats harmless) → <strong>optimistic concurrency</strong> (version-check the write; best when conflicts are rare) → <strong>queue serialization</strong> (one writer) → <strong>single-writer ownership</strong> (partition so nobody shares). Lock only what's left.</p>
+      <p><strong>2. Where does the lock live?</strong> <strong>Redis</strong> by default (sub-ms, one box, TTL leases). <strong>etcd/ZooKeeper</strong> when the lock guards unrecoverable correctness — consensus-backed grants, fair sequential queue, session liveness. Never app-local; the DB row lock only for low contention.</p>
+      <p><strong>3. How do I acquire?</strong> <code>SET key &lt;random-token&gt; NX PX &lt;ttl&gt;</code> in a <strong>bounded</strong> retry loop (sleep ~100ms, give up loudly after seconds). NX = first wins atomically; PX = the lease; token = proof of ownership.</p>
+      <p><strong>4. How do I release?</strong> <strong>Lua compare-and-delete only</strong> — never GET-then-DEL. The token answers "is it still mine," Lua makes the answer atomic.</p>
+      <p><strong>5. How do I size the TTL?</strong> Measure <strong>p99 hold time</strong>; TTL = <strong>a few × p99</strong>. Too short: pauses eat you. Too long: crashes wedge everyone. And accept the truth: <strong>no TTL is correct</strong> — a pause longer than any TTL breaks the lease, which is why decision 6 exists.</p>
+      <p><strong>6. What makes it actually safe?</strong> <strong>Fencing tokens</strong>: the lock service issues increasing tokens per grant; the storage rejects writes carrying an older token than it has seen. The lock coordinates; fencing <em>protects</em>. Where storage can't enforce, fall back to idempotency.</p>
+    </div>
+    <div class="callout">
+      <h4>🎙️ Locks in 60 seconds — the recital</h4>
+      <p>"A distributed lock is a mutex whose memory lives on another machine — usually Redis, via SET with NX for atomic first-wins, PX for the TTL lease, and a random token proving ownership, released with an atomic Lua compare-and-delete so I never delete someone else's lock. The TTL exists so a crashed holder only wedges the lock for seconds — but it can't distinguish a crash from a pause, so a pause longer than the lease means two holders and a silent double-execution, which no TTL value fixes. The real safety is fencing tokens: increasing tokens per grant, enforced at the storage layer, so the stale holder's writes bounce. Before any of that I try idempotency, optimistic concurrency, queue serialization, and single-writer ownership — the lock is the last resort, scoped as small and held as short as measured p99 allows."</p>
+    </div>
+  </section>
+
+  <section id="talk">
+    <div class="section-head"><span class="section-num">🎯</span><h2>How to talk about locks in the room</h2></div>
+    <p class="lede">When the question is "prevent double-booking" or "how do these servers coordinate," run this five-step structure. It turns a Redis command into a senior answer.</p>
+    <ol>
+      <li><strong>Kill the local lock first.</strong> "An app-local mutex is invisible across servers — each machine locking in its own memory is the same as no lock." This shows you know <em>why</em> the problem is distributed.</li>
+      <li><strong>State the recipe crisply.</strong> "<code>SET key token NX PX ttl</code> in a bounded retry loop; Lua compare-and-delete to release." Name what each piece does: NX = atomic first-wins, PX = the lease, token = ownership, Lua = atomic release. Forty seconds, no rambling.</li>
+      <li><strong>Volunteer the pause problem.</strong> Don't wait to be asked: "the TTL can't tell a crashed holder from a paused one — a GC pause longer than the lease means two holders, silently." Walk the 8-second-pause/5-second-TTL timeline if they bite.</li>
+      <li><strong>Land fencing as the fix.</strong> "So I don't rely on timing — fencing tokens: increasing token per grant, storage rejects stale writes. The lock coordinates; fencing protects." Name the prerequisite: storage must enforce it.</li>
+      <li><strong>Close with restraint.</strong> "And before the lock, I'd check whether idempotency or optimistic concurrency removes the need — the lock is the last resort, scoped small, TTL at a few × measured p99." Senior rooms reward the engineer who reaches for the heavy tool last.</li>
+    </ol>
+    <div class="verdict">
+      <h4>Senior-depth traps — land these unprompted</h4>
+      <p><strong>TTL handles crashes, not pauses.</strong> Silence looks identical from the lock service's side — crashed and paused are indistinguishable, and only one of them comes back.</p>
+      <p><strong>No TTL value is correct.</strong> Longer TTLs survive longer pauses but wedge longer on crashes. Timing can never solve it; fencing can.</p>
+      <p><strong>The token is ownership, Lua is atomicity.</strong> Two different bugs, two different fixes — the delete-not-yours race needs both halves of the answer.</p>
+      <p><strong>The lock coordinates; fencing protects.</strong> Mutual exclusion at the lock level can briefly break; mutual exclusion at the storage level is what actually prevents the double write.</p>
+    </div>
+  </section>
+
+  <a class="nav-next" href="pub-sub-event-driven.html">
+    <div class="lbl">Previous lesson · Lesson 12</div>
+    <div class="t">Pub/Sub &amp; Event-Driven Architecture →</div>
+  </a>
+
+  <footer class="page-foot">
+    Lesson 13 of the daily system design series · <a href="../index.html">All lessons</a>
+  </footer>
+</div>
+<script>
+(function () {
+  "use strict";
+
+  /* ============ Lab 1: scoreboard race simulator ============ */
+  var $ = function (id) { return document.getElementById(id); };
+
+  var ttlSec = 5;          // lock TTL in seconds
+  var pauseSec = 8;        // operator A's GC pause in seconds
+  var fencingOn = false;   // fencing tokens enforced at the scoreboard
+  var running = false;
+
+  var elTtl = $("lk-ttl"), elTtlOut = $("lk-ttl-out"),
+      elPause = $("lk-pause"), elPauseOut = $("lk-pause-out"),
+      elFencing = $("lk-fencing"),
+      elHolder = $("lk-holder"), elHolderBadge = $("lk-holder-badge"),
+      elGoals = $("lk-goals"), elGoalsBadge = $("lk-goals-badge"),
+      elRejected = $("lk-rejected"), elRejectedBadge = $("lk-rejected-badge"),
+      elVerdict = $("lk-verdict"), elVerdictBadge = $("lk-verdict-badge"),
+      elHome = $("lk-home"), elLog = $("lk-log"), elOps = $("lk-ops");
+
+  var simNow = 0;          // simulated clock, seconds
+  var TICK = 100;          // ms per simulated second (animation speed)
+  var timers = [];
+
+  var ops = [
+    { name: "Operator A", note: "suffers the GC pause", token: "A1" },
+    { name: "Operator B", note: "no pause", token: "B2" },
+    { name: "Operator C", note: "no pause", token: "C3" }
+  ];
+
+  function log(msg, cls) {
+    var div = document.createElement("div");
+    if (cls) div.className = cls;
+    div.innerHTML = '<span class="t">[t=' + simNow.toFixed(1) + 's]</span> ' + msg;
+    elLog.prepend(div);
+    while (elLog.children.length > 40) elLog.removeChild(elLog.lastChild);
+  }
+
+  function renderOps(states) {
+    // states: array of {holder:bool, paused:bool, stateText}
+    elOps.innerHTML = "";
+    for (var i = 0; i < ops.length; i++) {
+      var d = document.createElement("div");
+      d.className = "op" + (states[i].holder ? " holder" : "") + (states[i].paused ? " paused" : "");
+      d.innerHTML = '<div class="op-name">' + ops[i].name + '</div>' +
+        '<div class="op-state">' + states[i].stateText + '</div>' +
+        '<div class="op-state" style="opacity:.7">' + ops[i].note + ' · token ' + ops[i].token + '</div>';
+      elOps.appendChild(d);
+    }
+  }
+
+  function setHolder(name) {
+    elHolder.textContent = name;
+    if (name === "—") { elHolderBadge.textContent = "free"; elHolderBadge.className = "badge ok"; }
+    else { elHolderBadge.textContent = "holding"; elHolderBadge.className = "badge warn"; }
+  }
+
+  function clearTimers() {
+    for (var i = 0; i < timers.length; i++) clearTimeout(timers[i]);
+    timers = [];
+  }
+
+  function later(sec, fn) {
+    timers.push(setTimeout(fn, sec * TICK));
+  }
+
+  function resetLab() {
+    clearTimers();
+    running = false;
+    simNow = 0;
+    elHome.textContent = "0";
+    elGoals.textContent = "0";
+    elGoalsBadge.textContent = "expect 3";
+    elGoalsBadge.className = "badge ok";
+    elRejected.textContent = "0";
+    elRejectedBadge.textContent = fencingOn ? "enforced" : "fencing off";
+    elRejectedBadge.className = "badge ok";
+    elVerdict.textContent = "—";
+    elVerdictBadge.textContent = "not run";
+    elVerdictBadge.className = "badge ok";
+    setHolder("—");
+    elLog.innerHTML = "";
+    renderOps([
+      { holder: false, paused: false, stateText: "waiting for the lock" },
+      { holder: false, paused: false, stateText: "waiting for the lock" },
+      { holder: false, paused: false, stateText: "waiting for the lock" }
+    ]);
+    $("lk-run").disabled = false;
+    log("race ready — TTL " + ttlSec + "s, A's pause " + pauseSec + "s, fencing " + (fencingOn ? "ON" : "OFF") + ". Press Run the race.", "");
+  }
+
+  function runRace() {
+    if (running) return;
+    resetLab();
+    running = true;
+    $("lk-run").disabled = true;
+
+    // Scoreboard (storage) state: goals + highest fencing token seen.
+    var goals = 0;
+    var highestToken = 0;      // fencing tokens: A1 -> 34, B2 -> 35, C3 -> 36
+    var rejected = 0;
+    var tokenOf = { A: 34, B: 35, C: 36 };
+
+    function boardWrite(who, tokNum, goalsAfterRead) {
+      // returns true if the write was rejected by fencing
+      // goalsAfterRead models read-modify-write from a (possibly stale) read
+      if (fencingOn && tokNum < highestToken) {
+        rejected++;
+        elRejected.textContent = rejected;
+        log('<span class="bad">✗ REJECTED</span> — ' + who + "'s write carried fencing token " + tokNum +
+            ", but the board already saw " + highestToken + ". Stale write bounced.", "bad");
+        return true;
+      }
+      highestToken = Math.max(highestToken, tokNum);
+      goals = goalsAfterRead;
+      elHome.textContent = goals;
+      elGoals.textContent = goals;
+      log('<span class="good">✓</span> ' + who + " recorded a goal (fencing token " + tokNum + ") — scoreboard HOME " + goals, "good");
+      return false;
+    }
+
+    function finish() {
+      running = false;
+      $("lk-run").disabled = false;
+      setHolder("—");
+      renderOps([
+        { holder: false, paused: false, stateText: "done" },
+        { holder: false, paused: false, stateText: "done" },
+        { holder: false, paused: false, stateText: "done" }
+      ]);
+      if (goals === 3 && rejected === 0) {
+        elVerdict.textContent = "clean";
+        elVerdictBadge.textContent = "3 goals, no conflict";
+        elVerdictBadge.className = "badge ok";
+        elGoalsBadge.textContent = "correct";
+        elGoalsBadge.className = "badge ok";
+        log("verdict: every goal counted exactly once — the lease covered the pause (or the ordering was lucky).", "good");
+      } else if (fencingOn && goals === 3 && rejected > 0) {
+        elVerdict.textContent = "saved by fencing";
+        elVerdictBadge.textContent = rejected + " stale write(s) bounced";
+        elVerdictBadge.className = "badge ok";
+        elGoalsBadge.textContent = "correct";
+        elGoalsBadge.className = "badge ok";
+        log("verdict: the lock broke (pause &gt; TTL) but fencing rejected the stale write — scoreboard stayed correct.", "good");
+      } else {
+        elVerdict.textContent = "double-count";
+        elVerdictBadge.textContent = "mutual exclusion broke";
+        elVerdictBadge.className = "badge bad";
+        elGoalsBadge.textContent = goals > 3 ? "too many!" : "wrong";
+        elGoalsBadge.className = "badge bad";
+        log("verdict: two operators were effectively inside the critical section — the scoreboard is wrong and nobody errored.", "bad");
+      }
+    }
+
+    log("whistle blows — all three operators see the goal and race for <b>lock:scoreboard</b> (TTL " + ttlSec + "s).", "");
+
+    // --- t=0: A wins the race ---
+    later(0, function () {
+      simNow = 0;
+      setHolder("Operator A");
+      renderOps([
+        { holder: true, paused: false, stateText: "HOLDING · token 34 · read score 0" },
+        { holder: false, paused: false, stateText: "retrying every 200ms…" },
+        { holder: false, paused: false, stateText: "retrying every 200ms…" }
+      ]);
+      log("Operator A wins <b>SET NX</b> — holds the lock with fencing token <b>34</b>, reads HOME = 0.", "");
+    });
+
+    // --- t=1: A's GC pause starts ---
+    later(1, function () {
+      simNow = 1;
+      renderOps([
+        { holder: true, paused: true, stateText: "PAUSED · stop-the-world GC (" + pauseSec + "s)" },
+        { holder: false, paused: false, stateText: "retrying every 200ms…" },
+        { holder: false, paused: false, stateText: "retrying every 200ms…" }
+      ]);
+      log('<span class="bad">⏸ Operator A freezes</span> — stop-the-world GC pause begins (' + pauseSec + "s). A is silent, not dead.", "bad");
+    });
+
+    var pauseEnd = 1 + pauseSec;
+
+    if (pauseSec <= ttlSec) {
+      // Pause is covered by the lease: A wakes up holding a valid lock, writes, releases. B then C proceed normally.
+      later(pauseEnd, function () {
+        simNow = pauseEnd;
+        renderOps([
+          { holder: true, paused: false, stateText: "awake · lease still valid" },
+          { holder: false, paused: false, stateText: "retrying every 200ms…" },
+          { holder: false, paused: false, stateText: "retrying every 200ms…" }
+        ]);
+        log("Operator A wakes up — pause (" + pauseSec + "s) was shorter than the TTL (" + ttlSec + "s). Lease still valid.", "good");
+      });
+      later(pauseEnd + 0.5, function () {
+        simNow = pauseEnd + 0.5;
+        boardWrite("Operator A", tokenOf.A, goals + 1);
+        log("Operator A releases via Lua compare-and-delete — token matches, lock freed.", "");
+        setHolder("Operator B");
+        renderOps([
+          { holder: false, paused: false, stateText: "done" },
+          { holder: true, paused: false, stateText: "HOLDING · token 35 · read score " + goals },
+          { holder: false, paused: false, stateText: "retrying every 200ms…" }
+        ]);
+        log("Operator B wins <b>SET NX</b> — fencing token <b>35</b>, reads HOME = " + goals + ".", "");
+      });
+      later(pauseEnd + 1.5, function () {
+        simNow = pauseEnd + 1.5;
+        boardWrite("Operator B", tokenOf.B, goals + 1);
+        setHolder("Operator C");
+        renderOps([
+          { holder: false, paused: false, stateText: "done" },
+          { holder: false, paused: false, stateText: "done" },
+          { holder: true, paused: false, stateText: "HOLDING · token 36 · read score " + goals }
+        ]);
+        log("Operator C wins <b>SET NX</b> — fencing token <b>36</b>, reads HOME = " + goals + ".", "");
+      });
+      later(pauseEnd + 2.5, function () {
+        simNow = pauseEnd + 2.5;
+        boardWrite("Operator C", tokenOf.C, goals + 1);
+        finish();
+      });
+    } else {
+      // Pause OUTLASTS the lease: expiry at ttlSec, B acquires, writes; A wakes up later and writes stale.
+      later(ttlSec, function () {
+        simNow = ttlSec;
+        setHolder("—");
+        renderOps([
+          { holder: false, paused: true, stateText: "PAUSED · lease EXPIRED underneath her" },
+          { holder: false, paused: false, stateText: "retrying every 200ms…" },
+          { holder: false, paused: false, stateText: "retrying every 200ms…" }
+        ]);
+        log('<span class="bad">⌛ Operator A\'s lease expires</span> at t=' + ttlSec + "s — Redis can't tell paused from crashed. The lock is free.", "bad");
+      });
+      later(ttlSec + 0.2, function () {
+        simNow = ttlSec + 0.2;
+        setHolder("Operator B");
+        renderOps([
+          { holder: false, paused: true, stateText: "PAUSED · thinks she still holds it" },
+          { holder: true, paused: false, stateText: "HOLDING · token 35 · read score " + goals + " (stale-ish: A's write never landed)" },
+          { holder: false, paused: false, stateText: "retrying every 200ms…" }
+        ]);
+        log("Operator B wins <b>SET NX</b> — fencing token <b>35</b>. B reads HOME = " + goals + " (A never wrote).", "");
+      });
+      later(ttlSec + 1.2, function () {
+        simNow = ttlSec + 1.2;
+        boardWrite("Operator B", tokenOf.B, goals + 1);
+        log("Operator B releases. C acquires next — fencing token <b>36</b>, reads HOME = " + goals + ".", "");
+        setHolder("Operator C");
+        renderOps([
+          { holder: false, paused: true, stateText: "PAUSED · thinks she still holds it" },
+          { holder: false, paused: false, stateText: "done" },
+          { holder: true, paused: false, stateText: "HOLDING · token 36" }
+        ]);
+      });
+      later(ttlSec + 2.2, function () {
+        simNow = ttlSec + 2.2;
+        boardWrite("Operator C", tokenOf.C, goals + 1);
+        setHolder("—");
+        log("Operator C releases. The lock is free — and Operator A is <em>still paused</em>, unaware.", "");
+      });
+      // A wakes up after her pause and writes from her stale read (she read 0 at t=0, so her write = 0 + 1... but
+      // B and C already wrote. Model read-modify-write: A computed 1 from her stale read of 0.)
+      later(pauseEnd, function () {
+        simNow = pauseEnd;
+        renderOps([
+          { holder: false, paused: false, stateText: "AWAKE · believes she holds the lock · writing from stale read (saw 0)" },
+          { holder: false, paused: false, stateText: "done" },
+          { holder: false, paused: false, stateText: "done" }
+        ]);
+        log('<span class="bad">⏯ Operator A wakes up</span> at t=' + pauseEnd.toFixed(1) + "s — her " + pauseSec + "s pause ended. She believes she still holds the lock and writes HOME = 1 (computed from the 0 she read at t=0).", "bad");
+        // A's stale write: she read 0, so she writes 1 — clobbering B and C's work (lost update).
+        var bounced = boardWrite("Operator A (stale)", tokenOf.A, 1);
+        if (fencingOn && bounced) {
+          // The rejection is detectable: A re-acquires with a fresh token, re-reads, and writes correctly.
+          log("Operator A <b>sees the rejection</b>, re-acquires the lock (fresh fencing token <b>37</b>), re-reads HOME = " + goals + ", and records her goal properly.", "good");
+          setHolder("Operator A");
+          renderOps([
+            { holder: true, paused: false, stateText: "re-acquired · token 37 · re-read score " + goals },
+            { holder: false, paused: false, stateText: "done" },
+            { holder: false, paused: false, stateText: "done" }
+          ]);
+          later(1.0, function () {
+            simNow = pauseEnd + 1.0;
+            boardWrite("Operator A (retry)", 37, goals + 1);
+            setHolder("—");
+            finish();
+          });
+        } else {
+          log("Without fencing, A's stale write <b>lands</b> — B and C's goals are silently overwritten. Scoreboard is wrong.", "bad");
+          finish();
+        }
+      });
+    }
+  }
+
+  elTtl.addEventListener("input", function () {
+    ttlSec = parseInt(elTtl.value, 10);
+    elTtlOut.textContent = ttlSec + " s";
+    if (!running) resetLab();
+  });
+  elPause.addEventListener("input", function () {
+    pauseSec = parseInt(elPause.value, 10);
+    elPauseOut.textContent = pauseSec + " s";
+    if (!running) resetLab();
+  });
+  elFencing.addEventListener("click", function () {
+    fencingOn = !fencingOn;
+    this.textContent = "Fencing tokens: " + (fencingOn ? "ON" : "OFF");
+    this.classList.toggle("on", fencingOn);
+    elRejectedBadge.textContent = fencingOn ? "enforced" : "fencing off";
+    if (!running) resetLab();
+    log("fencing tokens " + (fencingOn ? "<b>ON</b> — the scoreboard will reject writes with a token older than the highest seen." : "<b>OFF</b> — the scoreboard accepts every write."), "");
+  });
+  $("lk-run").addEventListener("click", runRace);
+  $("lk-reset").addEventListener("click", resetLab);
+
+  resetLab();
+
+  /* ============ Lab 2: release widget — broken vs fixed, stepped ============ */
+  var rlSteps = [
+    { t: "0.0", broken: '-- A holds lock:report (token A1, TTL 5s)\n-- A starts releasing…', event: 'A holds <b>lock:report</b> = <b>A1</b> (TTL 5s). A begins the broken release: <code>GET</code> first…' },
+    { t: "0.1", broken: 'local v = redis.GET("lock:report")  -- returns "A1"\n-- check: v == "A1" → true, proceed to DEL…', event: 'A\'s <code>GET</code> returns <b>A1</b> — the check passes. A is about to <code>DEL</code>…' },
+    { t: "0.2", broken: '-- ⚠ context switch! A\'s TTL expires HERE\n-- B acquires: SET lock:report B2 NX PX → OK\nlocal v = redis.GET("lock:report")  -- returned "A1" (stale truth)', event: '<span class="bad"><b>Between A\'s GET and A\'s DEL:</b> A\'s TTL expires, and B acquires — <b>lock:report</b> now holds <b>B2</b>.</span> B enters the critical section believing it\'s protected.' },
+    { t: "0.3", broken: 'redis.DEL("lock:report")  -- deletes B\'s lock!\n-- B is inside the critical section, unprotected\n-- C can now acquire too → two holders', event: 'A\'s <code>DEL</code> runs — and deletes <span class="bad"><b>B\'s lock</b></span>. B is mid-critical-section with no lock. C can acquire next: <b>two holders, one lock.</b>' },
+    { t: "0.4", broken: '-- the Lua version never allows this:\n-- GET-check and DEL are one atomic step;\n-- nothing can land between them.', event: '<span class="good"><b>With the Lua script</b></span> the check and the delete are a single atomic step — B\'s acquire cannot land between them. If the token no longer matches, the script returns 0 and deletes nothing.' }
+  ];
+  var rlIdx = 0;
+
+  var elRlBroken = $("rl-broken"), elRlLog = $("rl-log");
+
+  function rlLog(msg, cls) {
+    var div = document.createElement("div");
+    if (cls) div.className = cls;
+    div.innerHTML = '<span class="t">[step ' + (rlIdx) + ']</span> ' + msg;
+    elRlLog.prepend(div);
+    while (elRlLog.children.length > 20) elRlLog.removeChild(elRlLog.lastChild);
+  }
+
+  $("rl-step").addEventListener("click", function () {
+    if (rlIdx >= rlSteps.length) {
+      rlLog("race complete — press Reset to walk it again.", "");
+      return;
+    }
+    var s = rlSteps[rlIdx];
+    elRlBroken.textContent = s.broken;
+    rlLog(s.event, rlIdx === 3 ? "bad" : (rlIdx === 4 ? "good" : ""));
+    rlIdx++;
+    if (rlIdx >= rlSteps.length) { this.textContent = "Race complete — reset to replay"; }
+  });
+
+  $("rl-reset").addEventListener("click", function () {
+    rlIdx = 0;
+    elRlBroken.textContent = '-- press "Step through the race"\n-- each press advances one event';
+    elRlLog.innerHTML = "";
+    $("rl-step").textContent = "Step through the race";
+    rlLog("release-race reset. The broken release splits GET and DEL into two commands — watch the gap.", "");
+  });
+
+  rlLog("release-race ready. Each step advances the broken GET-then-DEL release one event — watch for the gap.", "");
+})();
+</script>
+</body>
+</html>
