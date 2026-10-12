@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Consensus & Raft</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch .field-line {
+      position: absolute; border: 2px solid rgba(255,255,255,.5); border-radius: 4px;
+      pointer-events: none;
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 260px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .log .good { color: #7fd8a8; }
+    .log .bad { color: #ff8f7d; }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .scoreboard {
+      display: flex; align-items: center; justify-content: center; gap: 16px;
+      margin: 18px 0; padding: 18px;
+      border: 2px solid var(--ink); border-radius: 12px; background: var(--code); color: var(--code-ink);
+      font-family: "IBM Plex Mono", monospace;
+    }
+    .scoreboard .team { font-weight: 600; font-size: 1.1rem; }
+    .scoreboard .goals { font-size: 2.2rem; font-weight: 600; min-width: 3.2rem; text-align: center; }
+    .ops-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+    .op {
+      flex: 1 1 130px; border: 1px solid var(--line); border-radius: 10px;
+      padding: 10px 12px; background: var(--paper); font-size: .9rem;
+    }
+    .op .op-name { font-weight: 700; }
+    .op .op-state { font-family: "IBM Plex Mono", monospace; font-size: .8rem; color: var(--muted); }
+    .op.holder { border-color: var(--green); }
+    .op.holder .op-state { color: var(--green); }
+    .op.paused { border-color: var(--accent); }
+    .op.paused .op-state { color: var(--accent); }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer h5 { margin: 14px 0 6px; font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .drill {
+      background: var(--purple-soft); border: 1px solid var(--purple);
+      border-radius: var(--radius); padding: 20px 22px; margin: 20px 0; max-width: 46rem;
+    }
+    .drill h4 { margin: 0 0 8px; }
+    .drill .rubric { border-top: 1px dashed var(--purple); padding-top: 12px; }
+    .verdict {
+      border: 2px solid var(--green); border-radius: var(--radius);
+      padding: 18px 22px; margin: 22px 0; max-width: 46rem; background: var(--green-soft);
+    }
+    .verdict h4 { margin: 0 0 8px; color: var(--green); }
+    .verdict p { max-width: none; margin: 6px 0; }
+    .code-diff { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 18px 0; max-width: 46rem; }
+    @media (min-width: 720px) { .code-diff { grid-template-columns: 1fr 1fr; } }
+    .code-pane { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+    .code-pane .pane-head { padding: 10px 16px; font-weight: 700; font-size: .9rem; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+    .code-pane.broken .pane-head { background: var(--accent-soft); color: var(--accent); }
+    .code-pane.fixed .pane-head { background: var(--green-soft); color: var(--green); }
+    .code-pane pre { margin: 0; border-radius: 0; max-width: none; }
+    .nav-next {
+      display: block; margin-top: 60px; padding: 22px 24px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      text-decoration: none; color: inherit; box-shadow: var(--shadow);
+    }
+    .nav-next:hover { border-color: var(--ink); }
+    .nav-next .lbl { font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .nav-next .t { font-size: 1.2rem; font-weight: 700; margin-top: 4px; }
+    footer.page-foot { margin-top: 56px; color: var(--muted); font-size: .88rem; border-top: 1px solid var(--line); padding-top: 20px; }
+    .kicker { font-size: .82rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 30px 0 -8px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <nav class="crumbs"><a href="../index.html">All lessons</a> &rsaquo; Lesson 14</nav>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 14 &middot; Core Building Blocks</span>
+    <h1>Consensus &amp; Raft</h1>
+    <p class="whyline">The last lesson ended with ZooKeeper and etcd — the systems that <em>make</em> locks safe. This lesson opens them up: how does a group of machines agree on <strong>one truth</strong> when any of them can crash at any moment? That question is <strong>consensus</strong>, and the most widely used answer is a protocol called <strong>Raft</strong> — one leader, heartbeats, majority votes, and a log that refuses to disagree with itself. If you want "exactly one thing happens" across servers — one config value, one elected leader, one official record — this is the machinery underneath.</p>
+    <div class="meta">
+      <span>~18 min read</span>
+      <span>1 interactive lab</span>
+      <span>4 Q&amp;A with model answers</span>
+      <span>3 practice drills</span>
+    </div>
+  </header>
+
+  <div class="toc">
+    <h2>In this lesson</h2>
+    <ol>
+      <li><a href="#what">What is consensus?</a> — the idea defined from zero</li>
+      <li><a href="#why-hard">Why agreement is so hard</a> — crashes, FLP, and the quorum trick</li>
+      <li><a href="#paxos">Paxos, at high level</a> — the classic you should know exists</li>
+      <li><a href="#raft-roles">Raft: the three roles</a> — leader, follower, candidate</li>
+      <li><a href="#election">Leader election, step by step</a> — terms, timeouts, and why they're random</li>
+      <li><a href="#replication">Log replication: how a write commits</a> — the majority rule</li>
+      <li><a href="#leader-dies">When the leader dies</a> — the full walkthrough with numbers</li>
+      <li><a href="#partitions">Partitions: the minority goes quiet</a> — consistency's price</li>
+      <li><a href="#where">Where consensus lives in real systems</a> — etcd, ZooKeeper, Consul</li>
+      <li><a href="#raft-vs-paxos">Raft vs Paxos in one table</a></li>
+      <li><a href="#when-not">When you DON'T need consensus</a> — the cost and the alternatives</li>
+      <li><a href="#lab">Lab: the officials' Raft cluster</a> — crash the leader, hold an election, cut a partition</li>
+      <li><a href="#qa">Q&amp;A — with full model answers</a></li>
+      <li><a href="#drills">Practice drills</a></li>
+      <li><a href="#cheatsheet">Cheat sheet: the 6 consensus decisions</a> — plus consensus in 60 seconds</li>
+      <li><a href="#talk">How to talk about consensus in the room</a></li>
+    </ol>
+  </div>
+
+  <section id="what">
+    <div class="section-head"><span class="section-num">01</span><h2>What is consensus?</h2></div>
+    <p class="lede"><strong>Consensus is a group of machines agreeing on one shared truth — or agreeing on nothing at all — even when some of them crash.</strong> Not "eventually agreeing." Not "mostly agreeing." Every surviving machine ends up with <em>the same</em> answer, and a crashed machine can't leave the group split into two camps with two different answers.</p>
+
+    <div class="pitch">
+      <div class="field-line" style="top:18px;left:18px;right:18px;bottom:18px;"></div>
+      <span class="tag">⚽ The running example: the officials' room</span>
+      <h4>Five officials, one official match log, zero disagreements</h4>
+      <p>Championship final. The league keeps an <strong>official match log</strong> — a single ordered list of everything that happened: <code>KICKOFF 0'</code>, <code>GOAL — 67'</code>, <code>SAVE — 89'</code>, <code>FULL TIME</code>. But the log is maintained by <strong>five officials</strong> — A, B, C, D, E — each sitting in a different part of the stadium with their own walkie-talkie, each keeping their own copy of the log. Any official's radio can die mid-match. Phones drop. Batteries die.</p>
+      <p>The league's rule is brutal and simple: at the end of the night, <strong>all five copies must be identical</strong> — or the match result is void. No "my log says 2–1, yours says 1–1." Every idea in this lesson lands on this officials' room.</p>
+    </div>
+
+    <div class="definition">
+      <strong class="term">Consensus, formally</strong>
+      <p>A set of <span class="term">nodes</span> (machines, processes — our five officials) must agree on a single <span class="term">value</span> (one log entry, one leader, one config). Every node that decides must decide the <em>same</em> value, and the value must be one that was actually proposed — the officials can't invent a goal that nobody saw. A <span class="term">fault</span> is anything going wrong: the classic kind here is a <span class="term">crash fault</span> — a node stops dead, mid-sentence (as opposed to lying, which is a separate, harder model called <span class="term">Byzantine</span> — you'll meet it in blockchains; Raft and Paxos don't handle lying, only crashing).</p>
+    </div>
+
+    <p>Why should you care as an engineer? Consensus is the engine under:</p>
+    <ul>
+      <li><strong>Leader election</strong> — exactly one machine is "in charge" (which database node accepts writes, which instance runs the cron).</li>
+      <li><strong>Distributed locks</strong> — the ZooKeeper/etcd from the last lesson are consensus systems first, lock services second.</li>
+      <li><strong>Configuration and membership</strong> — "the new config is v42" has to be the same v42 everywhere.</li>
+      <li><strong>Replicated state machines</strong> — five copies of a database applying the same commands in the same order stay identical. That's the big one: run consensus on a <em>log of commands</em>, and you get a replicated database for free.</li>
+    </ul>
+  </section>
+
+  <section id="why-hard">
+    <div class="section-head"><span class="section-num">02</span><h2>Why agreement is so hard</h2></div>
+    <p class="lede">If everyone stayed alive and every message arrived, consensus would be a group chat. The hardness comes entirely from <strong>failing mid-conversation</strong>.</p>
+
+    <h3>The crash-mid-sentence problem</h3>
+    <p>Official A sees the 67th-minute goal and starts announcing it over the radio: "GOAL — sixty-sev—" <em>click</em>. Radio dead. Now:</p>
+    <ul>
+      <li>Did A finish the sentence before dying? Maybe C heard the whole thing and logged it.</li>
+      <li>Or maybe the radio died before a single syllable went out, and nobody heard anything.</li>
+      <li>Or maybe only <em>one</em> official heard it — C logged <code>GOAL — 67'</code>, everyone else logged nothing.</li>
+    </ul>
+    <p>The group now holds <strong>different logs</strong>, and nobody knows who heard what. A's silence is ambiguous: is A dead, or just quiet? You can't ask — the radio is dead. <strong>This is the entire problem of consensus: distinguishing a crashed node from a silent one, and converging on one truth without a perfect communication channel.</strong></p>
+
+    <h3>The two classic impossibilities</h3>
+    <p>Two famous results frame what you can and can't do:</p>
+    <ul>
+      <li><strong>The Two Generals intuition.</strong> Two armies must attack at the same time or not at all, coordinating by messenger — and messengers can be captured. No finite number of confirmations ("I got your message" / "I got your confirmation") ever gives <em>certainty</em>, because the last message is always unconfirmed. The takeaway isn't despair — it's that <strong>perfect certainty requires unbounded waiting</strong>, so real systems settle for <em>overwhelming likelihood</em> plus timeouts.</li>
+      <li><strong>FLP (Fischer–Lynch–Paterson, 1985).</strong> The formal version: in a <strong>fully asynchronous</strong> network — messages take an unknown amount of time, nodes have no shared clock — <strong>no deterministic algorithm can guarantee consensus if even one node can crash.</strong> The killer detail: without timing bounds, you cannot tell a <em>crashed</em> node from a merely <em>slow</em> one, so any algorithm that waits for everyone can hang forever.</li>
+    </ul>
+    <p>The escape hatch real systems use: <strong>don't be fully asynchronous.</strong> Use timeouts. "If I haven't heard from you in 200ms, I assume you're dead." That assumption can be <em>wrong</em> (you were just slow) — and the protocol has to survive being wrong about it. That survival story is Raft.</p>
+
+    <h3>The quorum trick</h3>
+    <p>Here is the one mathematical idea everything rests on. A <span class="term">quorum</span> is a group big enough to decide for everyone. Raft's rule: <strong>a quorum is a strict majority — more than half the nodes.</strong></p>
+    <div class="callout">
+      <h4>Why majorities: the overlap argument</h4>
+      <p>Take 5 officials. A majority is <strong>3</strong>. Now take <em>any two</em> majorities — any two groups of 3 out of 5. They must share at least one member: 3 + 3 − 5 = <strong>1</strong>. Always. (This is the <span class="term">pigeonhole principle</span>: two groups of 3 can't fit into 5 slots without overlapping.)</p>
+      <p>So: if a value was agreed by <em>some</em> majority, then <em>any other</em> majority you later consult contains at least one official who saw that agreement. <strong>No two majorities can ever commit to different truths.</strong> That overlap is the whole safety argument of Raft — remember it; it answers half the interview questions.</p>
+    </div>
+    <p>The quorum table for odd cluster sizes (memorize the pattern: majority = ⌊n/2⌋ + 1):</p>
+    <table class="cmp">
+      <tr><th>Cluster size (n)</th><th>Majority (⌊n/2⌋ + 1)</th><th>Failures tolerated</th></tr>
+      <tr><td>3</td><td>2</td><td>1</td></tr>
+      <tr><td>5</td><td>3</td><td>2</td></tr>
+      <tr><td>7</td><td>4</td><td>3</td></tr>
+    </table>
+    <p>Notice: a 4-node cluster needs a majority of 3 — tolerating exactly <strong>1</strong> failure, same as 3 nodes. <strong>Even-numbered clusters add a node without adding fault tolerance.</strong> That's why production consensus clusters are 3, 5, or 7. (Drill 2 makes you prove it.)</p>
+  </section>
+
+  <section id="paxos">
+    <div class="section-head"><span class="section-num">03</span><h2>Paxos, at high level</h2></div>
+    <p class="lede">Before Raft there was <strong>Paxos</strong> (Leslie Lamport, 1989/1998) — the first consensus protocol proven correct, and famously the hardest paper in distributed systems to actually understand. You won't implement Paxos in an interview; you should be able to place it.</p>
+    <p>Paxos has three roles and two phases:</p>
+    <ul>
+      <li><strong>Roles:</strong> <span class="term">proposers</span> suggest values, <span class="term">acceptors</span> vote (a majority must accept), <span class="term">learners</span> hear the outcome.</li>
+      <li><strong>Phase 1 — Prepare/Promise.</strong> A proposer asks a majority of acceptors: "promise me you won't accept anything older than proposal #n." Each acceptor promises, and hands back the newest value it already accepted.</li>
+      <li><strong>Phase 2 — Propose/Accept.</strong> The proposer must propose the newest value it heard back (or its own, if none) — this is what guarantees only one value wins. If a majority accepts, the value is chosen.</li>
+    </ul>
+    <div class="warn-box">
+      <p><strong>Why Paxos has a reputation:</strong> the original paper is famously hard to read — Lamport himself later wrote that describing it clearly took a second paper. Practitioners kept finding that the gap between "the algorithm" and "a working system" (leader election, log compaction, membership changes) was where all the bugs lived. Google's Chubby paper noted that real Paxos implementations are "substantially more complex" than the theory. <strong>Raft was created in 2013 specifically as the understandable alternative</strong> — same guarantees, a design a mortal engineer can hold in their head. That's why this lesson goes deep on Raft and keeps Paxos at this altitude.</p>
+    </div>
+  </section>
+  <section id="raft-roles">
+    <div class="section-head"><span class="section-num">04</span><h2>Raft: the three roles</h2></div>
+    <p class="lede">Raft's big idea: <strong>all decisions flow through one elected leader.</strong> Instead of everyone proposing (Paxos), the group elects a single spokesperson, and consensus becomes "the leader decides, the majority confirms." At any moment, every node is in exactly one of three states:</p>
+    <table class="cmp">
+      <tr><th>Role</th><th>What it does</th><th>In the officials' room</th></tr>
+      <tr><td><strong>Leader</strong><br>(exactly ≤ 1 at a time)</td><td>Handles all client writes; appends them to its log; replicates to followers via heartbeats; commits once a majority acks.</td><td>The <strong>head official</strong> with the whistle. She announces each event; the others copy her into their own logs.</td></tr>
+      <tr><td><strong>Follower</strong><br>(the normal state)</td><td>Copies whatever the leader sends; votes in elections; resets its election timer on every heartbeat.</td><td>The other officials, pens ready, copying the head official's announcements.</td></tr>
+      <tr><td><strong>Candidate</strong><br>(transient)</td><td>A follower whose timer ran out; campaigns for votes to become leader for a new term.</td><td>An official whose radio went quiet, shouting "is anyone there? I'll take charge if you'll have me."</td></tr>
+    </table>
+    <div class="definition">
+      <strong class="term">Term — Raft's logical clock</strong>
+      <p>A <span class="term">term</span> is a numbered era, like a football season: term 1, term 2, term 3… Terms never go backwards, and <strong>a higher term always wins</strong> — if a node hears any message from a higher term, it immediately steps down to follower and updates its term. Time in Raft isn't measured in seconds; it's measured in terms. "Who's the leader?" is always answered as "A, in term 5." A stale leader from term 4 can't overrule term 5 — the term number <em>is</em> the authority.</p>
+    </div>
+    <p>Raft nodes talk through only two <span class="term">RPCs</span> (remote procedure calls — one machine calling a function on another over the network):</p>
+    <ul>
+      <li><strong>RequestVote</strong> — "I'm a candidate for term T; will you vote for me?"</li>
+      <li><strong>AppendEntries</strong> — "here are new log entries to copy" — which <em>doubles as the heartbeat</em>: a leader with nothing new still sends empty AppendEntries on a timer, and every follower resets its election clock on receipt.</li>
+    </ul>
+    <p>That's the whole vocabulary. Everything else in this lesson is choreography with these two messages.</p>
+  </section>
+
+  <section id="election">
+    <div class="section-head"><span class="section-num">05</span><h2>Leader election, step by step</h2></div>
+    <p class="lede">How five followers with no coordinator pick exactly one leader — including the randomization trick that stops elections from deadlocking forever.</p>
+
+    <h3>The steady state: heartbeats</h3>
+    <p>The leader sends AppendEntries heartbeats every ~50ms. Each follower runs an <span class="term">election timer</span> — a countdown that resets on every heartbeat. As long as the leader is alive, the timer never reaches zero. <strong>Silence is the only failure signal</strong>: a dead leader and a partitioned leader look identical — no heartbeats. Raft treats both the same, and the quorum math keeps it safe (section 8).</p>
+
+    <h3>The election, numbered</h3>
+    <p>Leader A's radio dies. Walk through what happens, with a cluster of 5:</p>
+    <ol>
+      <li><strong>Timers fire.</strong> B, C, D, E stop hearing heartbeats. Their election timers — each set to a <em>different random</em> value in 150–300ms — count down. B's fires first.</li>
+      <li><strong>B becomes a candidate.</strong> B increments its term (3 → 4), votes <em>for itself</em> (votes: 1), resets its timer, and sends <strong>RequestVote(term 4)</strong> to A, C, D, E.</li>
+      <li><strong>Followers vote once per term.</strong> C receives B's request. C hasn't voted in term 4 yet, and B's log is as fresh as C's — so C grants the vote and <em>records that it voted for B in term 4</em>. C will now reject any other term-4 candidate (say D): <strong>one vote per follower per term</strong>, first-come-first-served. D does the same. A is dead; E's vote never arrives, but it doesn't matter.</li>
+      <li><strong>Majority wins.</strong> B tallies: self + C + D = <strong>3 of 5</strong> — a majority. B becomes <strong>leader of term 4</strong> and immediately starts sending heartbeats ("AppendEntries, term 4") so nobody else starts campaigning.</li>
+    </ol>
+    <div class="green-box">
+      <p><strong>Why "first-come-first-served, one vote per term" matters:</strong> it's what guarantees at most one leader per term. Two candidates can't both reach a majority in the same term, because the majorities would overlap (section 2's argument) — the overlapping voter would have to vote twice, which the rule forbids. <strong>At most one leader per term, always.</strong> Say that sentence in the room; it's the load-bearing one.</p>
+    </div>
+
+    <h3>Why the timeouts are randomized — the split-vote problem</h3>
+    <p>Suppose every follower's election timer were exactly 200ms. The leader dies at t=0. At t=200ms, B, C, D, and E <em>all</em> become candidates, all increment to term 4, all vote for themselves, all send RequestVote — and each follower has already used its single term-4 vote on itself. Nobody grants anyone a vote. Result: four candidates, zero winners, term 4 produces <strong>no leader</strong> — a <span class="term">split vote</span>.</p>
+    <p>What then? Each candidate's timer fires again, terms bump to 5, and — if timeouts are still identical — it deadlocks again, term after term, <strong>forever</strong>. The cluster has no leader and takes no writes, indefinitely.</p>
+    <div class="callout">
+      <h4>The fix: randomize the timeout</h4>
+      <p>Each follower picks its election timeout <strong>randomly from a range</strong> (typical: 150–300ms). Now when the leader dies, one follower's timer almost always fires first — it campaigns and wins <em>before the others time out</em>, because its first act as leader is sending heartbeats that reset everyone else's timers. If a split vote does happen (two timers fire within the same few milliseconds), the losers' next timeouts are re-randomized, so the next round almost certainly produces a single winner. <strong>Randomization turns a guaranteed deadlock into a near-certain quick election.</strong></p>
+      <p>The timeout range itself is sized deliberately: it must be <strong>much larger than the heartbeat interval</strong> (so a live leader never accidentally triggers elections — heartbeats at ~50ms vs timeouts at 150–300ms gives a 3–6× margin) and <strong>larger than the network's round-trip time</strong> (so a RequestVote round trip fits comfortably inside it). Leader failover takes roughly one election timeout — ~150–300ms — which is why consensus clusters promise sub-second leader recovery.</p>
+    </div>
+
+    <h3>The election restriction: only fresh logs can win</h3>
+    <p>One more safety rule, and it's subtle: <strong>a candidate can only win if its log is at least as up-to-date as the followers'.</strong> RequestVote carries the candidate's last log entry (index + term); a follower <strong>denies its vote</strong> to any candidate whose log is older than its own.</p>
+    <p>Why: suppose the old leader committed <code>GOAL — 67'</code> (majority has it) but crashed before telling official E, whose radio was already flaky. E's log is missing the goal. If E could become leader, it would overwrite everyone else's logs with its stale one — <strong>a committed entry would be lost</strong>. The election restriction prevents exactly this: because <code>GOAL — 67'</code> reached a majority, any future majority (which must win the election) contains at least one node that has it, and that node <em>refuses to vote for the stale candidate</em>. E can never win until it catches up. <strong>Committed entries survive leader changes — this is the "leader completeness" property, and the election restriction is how Raft enforces it.</strong></p>
+  </section>
+
+  <section id="replication">
+    <div class="section-head"><span class="section-num">06</span><h2>Log replication: how a write commits</h2></div>
+    <p class="lede">Election picks the leader; replication is where data actually flows. A client write becomes permanent in exactly three steps — and "permanent" has a precise definition: <strong>on a majority</strong>.</p>
+    <p>Back in the officials' room: term 4, B is the head official. The league's app (the client) sends B an event: <code>SAVE — 89'</code>.</p>
+    <ol>
+      <li><strong>Append locally.</strong> B appends <code>SAVE — 89'</code> to the end of <em>her own</em> log, marked <strong>uncommitted</strong> — "I've written it in pencil; it doesn't count yet." (If the client had contacted a follower instead, the follower just forwards it to the leader — <strong>all writes go through the leader</strong>, which is what makes ordering trivial: one decider, one order.)</li>
+      <li><strong>Replicate.</strong> B sends <strong>AppendEntries</strong> RPCs to C, D, E (and dead A, which won't answer): "copy <code>SAVE — 89'</code> at the end of your log." Each follower appends it to its own log and replies "done." (Each AppendEntries also carries the leader's term and the entry <em>before</em> the new one, so a follower can detect "your log doesn't match mine here" — the <strong>log consistency check</strong> — and the leader retries with earlier entries until the logs line up. This is how a healed follower's divergent tail gets overwritten.)</li>
+      <li><strong>Commit on majority.</strong> B counts acks: herself + C + D = 3 of 5. <strong>Majority reached.</strong> B advances her <span class="term">commit index</span> — the pointer to "the last entry that is permanent" — past <code>SAVE — 89'</code>, applies it to her state machine (the actual scoreboard), and replies to the client: "recorded." Her next heartbeat tells the followers "commit index moved," and they apply it too.</li>
+    </ol>
+    <div class="definition">
+      <strong class="term">Committed = on a majority</strong>
+      <p>An entry is <span class="term">committed</span> the moment a majority of nodes hold it in their logs. From that instant it is <strong>permanent</strong>: the quorum-overlap argument guarantees every future leader's election majority includes at least one node carrying it, the election restriction guarantees that node won't vote for anyone missing it, and so every future leader's log contains it. <strong>The client can be told "it's durable" after ~2 network round trips</strong> (leader→followers→leader) — that's the write latency of a consensus cluster, and it's why you don't put hot data paths through one.</p>
+    </div>
+    <p>Two guarantees worth naming, because interviewers do:</p>
+    <ul>
+      <li><strong>State machine safety:</strong> if two nodes have applied (committed) an entry at the same log index, the entries are identical. No two officials ever officially record different events at position 7 of the log.</li>
+      <li><strong>Leader completeness:</strong> if an entry is committed in some term, every leader of every later term holds it. (Enforced by the election restriction above.)</li>
+    </ul>
+  </section>
+
+  <section id="leader-dies">
+    <div class="section-head"><span class="section-num">07</span><h2>When the leader dies: the full walkthrough</h2></div>
+    <p class="lede">The scenario every interviewer asks for, with every number on the table. Five officials, term 5, C is the leader.</p>
+    <p>The log so far (all committed): <code>KICKOFF 0'</code>, <code>GOAL — 67'</code>, <code>SAVE — 89'</code>. Then:</p>
+    <ol>
+      <li><strong>t = 0ms — the client sends <code>GOAL — 91'</code> to C.</strong> C appends it (uncommitted, pencil), sends AppendEntries to A, B, D, E.</li>
+      <li><strong>t = 0ms — C's radio dies mid-replication.</strong> Acks arrive from A and B only: 3 of 5 (C + A + B). <strong>Majority reached before the crash — the entry is committed.</strong> C dies before telling anyone the commit index moved, but it doesn't matter: A and B hold it, and it's on a majority.</li>
+      <li><strong>t ≈ 150–300ms — silence.</strong> A, B, D, E's election timers (randomized, remember) count down with no heartbeats. D's fires first.</li>
+      <li><strong>D becomes candidate, term 6.</strong> D votes for itself (1/5), sends RequestVote(term 6, "my last entry is GOAL — 91'"). A and B check: D's log is as fresh as theirs → grant. A used its term-6 vote, B used its term-6 vote. Votes: D + A + B = <strong>3/5, majority. D is leader of term 6.</strong> E's vote is irrelevant; C is dead.</li>
+      <li><strong>D's first act:</strong> send AppendEntries(term 6) heartbeats with commit index past <code>GOAL — 91'</code>. A and B apply it (already had it); E copies the entry, applies it. C stays dead. <strong>All live logs identical, entry committed, zero loss.</strong></li>
+    </ol>
+    <div class="warn-box">
+      <p><strong>Now the darker variant:</strong> suppose C crashed <em>before</em> reaching a majority — only C held <code>GOAL — 91'</code>, acks from A and B never arrived. Then the entry was <strong>never committed</strong>, and D's election proceeds identically — except now <em>nobody's</em> log contains <code>GOAL — 91'</code>, so D (term 6) simply never replicates it. <strong>The entry vanishes as if the client never sent it.</strong> That's not a bug; it's the contract. Raft guarantees <em>committed</em> entries survive — uncommitted ones are allowed to disappear, because the client never got its "recorded" ack. This is why clients retry on timeout: an unacked write might or might not have committed, and <strong>retrying must be safe — which is why the state machine should be idempotent</strong> (lesson 9's idempotency keys, coming back around).</p>
+    </div>
+  </section>
+  <section id="partitions">
+    <div class="section-head"><span class="section-num">08</span><h2>Partitions: the minority goes quiet</h2></div>
+    <p class="lede">A crashed leader and a partitioned leader look identical — no heartbeats. The quorum math is what keeps the partition from creating two competing truths.</p>
+    <p>Five officials. The stadium network splits: <strong>A and B</strong> are cut off together on one side; <strong>C, D, E</strong> stay connected on the other. C is the current leader. Walk it through:</p>
+    <ul>
+      <li><strong>Majority side (C, D, E = 3/5):</strong> C's heartbeats still reach D and E — 3 of 5, a majority. Elections can succeed here, writes commit here. <strong>The cluster keeps working.</strong> To these three, A and B look "crashed."</li>
+      <li><strong>Minority side (A, B = 2/5):</strong> A and B stop hearing C. Their election timers fire; one becomes candidate, bumps the term, sends RequestVote — and can collect at most <strong>2 votes out of 5</strong>. No majority, no leader. Terms keep climbing pointlessly on every timeout. <strong>The minority can do nothing but wait.</strong> To these two, C, D, E look "crashed."</li>
+    </ul>
+    <div class="callout">
+      <h4>No split brain — by construction</h4>
+      <p>Why can't the minority elect its own competing leader and commit conflicting entries? Because <strong>a leader needs a majority, and there's only one majority's worth of votes to go around</strong>: if C's side elected a leader (3 votes), only 2 votes remain — the minority's candidate can never reach 3. And crucially, <strong>A cannot commit anything either</strong>: even if A somehow declared itself leader, its writes would need 3 acks, and only 2 nodes can hear it. The partition doesn't create two working clusters; it creates <strong>one working cluster and one frozen one</strong>. This is Raft choosing <span class="term">consistency over availability</span> — the CP corner of the CAP theorem (lesson 7), deliberately.</p>
+    </div>
+    <p><strong>When the partition heals:</strong> A and B rejoin with stale logs and inflated terms (their solo elections kept bumping the term). The first AppendEntries from the real leader (with its commit index) triggers the log consistency check: "your tail doesn't match mine" → A and B's divergent uncommitted entries are <strong>overwritten by the leader's log</strong>, their terms snap back, and all five copies converge. <strong>The leader's log is always the truth the cluster converges to</strong> — never the reverse.</p>
+    <p>The price, stated plainly: <strong>during a partition, the minority side is unavailable for writes</strong> — and if the partition is 2–3 in a 5-node cluster, a client routed to the wrong side sees errors until it heals. You buy unbreakable agreement; you pay with availability. That's not a flaw to fix — it's the trade the whole protocol is built around.</p>
+  </section>
+
+  <section id="where">
+    <div class="section-head"><span class="section-num">09</span><h2>Where consensus lives in real systems</h2></div>
+    <p class="lede">You will almost never implement Raft yourself. You <em>will</em> stand on systems built on it — so know which ones, and what job consensus does inside them.</p>
+    <table class="cmp">
+      <tr><th>System</th><th>Protocol</th><th>What consensus is used for</th></tr>
+      <tr><td><strong>etcd</strong></td><td>Raft</td><td>Kubernetes' brain: every cluster object, config, and lease lives in etcd. When you <code>kubectl apply</code>, you're writing through Raft.</td></tr>
+      <tr><td><strong>Consul</strong></td><td>Raft</td><td>Service discovery + KV: the service catalog and leader election for its own servers.</td></tr>
+      <tr><td><strong>ZooKeeper</strong></td><td>ZAB (same family)</td><td>Coordination: locks, leader election, config (lesson 13's lock service — now you know what's underneath).</td></tr>
+      <tr><td><strong>CockroachDB / TiKV</strong></td><td>Raft (per shard)</td><td>Each data range is its own little Raft group — consensus replicated at the storage layer, not just the metadata layer.</td></tr>
+      <tr><td><strong>Redis (default)</strong></td><td>None</td><td>Exactly why lesson 13 needed fencing tokens: no consensus means no guaranteed single truth, so the application enforces safety itself.</td></tr>
+    </table>
+    <p>The pattern: <strong>consensus guards the small, precious state</strong> — configs, locks, membership, schema — the few kilobytes the whole system must agree on. It does <em>not</em> guard your terabytes of user data on the hot path (section 11 explains why).</p>
+  </section>
+
+  <section id="raft-vs-paxos">
+    <div class="section-head"><span class="section-num">10</span><h2>Raft vs Paxos in one table</h2></div>
+    <p class="lede">The comparison interviewers expect you to make in thirty seconds.</p>
+    <table class="cmp">
+      <tr><th></th><th>Paxos</th><th>Raft</th></tr>
+      <tr><td><strong>Origin</strong></td><td>Lamport, 1989/98 — the original proven-correct protocol</td><td>Ongaro &amp; Ousterhout, 2013 — "in search of an understandable consensus algorithm"</td></tr>
+      <tr><td><strong>Leadership</strong></td><td>No stable leader; any proposer can drive a round (multi-Paxos adds one as an optimization)</td><td><strong>Leader-based by design</strong> — all writes flow through the elected leader</td></tr>
+      <tr><td><strong>Core mechanism</strong></td><td>Two phases: prepare/promise, then propose/accept — per value</td><td>Leader election (RequestVote) + log replication (AppendEntries) — per term / per entry</td></tr>
+      <tr><td><strong>Safety argument</strong></td><td>Quorum intersection on accepted values</td><td>Quorum intersection + election restriction (leaders must be up-to-date)</td></tr>
+      <tr><td><strong>Understandability</strong></td><td>Notoriously hard; production gaps (log compaction, membership) left as exercises</td><td>Designed to be teachable; the paper reads like documentation</td></tr>
+      <tr><td><strong>Use when</strong></td><td>You need the theoretical lineage, or you're reading Chubby/Spanner papers</td><td>Nearly always, in practice — etcd, Consul, and most modern systems chose Raft</td></tr>
+    </table>
+    <p>The one-liner: <strong>"Same guarantees, same quorum math — Raft is Paxos reorganized around a leader so humans can reason about it."</strong></p>
+  </section>
+
+  <section id="when-not">
+    <div class="section-head"><span class="section-num">11</span><h2>When you DON'T need consensus</h2></div>
+    <p class="lede">Consensus is expensive. Knowing when <em>not</em> to pay for it is the senior part of this lesson.</p>
+    <p>The costs, honestly:</p>
+    <ul>
+      <li><strong>Write latency:</strong> every write costs ~2 round trips to a majority before the client gets its ack. Across availability zones that's single-digit milliseconds — fine for config, fatal for a 100k-writes/sec event stream.</li>
+      <li><strong>Throughput ceiling:</strong> one leader does all writes. A well-tuned Raft group (etcd-class) sustains on the order of <strong>~10k writes/sec</strong> — plenty for coordination, nothing like a sharded database.</li>
+      <li><strong>Minority stalls:</strong> partitions freeze the small side (section 8). If you need "always writable everywhere," you need AP, not Raft.</li>
+      <li><strong>Operational weight:</strong> odd-sized clusters, quorum monitoring, careful timeout tuning, membership changes done one node at a time (joint consensus) so you never accidentally create two majorities mid-change.</li>
+    </ul>
+    <div class="callout">
+      <h4>The decision rule</h4>
+      <p><strong>Reach for consensus (etcd / ZooKeeper / Consul) when:</strong> the state is small, precious, and must be single-valued — leader election, locks, config, schema, membership. <strong>Don't</strong> when: the data is large or hot (use sharding + replication, lessons 5–6), when stale reads are acceptable (use quorum reads/writes without a leader, Dynamo-style — lesson 5's leaderless quorum), when one writer can be designated by construction (a single-writer service needs no election), or when the operation is idempotent and retryable (a queue + idempotency keys, lesson 9, gets you "exactly once" <em>effect</em> far cheaper than exactly-once <em>agreement</em>).</p>
+    </div>
+  </section>
+  <section id="lab">
+    <div class="section-head"><span class="section-num">12</span><h2>Lab: the officials' Raft cluster</h2></div>
+    <p class="lede">A working 5-official Raft cluster. Crash the leader mid-term, watch an election need exactly 3 of 5 votes, then cut a partition and try to elect a leader from the minority side. Every button is explained in the legend below the controls — press them top-to-bottom the first time.</p>
+    <style>
+      .badge { display:inline-block; font-size:.72rem; font-weight:700; border-radius:999px; padding:2px 10px; margin-top:6px; border:1px solid var(--line-strong); color:var(--muted); }
+      .mini-log { font-family:"IBM Plex Mono",monospace; font-size:.76rem; margin-top:10px; line-height:1.6; color:var(--muted); }
+      .mini-log .lg-ok { color:var(--green); font-weight:600; }
+      .mini-log .lg-pend { color:var(--amber); font-weight:600; }
+      .rf-legend { font-size:.92rem; color:var(--muted); margin:14px 0 0; max-width:46rem; }
+      .rf-legend li { margin:5px 0; }
+      .rf-legend b { color:var(--ink); }
+    </style>
+    <div class="lab">
+      <h3>The officials' Raft cluster</h3>
+      <p class="howto">Officials A–E keep the league's official match log. The leader replicates every event; a write <strong>commits only on a majority (3 of 5)</strong>. Kill the leader, hold an election, cut C off with a partition — and watch what the quorum math allows.</p>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Current term</div><div class="score" id="rf-term">3</div></div>
+        <div class="stat"><div class="node-name">Leader</div><div class="score" id="rf-leader" style="font-size:1.25rem">Official A</div></div>
+        <div class="stat"><div class="node-name">Reachable</div><div class="score" id="rf-reach">5/5</div></div>
+        <div class="stat"><div class="node-name">Votes to win</div><div class="score">3</div></div>
+      </div>
+      <div class="ops-row" id="rf-nodes"></div>
+      <div class="controls">
+        <button class="btn primary" id="rf-write">Client writes next match event</button>
+        <button class="btn" id="rf-crash">Crash the leader</button>
+        <button class="btn" id="rf-elect">Hold an election</button>
+        <button class="btn" id="rf-part">Partition: cut off C</button>
+        <button class="btn" id="rf-minelect">C attempts a solo election</button>
+        <button class="btn" id="rf-reset">Reset cluster</button>
+      </div>
+      <ul class="rf-legend">
+        <li><b>Client writes next match event</b> — the league's app sends the next event (GOAL 67' → SAVE 89' → GOAL 91' → FULL TIME) to the current leader. She appends it, replicates to reachable officials, and commits it once a majority ack — watch the ✓ appear.</li>
+        <li><b>Crash the leader</b> — her radio dies mid-term. Heartbeats stop; the other officials' election timers start running.</li>
+        <li><b>Hold an election</b> — the first official whose timer fires becomes candidate, bumps the term, and campaigns. Needs 3 of 5 votes; every connected official's log is equally fresh, so nobody rejects.</li>
+        <li><b>Partition: cut off / heal C</b> — splits the stadium network. Cut-off C can neither hear heartbeats nor be heard. Heal to reconnect her — her stale log is overwritten by the leader's.</li>
+        <li><b>C attempts a solo election</b> — only works while C is cut off: watch the minority side fail to reach a majority, term after term.</li>
+        <li><b>Reset cluster</b> — back to term 3, Official A leading, one committed entry.</li>
+      </ul>
+      <div class="log" id="rf-log"></div>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">13</span><h2>Q&amp;A — with full model answers</h2></div>
+    <p class="lede">Four questions that come up constantly, each with the spoken answer — verdict first, reasoning, and what earns the top mark.</p>
+    <div class="qa">
+
+      <div class="question">
+        <div class="qnum">Q1 · FAILURE</div>
+        <div class="qtext">"The Raft leader just died. Walk me through exactly what happens next."</div>
+        <div class="context">The single most-asked Raft question. They want the timeline with terms, timers, and votes — not "a new leader is elected."</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Silence triggers it: followers' election timers fire, one becomes candidate in a new term, wins a majority of votes, and resumes as leader — carrying every committed entry with it.</strong> Recovery takes about one election timeout, ~150–300ms."</p>
+          <h5>Reasoning</h5>
+          <p>"The leader's job includes sending heartbeats — empty AppendEntries — every ~50ms, and every follower resets its election timer on each one. When the leader dies, the heartbeats stop, and the timers count down. Each timer was set to a <em>different random</em> value in 150–300ms, so one follower's fires first. That follower becomes a <strong>candidate</strong>: it increments its term — say 5 to 6 — votes for itself, and sends <strong>RequestVote(term 6)</strong> to everyone.</p>
+          <p>Each follower votes at most <strong>once per term</strong>, first-come-first-served, and only for a candidate whose log is at least as up-to-date as its own — that's the <strong>election restriction</strong>. The candidate needs a <strong>majority</strong>: 3 of 5. Once it has 3 votes it becomes leader of term 6 and its first act is sending heartbeats, which reset everyone else's timers and stop further campaigning.</p>
+          <p>Two things the answer must include. First, <strong>committed entries are never lost</strong>: the dead leader committed an entry only after a majority held it, so any election-winning majority overlaps that majority and contains the entry — and the election restriction stops a stale node from winning. Second, the <strong>uncommitted</strong> tail can vanish: entries the dead leader replicated but never got a majority for simply never happened — the client never got its ack, so it retries, which is why the state machine should be idempotent."</p>
+          <h5>What earns top marks</h5>
+          <p>The numbers (3 of 5, 150–300ms, ~50ms heartbeats), the one-vote-per-term rule stated as the reason two leaders can't coexist in one term, and volunteering the committed-vs-uncommitted distinction before being asked.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2 · MECHANICS</div>
+        <div class="qtext">"Why do election timeouts have to be randomized? What breaks if every node uses exactly 200ms?"</div>
+        <div class="context">The split-vote trap. They want the deadlock story and the probability intuition, not just "to avoid ties."</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Identical timeouts produce repeated split votes — every follower campaigns at the same instant, nobody wins, and the cluster can sit leaderless forever.</strong> Randomization makes one candidate win before the others time out, and re-randomization makes repeat splits exponentially unlikely."</p>
+          <h5>Reasoning</h5>
+          <p>"With identical 200ms timeouts, the leader dies at t=0 and at t=200ms four followers all become candidates simultaneously. Each votes for itself — using up its single term-N vote — and each sends RequestVote to the others, who all reject because they've already voted. Four candidates, zero majorities: a <strong>split vote</strong>, no leader. Their timers fire again, terms bump, and the same thing happens in term N+1 — it's a deterministic deadlock that can repeat indefinitely, and the cluster takes no writes the whole time.</p>
+          <p>Random timeouts — say each follower picks 150–300ms — break the symmetry: one timer almost always fires first, that candidate campaigns and wins <em>before the others fire</em>, and its first act as leader is heartbeats that reset everyone else's timers. If two timers do collide within a few milliseconds and split the vote, the losers re-randomize, so the chance of <em>k</em> consecutive splits shrinks geometrically — in practice elections resolve in one round. The range itself is sized so heartbeats (~50ms) can never accidentally trigger an election: a 3–6× margin between heartbeat interval and minimum timeout."</p>
+          <h5>What earns top marks</h5>
+          <p>Walking the identical-timeout deadlock concretely (all vote for self → all reject each other → repeat forever) rather than hand-waving "ties," plus the sizing rationale for the 150–300ms range relative to heartbeats.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3 · SAFETY</div>
+        <div class="qtext">"A write committed one millisecond before the leader crashed. How does Raft guarantee it's never lost?"</div>
+        <div class="context">The safety question. They want the two mechanisms — majority overlap and the election restriction — composed into one argument.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>Two mechanisms compose: 'committed' means a majority holds it, so every future election majority contains a witness — and the election restriction means a candidate missing that entry can never win.</strong> The entry rides into every future leader's log."</p>
+          <h5>Reasoning</h5>
+          <p>"'Committed' has a precise definition in Raft: the entry is on a <strong>majority</strong> of nodes — 3 of 5. Now the leader crashes and an election starts. Any winning candidate needs a majority of votes — another 3 of 5. Two majorities of 5 always overlap in at least one node (3+3−5=1), so the election-winning majority <em>necessarily includes at least one node carrying the committed entry</em>.</p>
+          <p>That's necessary but not sufficient — the overlapping node could just… vote for someone stale anyway. It can't: the <strong>election restriction</strong> says a follower denies its vote to any candidate whose log is older than its own. RequestVote carries the candidate's last log entry; the witness node compares and rejects stale candidates. So the only candidates that <em>can</em> win are ones whose logs are at least as fresh — which means they already hold the committed entry. Therefore <strong>every future leader holds every committed entry: leader completeness</strong>, and the entry is never lost, never overwritten. This is also why the leader's log is the convergence target when partitions heal — the leader is guaranteed to be the freshest node in the cluster."</p>
+          <h5>What earns top marks</h5>
+          <p>Doing the 3+3−5=1 overlap arithmetic explicitly, naming both mechanisms (not just "majority"), and stating leader completeness as the conclusion rather than the premise.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4 · QUORUM MATH</div>
+        <div class="qtext">"A 4-node Raft cluster tolerates exactly 1 failure — the same as 3 nodes. So why would anyone ever run 4?"</div>
+        <div class="context">The even-number trap. The correct answer is "you wouldn't" — said with the math.</div>
+        <details class="reveal"><summary>Reveal model answer</summary><div class="body answer">
+          <h5>Verdict</h5>
+          <p>"<strong>You wouldn't — a 4-node cluster costs a node and gains nothing.</strong> Majority of 4 is 3, so one failure leaves exactly 3: the cluster survives 1 failure, identical to 3 nodes, while paying for an extra machine and a slower quorum."</p>
+          <h5>Reasoning</h5>
+          <p>"Majority is ⌊n/2⌋+1. For n=3: 2 — one failure leaves 2, the cluster survives 1. For n=4: 3 — one failure leaves 3, the cluster survives 1; but <em>two</em> failures leave 2, which is not a majority of 4, so it still dies at 2 failures. Same fault tolerance as 3 nodes. Worse, every write now needs 3 acks instead of 2, so the write path is slower and the quorum is harder to assemble — you've paid for a fourth machine to make the cluster <em>more fragile to assemble and no more resilient</em>. The only thing the 4th node adds is read capacity, which is never worth it for a consensus group. Production consensus clusters are 3, 5, or 7 — odd numbers, where every added pair of nodes buys one more tolerated failure."</p>
+          <h5>What earns top marks</h5>
+          <p>The ⌊n/2⌋+1 formula applied to both sizes, the explicit "dies at 2 failures either way," and the punchline that the 4th node makes quorums <em>harder</em> while adding nothing — plus the 3/5/7 rule as the takeaway.</p>
+        </div></details>
+      </div>
+
+    </div>
+  </section>
+  <section id="drills">
+    <div class="section-head"><span class="section-num">14</span><h2>Practice drills</h2></div>
+    <p class="lede">Untimed. Work each on paper first, then check the rubric — the rubric is the lesson.</p>
+
+    <div class="drill">
+      <h4>Drill 1 — Hand-run an election</h4>
+      <p>A <strong>7-node</strong> Raft cluster. The leader crashes in <strong>term 6</strong>; all logs are identical and fully committed. (a) How many votes does the new leader need? (b) What term does the new leader serve? (c) Two candidates campaign at nearly the same instant and split the votes 3–3, with the 7th node abstaining because its timer hasn't fired. What happens in term 7, and what happens next?</p>
+      <details class="reveal rubric"><summary>Reveal rubric</summary><div class="body">
+        <p><strong>(a) 4 votes</strong> — majority of 7 is ⌊7/2⌋+1 = 4. <strong>(b) Term 7</strong> — a candidate always increments before campaigning; there's no "term 6.5." <strong>(c) No leader in term 7</strong>: 3+3 with one abstention means nobody reached 4, and the abstainer's single vote can't be cast twice (it votes once when its timer fires — for one of them — but 4 is unreachable now). Both candidates' timers fire again with <em>re-randomized</em> timeouts, terms bump to 8, and the next round almost certainly produces a single winner before the other fires. Full marks for: the vote count, the term increment, and "split vote → re-randomize → next round elects" rather than "they keep splitting forever."</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 2 — The quorum table from memory</h4>
+      <p>Without looking back: for cluster sizes 3, 5, 7, 9, write the majority and the failures tolerated. Then, in one sentence, explain why a 4-node cluster has the same resilience as a 3-node one.</p>
+      <details class="reveal rubric"><summary>Reveal rubric</summary><div class="body">
+        <p>3→majority 2, tolerates 1 · 5→3, tolerates 2 · 7→4, tolerates 3 · 9→5, tolerates 4. The pattern: majority = ⌊n/2⌋+1, tolerated = majority−1… equivalently ⌊(n−1)/2⌋. One sentence for the 4-node case: "Majority of 4 is 3, so it dies on the second failure exactly like a 3-node cluster — the fourth node buys no fault tolerance, only a slower quorum." Full marks for deriving from the formula rather than memorizing the table.</p>
+      </div></details>
+    </div>
+
+    <div class="drill">
+      <h4>Drill 3 — The partition that eats a write</h4>
+      <p>5-node cluster, leader L. The network splits 3–2 <em>mid-write</em>: L's AppendEntries for entry X reached only L and one follower before the cut (2 of 5). (a) Which side keeps serving writes? (b) What happens to entry X — and what must the client do? (c) When the partition heals, whose log wins, and by what mechanism?</p>
+      <details class="reveal rubric"><summary>Reveal rubric</summary><div class="body">
+        <p><strong>(a) The side of 3</strong> — whichever side holds the majority keeps electing leaders and committing; the side of 2 can reach at most 2 votes/acks and stalls. (Note: if L is on the minority side, the majority side elects a <em>new</em> leader.) <strong>(b) X vanishes</strong> — it never reached a majority, so it was never committed; the client never got its ack and must retry. The retry must be safe: the state machine should be idempotent (idempotency keys), because the client can't know whether X committed or not. <strong>(c) The leader's log wins</strong> — on heal, AppendEntries' log-consistency check finds the minority's divergent tail, and the leader overwrites it entry by entry until the logs match. Full marks for: "uncommitted entries are allowed to disappear," the idempotent-retry consequence, and naming the consistency check as the heal mechanism.</p>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">15</span><h2>Cheat sheet: the 6 consensus decisions</h2></div>
+    <p class="lede">The decisions you'd actually make when putting a consensus cluster into a design.</p>
+    <table class="cmp">
+      <tr><th>#</th><th>Decision</th><th>The rule</th></tr>
+      <tr><td>1</td><td><strong>Cluster size</strong></td><td>Odd: 3, 5, or 7. Majority = ⌊n/2⌋+1. Every even node past the odd one adds cost without fault tolerance.</td></tr>
+      <tr><td>2</td><td><strong>Timeout budget</strong></td><td>Election timeout ≫ heartbeat interval ≫ network RTT. Typical: heartbeats ~50ms, timeouts randomized 150–300ms → sub-second failover, no false elections.</td></tr>
+      <tr><td>3</td><td><strong>What goes in the log</strong></td><td>Small, precious state only: configs, locks, membership, schema. Never the hot write path — throughput ceiling is ~10k writes/sec for one leader.</td></tr>
+      <tr><td>4</td><td><strong>Write latency</strong></td><td>Budget ~2 RTTs to a majority before the client ack. Batch and pipeline if it matters.</td></tr>
+      <tr><td>5</td><td><strong>Partition plan</strong></td><td>Minority stalls by design (CP). Route clients to the majority side; on heal, the leader's log overwrites divergent tails — never the reverse.</td></tr>
+      <tr><td>6</td><td><strong>Build vs borrow</strong></td><td>Borrow: etcd / ZooKeeper / Consul. If you need always-writable everywhere, you don't want Raft — you want Dynamo-style leaderless quorums (AP).</td></tr>
+    </table>
+
+    <div class="verdict">
+      <h4>Consensus in 60 seconds</h4>
+      <p>"Consensus means a group of machines agrees on one truth even when some crash. You can't do it with perfect certainty — FLP says so — so Raft uses timeouts and majorities. One elected leader takes all writes, replicates each entry, and commits it once a <strong>majority</strong> acks — about 2 round trips. If the leader dies, randomized election timeouts pick a new one in a new term within ~300ms, and the <strong>election restriction</strong> guarantees the new leader holds every committed entry. Partitions freeze the minority by design — that's the CP trade — and when they heal, the leader's log wins. Use it for small precious state: leader election, locks, config. Never for the hot path."</p>
+    </div>
+  </section>
+
+  <section id="talk">
+    <div class="section-head"><span class="section-num">16</span><h2>How to talk about consensus in the room</h2></div>
+    <p class="lede">A five-step talk track for "design the coordination layer" or any "how does etcd work" follow-up.</p>
+    <ol>
+      <li><strong>Open with the problem, not the protocol.</strong> "Five machines must agree on one value, and any of them can die mid-sentence — a dead node and a silent node are indistinguishable, so we can't just vote once and wait."</li>
+      <li><strong>State Raft's shape.</strong> "Raft funnels everything through one elected leader: followers, candidates, terms as the logical clock, heartbeats doubling as liveness, randomized election timeouts so elections resolve in one round."</li>
+      <li><strong>Walk a write with the numbers.</strong> "Client → leader appends → AppendEntries to followers → commit on majority, 3 of 5 → ack. About 2 RTTs. Committed means on a majority, and that's the durability contract."</li>
+      <li><strong>Walk the failure.</strong> "Leader dies → timers fire → candidate, new term, majority vote — but only a candidate with a fresh log can win, so committed entries survive every leader change. Uncommitted ones may vanish; clients retry idempotently."</li>
+      <li><strong>Close with the cost and the placement.</strong> "Minority partitions stall — CP by design — single-leader throughput caps around ~10k writes/sec, so consensus guards the small precious state: election, locks, config in etcd. Hot data goes through sharding and replication instead."</li>
+    </ol>
+    <p class="kicker">The sentence to keep</p>
+    <p><strong>"At most one leader per term, committed means on a majority, and the leader's log is the truth the cluster converges to."</strong></p>
+  </section>
+
+  <a class="nav-next" href="distributed-locks.html">
+    <div class="lbl">Previous lesson · Lesson 13</div>
+    <div class="t">Distributed Locks →</div>
+  </a>
+
+  <footer class="page-foot">
+    Lesson 14 · Core Building Blocks · Part of the daily system design series.
+  </footer>
+</div>
+
+<script>
+(function(){
+  var ids = ['A','B','C','D','E'];
+  var MAJ = 3;
+  var EVENTS = ["GOAL \u2014 67'", "SAVE \u2014 89'", "GOAL \u2014 91'", "FULL TIME"];
+
+  var nodes, term, evIdx, stepNo;
+
+  function $(id){ return document.getElementById(id); }
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  function rlog(msg, cls){
+    stepNo++;
+    var div = document.createElement('div');
+    if (cls) div.className = cls;
+    div.innerHTML = '<span class="t">[' + stepNo + ']</span> ' + msg;
+    var log = $('rf-log');
+    log.prepend(div);
+    while (log.children.length > 40) log.removeChild(log.lastChild);
+  }
+
+  function connected(n){ return n.alive && !n.partitioned; }
+  function liveLeader(){
+    for (var i=0;i<nodes.length;i++){
+      if (nodes[i].role==='leader' && connected(nodes[i])) return nodes[i];
+    }
+    return null;
+  }
+
+  function render(){
+    $('rf-term').textContent = term;
+    var L = liveLeader();
+    $('rf-leader').textContent = L ? ('Official ' + L.id) : '\u2014 none \u2014';
+    var reach = nodes.filter(connected).length;
+    $('rf-reach').textContent = reach + '/5';
+
+    var wrap = $('rf-nodes');
+    wrap.innerHTML = '';
+    nodes.forEach(function(n){
+      var card = document.createElement('div');
+      var cls = 'op';
+      if (n.role==='leader' && connected(n)) cls += ' holder';
+      if (!connected(n)) cls += ' paused';
+      card.className = cls;
+
+      var badge, bcls;
+      if (!n.alive){ badge = 'DOWN'; bcls = 'bad'; }
+      else if (n.partitioned){ badge = 'CUT OFF'; bcls = 'bad'; }
+      else if (n.role === 'leader'){ badge = 'LEADER'; bcls = 'ok'; }
+      else if (n.role === 'candidate'){ badge = 'CANDIDATE'; bcls = 'warn'; }
+      else { badge = 'FOLLOWER'; bcls = ''; }
+
+      var logHtml = n.log.map(function(e){
+        return esc(e.text) + ' ' + (e.committed
+          ? '<span class="lg-ok">\u2713</span>'
+          : '<span class="lg-pend">\u2026</span>');
+      }).join('<br>');
+
+      card.innerHTML =
+        '<div class="op-name">Official ' + n.id + '</div>' +
+        '<div class="op-state">term ' + n.term + '</div>' +
+        '<div><span class="badge ' + bcls + '">' + badge + '</span></div>' +
+        '<div class="mini-log">' + logHtml + '</div>';
+      wrap.appendChild(card);
+    });
+
+    var c = nodes[2]; // Official C
+    $('rf-write').disabled = !L || evIdx >= EVENTS.length;
+    $('rf-crash').disabled = !L;
+    $('rf-elect').disabled = !!L;
+    $('rf-minelect').disabled = !(c.partitioned && c.alive);
+    $('rf-part').textContent = c.partitioned ? 'Heal partition: reconnect C' : 'Partition: cut off C';
+  }
+
+  function init(){
+    term = 3; evIdx = 0; stepNo = 0;
+    nodes = ids.map(function(id, i){
+      return { id:id, role: i===0 ? 'leader' : 'follower', term:3,
+               alive:true, partitioned:false,
+               log:[{ text:"KICKOFF 0'", committed:true }] };
+    });
+    $('rf-log').innerHTML = '';
+    rlog("cluster booted \u2014 <b>term 3</b>, <b>Official A</b> is the leader (heartbeats every ~50ms). All five officials hold the same log: <code>KICKOFF 0' \u2713</code>.", "");
+    render();
+  }
+
+  $('rf-write').addEventListener('click', function(){
+    var L = liveLeader();
+    if (!L || evIdx >= EVENTS.length) return;
+    var ev = EVENTS[evIdx++];
+    L.log.push({ text: ev, committed: false });
+    var conns = nodes.filter(connected);
+    var names = [];
+    conns.forEach(function(n){
+      if (n.id !== L.id){ n.log.push({ text: ev, committed: false }); names.push(n.id); }
+      n.term = term;
+    });
+    var acks = conns.length; // leader counts its own ack
+    if (acks >= MAJ){
+      conns.forEach(function(n){ n.log[n.log.length-1].committed = true; });
+      rlog("<b>" + esc(ev) + "</b> \u2014 " + L.id + " replicated to " +
+           (names.length ? names.join(', ') : 'nobody') +
+           " (" + acks + "/" + conns.length + " reachable acks) \u2014 <b>majority reached: COMMITTED \u2713</b>", "good");
+    } else {
+      rlog("<b>" + esc(ev) + "</b> \u2014 " + L.id + " appended it, but only " + acks +
+           " acks \u2014 <b>no majority: sits uncommitted (\u2026)</b>. Writes are stalled until a majority is reachable.", "bad");
+    }
+    render();
+  });
+
+  $('rf-crash').addEventListener('click', function(){
+    var L = liveLeader();
+    if (!L) return;
+    L.alive = false;
+    rlog("<span class='bad'>\uD83D\uDCA5 Official " + L.id + " crashed mid-term.</span> Heartbeats stopped \u2014 the remaining officials' election timers are running\u2026", "bad");
+    render();
+  });
+
+  $('rf-elect').addEventListener('click', function(){
+    if (liveLeader()) return;
+    var cands = nodes.filter(connected);
+    if (!cands.length){ rlog("no reachable officials at all.", "bad"); return; }
+    var cand = cands[0];
+    term++;
+    nodes.forEach(function(n){ if (connected(n)) n.term = term; });
+    cand.role = 'candidate';
+    var granters = [];
+    for (var i=1; i<cands.length && (1 + granters.length) < MAJ; i++) granters.push(cands[i].id);
+    var votes = 1 + granters.length;
+    rlog("Official <b>" + cand.id + "</b>'s timer fired first \u2014 candidate for <b>term " + term +
+         "</b>, votes for itself (1/" + MAJ + ").", "");
+    if (granters.length){
+      rlog("RequestVote(term " + term + ") \u2192 " + granters.join(', ') +
+           " grant: their logs are as fresh as " + cand.id + "'s, and none voted yet this term.", "");
+    }
+    if (votes >= MAJ){
+      // everyone else (dead leader, rival candidate, stale voter) becomes a follower
+      nodes.forEach(function(n){ if (n !== cand) n.role = 'follower'; });
+      cand.role = 'leader';
+      // the new leader's first AppendEntries bring every connected log up to date
+      cands.forEach(function(n){
+        if (n !== cand) n.log = cand.log.map(function(e){ return { text:e.text, committed:e.committed }; });
+      });
+      rlog("votes: <b>" + votes + "/" + MAJ + " \u2014 majority! Official " + cand.id +
+           " is the LEADER of term " + term + "</b>. First act: heartbeats + AppendEntries \u2014 " +
+           "every connected log is brought up to date with the leader's; everyone else's timers reset.", "good");
+    } else {
+      rlog("votes: " + votes + "/" + MAJ + " \u2014 <b>no majority: no leader.</b> " +
+           "The cluster cannot take writes \u2014 this is Raft choosing consistency over availability.", "bad");
+    }
+    render();
+  });
+
+  $('rf-part').addEventListener('click', function(){
+    var c = nodes[2];
+    if (!c.partitioned){
+      c.partitioned = true;
+      var L = liveLeader();
+      rlog("<span class='bad'>\u2702\uFE0F network partition: Official C is cut off.</span> " +
+           (L ? "The majority side (" + nodes.filter(connected).map(function(n){return n.id;}).join(', ') +
+            ") keeps " + L.id + " as leader and keeps working." : "No live leader right now.") +
+           " C's screen froze mid-match \u2014 try a solo election from her side.", "bad");
+    } else {
+      c.partitioned = false;
+      var L2 = liveLeader();
+      // a healed node carrying a higher term forces the leader to step down
+      var maxTerm = term;
+      nodes.forEach(function(n){ if (connected(n) && n.term > maxTerm) maxTerm = n.term; });
+      if (L2 && L2.term < maxTerm){
+        L2.role = 'follower';
+        term = maxTerm;
+        rlog("<b>partition healed.</b> C carried term " + maxTerm + " \u2014 higher wins: Official " +
+             L2.id + " steps down. <b>Hold an election</b> to pick the term-" + maxTerm + " leader.", "");
+      } else if (L2){
+        c.log = L2.log.map(function(e){ return { text:e.text, committed:e.committed }; });
+        c.term = term; c.role = 'follower';
+        rlog("<b>partition healed.</b> Leader " + L2.id + "'s AppendEntries fail the log check on C's stale tail \u2014 " +
+             "<b>C's divergent entries are overwritten by the leader's log.</b> All five copies identical again.", "good");
+      } else {
+        rlog("<b>partition healed</b>, but there is no leader \u2014 hold an election.", "");
+      }
+    }
+    render();
+  });
+
+  $('rf-minelect').addEventListener('click', function(){
+    var c = nodes[2];
+    if (!(c.partitioned && c.alive)) return;
+    term++;
+    c.term = term;
+    c.role = 'candidate';
+    rlog("Official <b>C</b> (cut off) hears no heartbeats \u2014 candidate for <b>term " + term +
+         "</b>, votes for itself: <b>1/" + MAJ + "</b>. Her RequestVote reaches nobody.", "");
+    rlog("1/" + MAJ + " \u2014 <b>no majority: the minority side cannot elect a leader.</b> " +
+         "C's term keeps climbing every timeout, but she can commit nothing. When the partition heals, " +
+         "her inflated term forces a fresh election \u2014 with the full committed log, so nothing committed is lost.", "bad");
+    render();
+  });
+
+  $('rf-reset').addEventListener('click', init);
+
+  init();
+})();
+</script>
+</body>
+</html>
