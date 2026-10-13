@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Design a URL Shortener</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 260px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .log .good { color: #7fd8a8; }
+    .log .bad { color: #ff8f7d; }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .scoreboard {
+      display: flex; align-items: center; justify-content: center; gap: 16px;
+      margin: 18px 0; padding: 18px;
+      border: 2px solid var(--ink); border-radius: 12px; background: var(--code); color: var(--code-ink);
+      font-family: "IBM Plex Mono", monospace;
+    }
+    .scoreboard .team { font-weight: 600; font-size: 1.1rem; }
+    .scoreboard .goals { font-size: 2.2rem; font-weight: 600; min-width: 3.2rem; text-align: center; }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .cheatsheet {
+      background: var(--surface); border: 2px solid var(--ink);
+      border-radius: var(--radius); padding: 22px 24px; margin: 24px 0; max-width: 46rem;
+    }
+    .cheatsheet h3 { margin: 0 0 10px; }
+    .cheatsheet ol { max-width: none; }
+    .framing {
+      border-left: 4px solid var(--purple); background: var(--purple-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .framing p { margin: 8px 0; max-width: none; }
+    footer { margin-top: 60px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 20px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <p class="crumbs"><a href="../index.html">← All lessons</a></p>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 15 · Classic Design</span>
+    <h1>Design a URL Shortener</h1>
+    <p class="whyline">The most asked system-design question in the industry — and secretly a tour of key generation, caching, capacity math, and abuse handling, all inside one tiny product.</p>
+    <div class="meta">
+      <span>~35 min read</span>
+      <span>Interactive: key lab</span>
+      <span>4 Q&amp;A · 3 drills</span>
+      <span>Cheat sheet</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h2>In this lesson</h2>
+    <ol>
+      <li><a href="#what">What is a URL shortener?</a></li>
+      <li><a href="#requirements">Requirements &amp; back-of-the-envelope math</a></li>
+      <li><a href="#api">The API surface</a></li>
+      <li><a href="#keys">The heart of the design: generating short keys</a></li>
+      <li><a href="#storage">Where the URLs live: data model &amp; storage</a></li>
+      <li><a href="#reads">Serving billions of redirects fast: the cache story</a></li>
+      <li><a href="#abuse">Abuse, security, and the things that break you</a></li>
+      <li><a href="#analytics">Analytics: counting clicks without burning the database</a></li>
+      <li><a href="#lab">Interactive lab: the key lab</a></li>
+      <li><a href="#qa">Q&amp;A with full model answers</a></li>
+      <li><a href="#drills">Practice drills (untimed)</a></li>
+      <li><a href="#cheatsheet">Cheat sheet &amp; 60-second framing</a></li>
+    </ol>
+  </nav>
+
+  <section id="what">
+    <div class="section-head"><span class="section-num">01</span><h2>What is a URL shortener?</h2></div>
+    <p class="lede">Start from zero: a URL shortener turns a long web address into a short one that redirects to it. bit.ly/abc12 → your-long-link. That's the whole product. Everything else is how to make it fast, huge, and safe.</p>
+
+    <div class="definition">
+      <strong class="term">URL shortener</strong>
+      <p>A service that accepts a long URL and returns a short alias (a short domain plus a short key, like <code>shrt.ly/a9Kx2zQ</code>). When someone visits the alias, the service looks up the original URL and issues an <span class="term">HTTP redirect</span> — an HTTP response that tells the browser "the thing you want is actually over here," so the browser automatically loads the long URL.</p>
+    </div>
+
+    <div class="pitch">
+      <span class="tag">⚽ The ticket-stub analogy</span>
+      <h4>Short links are ticket stubs</h4>
+      <p>When you buy a ticket for the cup final, you don't get a document describing your exact seat's latitude and longitude, the stadium gate, and the turnstile number. You get a <strong>stub with a short code</strong> — say, <em>Gate B · Row 44 · Seat 112</em> compressed into a QR. At the gate, a scanner looks the code up and waves you through.</p>
+      <p>A URL shortener is the same deal. The long URL is the full seating plan; the short link is the stub. Visiting the stub triggers a lookup and a redirect — you get waved through to the real page. Keep this analogy in mind: <strong>key generation = printing the stubs, the database = the box office ledger, the cache = the ushers who memorize frequent stubs.</strong></p>
+    </div>
+
+    <h3>Why do short links exist at all?</h3>
+    <p>Not just to look tidy. Each reason hints at a real requirement:</p>
+    <ul>
+      <li><strong>Constrained spaces.</strong> A 300-character match-preview link doesn't fit in an SMS, a stadium jumbotron QR code, or a printed program. Short links fit.</li>
+      <li><strong>Analytics.</strong> A club posts one link across ten channels; per-link click counts say which channel actually converts. The shortener is the click counter.</li>
+      <li><strong>Branded vanity links.</strong> <code>club.fc/final-tickets</code> is marketing, not engineering — but the system must support custom aliases.</li>
+      <li><strong>Control.</strong> Fix the destination, set an expiry, or revoke a link without reprinting the flyer. The redirect layer gives you a lever on every link you've ever handed out.</li>
+    </ul>
+
+    <div class="callout">
+      <h4>The one sentence that carries the whole design</h4>
+      <p>A URL shortener is <strong>a write-once, read-many key-value store with a redirect protocol on top.</strong> You write once (create the link) and read many times (every click is a lookup). That single asymmetry — far more reads than writes — drives every decision below: the cache strategy, the key-generation choice, and the database pick.</p>
+    </div>
+  </section>
+
+  <section id="requirements">
+    <div class="section-head"><span class="section-num">02</span><h2>Requirements &amp; back-of-the-envelope math</h2></div>
+    <p class="lede">Every design interview starts by pinning down what you're actually building. Nail the requirements first, or every later decision is guesswork. Here's the standard scoping — and the sizing math that comes with it.</p>
+
+    <h3>Functional requirements</h3>
+    <ul>
+      <li><strong>Shorten:</strong> given a long URL, return a short alias.</li>
+      <li><strong>Redirect:</strong> given a short alias, redirect the visitor to the long URL.</li>
+      <li><strong>Custom aliases</strong> (optional but expected): let users request <code>shrt.ly/worldcup26</code> instead of a random key.</li>
+      <li><strong>Expiry:</strong> links can have a TTL (time to live — an automatic expiry date).</li>
+      <li><strong>Click analytics:</strong> how many times was each link clicked?</li>
+    </ul>
+
+    <h3>Non-functional requirements</h3>
+    <ul>
+      <li><strong>Availability over consistency.</strong> If the database hiccups, a slightly stale redirect is far better than an error page. This is an AP-ish system (from the <a href="cap-theorem-consistency.html">CAP theorem</a> lesson: partition → choose availability).</li>
+      <li><strong>Low latency.</strong> The redirect adds a hop to every click — it must feel instant (sub-100ms).</li>
+      <li><strong>Scale:</strong> the numbers below.</li>
+    </ul>
+
+    <h3>The back-of-the-envelope math</h3>
+    <p>Pick round numbers and state them out loud — the arithmetic <em>is</em> the design document. These are the industry-standard assumptions:</p>
+    <table class="cmp">
+      <tr><th>Quantity</th><th>Assumption</th><th>Result</th></tr>
+      <tr><td>New URLs</td><td>100M / month</td><td>≈ 40 URLs/second average (100M ÷ 30 days ÷ 86,400 s)</td></tr>
+      <tr><td>Peak writes</td><td>~10× average</td><td>≈ 400 URLs/second</td></tr>
+      <tr><td>Reads</td><td>10:1 read-to-write ratio</td><td>≈ 400 reads/s average, ~4,000/s peak</td></tr>
+      <tr><td>Lifetime data</td><td>100M × 60 months (5 years)</td><td>6 billion URL records</td></tr>
+      <tr><td>Record size</td><td>~500 bytes per record</td><td>6B × 500 B ≈ 3 TB total storage</td></tr>
+      <tr><td>Bandwidth</td><td>4,000 reads/s × 500 B</td><td>≈ 2 MB/s of raw payload (trivial — this system is not bandwidth-bound)</td></tr>
+    </table>
+
+    <div class="green-box">
+      <p><strong>What the math tells you.</strong> 3 TB is small for a database; the write rate (400/s peak) is modest. <strong>This is not a storage-scale problem — it's a read-latency and key-generation problem.</strong> The hard parts are minting unique short keys at speed and answering lookups in milliseconds. Say that sentence out loud in the room and you sound like you've built one.</p>
+    </div>
+
+    <div class="warn-box">
+      <p><strong>Assumptions are negotiable; math is not.</strong> An interviewer may hand you different numbers ("what if it's 1B URLs/month?"). Never memorize the table above — memorize the <em>method</em>: per-month ÷ seconds-per-month → per-second rate → ×10 for peak; ×60 months → lifetime rows → × record size → storage. Walk through it live.</p>
+    </div>
+  </section>
+
+  <section id="api">
+    <div class="section-head"><span class="section-num">03</span><h2>The API surface</h2></div>
+    <p class="lede">Two endpoints. That's the whole public contract — and getting them exactly right is a senior signal.</p>
+
+<pre>{
+  "shorten": {
+    "method": "POST",
+    "path": "/api/v1/urls",
+    "request": {
+      "long_url": "https://stadium.example/matches/2026/final?t=premium&seat=B-44-112",
+      "custom_alias": "final-tickets",      // optional
+      "expires_at": "2026-12-31T23:59:59Z"  // optional
+    },
+    "response_201": { "short_url": "https://shrt.ly/final-tickets" }
+  },
+  "redirect": {
+    "method": "GET",
+    "path": "/{short_key}",
+    "response": "302 Found, Location: <long_url>"
+  }
+}</pre>
+
+    <div class="definition">
+      <strong class="term">301 vs 302 redirect</strong>
+      <p><strong>301 (Moved Permanently)</strong> tells the browser "this alias will <em>always</em> point here — cache it forever and don't ask me again." <strong>302 (Found)</strong> says "go here <em>for now</em> — keep asking me each time." For a URL shortener, <strong>302 is the right choice</strong>: you keep counting clicks (analytics), and you can change or expire the destination later. With 301, the browser caches the redirect and you lose both. This is a classic senior trap — see Q1 below.</p>
+    </div>
+
+    <div class="callout">
+      <h4>Why a POST body, not query params, for shortening?</h4>
+      <p>Long URLs can contain anything — including characters that break URL parsing. Putting them in the JSON body keeps them intact. Also: creating a link is <strong>not idempotent</strong> by default (each POST mints a new key), and POST signals that. A <span class="term">idempotent</span> operation is one you can repeat with the same result — like pressing "save" twice saving once. Minting a fresh key on each POST is deliberately non-idempotent, which is why dedup of identical URLs is a separate decision (see §6).</p>
+    </div>
+  </section>
+
+  <section id="keys">
+    <div class="section-head"><span class="section-num">04</span><h2>The heart of the design: generating short keys</h2></div>
+    <p class="lede">This is the section interviewers zoom in on. Three approaches, each with a real trade-off. There is no perfect one — your job is to pick one and defend it.</p>
+
+    <div class="pitch">
+      <span class="tag">⚽ Stub-printing, three ways</span>
+      <h4>Printing ticket stubs for 80,000 fans</h4>
+      <p>Way one: number them sequentially as people buy — 0001, 0002, 0003. Simple, never duplicates, but <strong>guessable</strong> (see 0007's stub? 0008 exists too — you just enumerated the box office).</p>
+      <p>Way two: stamp each stub with a random scribble and check it's unique. Unpredictable, but you must <strong>check every scribble</strong> against every previous one.</p>
+      <p>Way three: run a <strong>stub printer that pre-prints stacks of random stubs overnight</strong>. At the gate you just grab the top one — instant, unique, unpredictable. This is the production answer.</p>
+    </div>
+
+    <div class="definition">
+      <strong class="term">Base62 encoding</strong>
+      <p>Writing a number using 62 characters — <code>0-9</code>, <code>a-z</code>, <code>A-Z</code> — instead of the usual 10 digits. 62 = 10 digits + 26 lowercase + 26 uppercase. It's why a huge number like 12,842,391 becomes a short key like <code>a9Kx2zQ</code>. Why not base64? Base64 includes <code>+</code> and <code>/</code>, which break URLs. Base62 stays URL-safe.</p>
+    </div>
+
+    <h3>Approach 1: Hash the long URL</h3>
+    <p>Take the long URL, run it through a <span class="term">hash function</span> (a function that turns any input into a fixed-size fingerprint, like MD5), take the first few characters, base62-encode them. Same URL → same key, always.</p>
+    <div class="callout">
+      <h4>The birthday problem kills short hash keys</h4>
+      <p>A <span class="term">hash collision</span> is two different inputs producing the same fingerprint. The <span class="term">birthday problem</span> says collisions arrive far earlier than intuition suggests: with a key space of <em>N</em> possible keys, you hit ~50% collision chance after only about √<em>N</em> keys — just like 23 people sharing a birthday in a room (365 days needs only 23 people).</p>
+      <p>The math: 7 base62 characters = 62⁷ ≈ <strong>3.5 trillion</strong> possible keys. 50% collision chance after ≈ 2.3 million keys. We need to store <strong>6 billion</strong>. So short hash keys will collide constantly, and every collision forces a <em>check-and-retry</em> loop (hash, check database, collide, tweak, repeat) — which turns a fast write path into a slow, contentious one at scale. The key lab in §9 lets you feel this.</p>
+    </div>
+
+    <h3>Approach 2: Counter + base62</h3>
+    <p>Keep a global counter, increment it for each new URL, base62-encode the counter value. Key #1,000,000 → <code>4c92</code>. Guaranteed unique, no collision checks, shortest possible keys.</p>
+    <ul>
+      <li><strong>The distributed problem.</strong> One counter on one machine is a single point of failure and a bottleneck. The standard fix is <span class="term">range allocation</span>: a coordinator (often ZooKeeper, or a database row) hands each app server a block of 1,000 IDs. Server A mints 1–1,000, server B mints 1,001–2,000, no coordination per URL. Wasted IDs on crashes are fine — gaps are harmless, duplicates are fatal.</li>
+      <li><strong>The guessability problem.</strong> Sequential keys are enumerable: <code>shrt.ly/aaaa1</code> works? Try <code>aaaa2</code>. If links can be private, enumeration is a leak. Mitigation: start the counter at a large random offset, or use approach 3.</li>
+    </ul>
+
+    <h3>Approach 3: KGS — the Key Generation Service (the production answer)</h3>
+    <p>A dedicated <span class="term">microservice</span> (a small service that does one job) whose only job is minting keys. It <strong>pre-generates</strong> random unique keys in batches, stores them in two tables — <code>keys_unused</code> and <code>keys_used</code> — and hands them out on request.</p>
+<pre>API server:  "give me a key"
+KGS:         UPDATE keys_unused SET used=1 WHERE key='xQ2mP9z'  -- mark used
+KGS:         "here: xQ2mP9z"                                     -- hand it over</pre>
+    <ul>
+      <li>Uniqueness is trivially guaranteed — a key leaves the pool exactly once.</li>
+      <li>Keys are random, so they're <strong>not enumerable</strong>.</li>
+      <li>The API servers stay fast: they keep a <strong>local buffer</strong> of a few hundred pre-fetched keys, so the hot path never calls KGS per URL.</li>
+      <li><strong>Standby KGS.</strong> Run two KGS instances: primary serves, standby watches the <code>keys_used</code> table. If primary dies, standby promotes itself. Both share the same tables, so no key is ever double-issued.</li>
+    </ul>
+
+    <table class="cmp">
+      <tr><th></th><th>Hash of URL</th><th>Counter + base62</th><th>KGS</th></tr>
+      <tr><td>Collision handling</td><td>Check-and-retry loop (slow at scale)</td><td>None (by construction)</td><td>None (by construction)</td></tr>
+      <tr><td>Key length</td><td>Must be long (~11+ chars) to dodge the birthday problem</td><td>Shortest possible (grows with count)</td><td>Fixed, short</td></tr>
+      <tr><td>Guessable / enumerable</td><td>No (hash looks random)</td><td>Yes — sequential</td><td>No (random)</td></tr>
+      <tr><td>Same URL → same key?</td><td>Yes (natural dedup)</td><td>No</td><td>No</td></tr>
+      <tr><td>Operational complexity</td><td>Low</td><td>Medium (range coordination)</td><td>Medium (extra service)</td></tr>
+    </table>
+
+    <div class="green-box">
+      <p><strong>The verdict to give in the room.</strong> Start with <strong>KGS</strong>: it's the only approach that is unique-by-construction, non-enumerable, and fast on the hot path with a local buffer. If the interviewer pushes for simplicity, counter + base62 with range allocation is the honest second choice — and you can name the enumeration trade-off yourself before they ask. Only mention hashing to show you know why it's wrong at scale (birthday collisions), not as your pick.</p>
+    </div>
+  </section>
+
+  <section id="storage">
+    <div class="section-head"><span class="section-num">05</span><h2>Where the URLs live: data model &amp; storage</h2></div>
+    <p class="lede">The data model is almost embarrassingly simple — and that's the point. The interesting part is what you choose <em>not</em> to do.</p>
+
+<pre>-- the whole core schema
+CREATE TABLE urls (
+  short_key   VARCHAR(16) PRIMARY KEY,
+  long_url    TEXT        NOT NULL,
+  created_at  TIMESTAMP   NOT NULL,
+  expires_at  TIMESTAMP   NULL,        -- NULL = never expires
+  user_id     BIGINT      NULL         -- NULL = anonymous
+);</pre>
+
+    <div class="callout">
+      <h4>SQL or NoSQL?</h4>
+      <p><strong>Either works, and saying so is a senior move.</strong> The access pattern is pure key lookup — no joins, no range scans on the hot path. A relational database (PostgreSQL/MySQL) is perfectly fine and gives you transactions for free. A wide-column store (Cassandra, DynamoDB) shines at 6-billion-row scale with built-in <span class="term">partitioning</span> (splitting the data across many machines — see the <a href="database-sharding.html">sharding lesson</a>). The honest answer: start relational, shard by <code>short_key</code> hash when growth demands it. Interviewers respect "boring until proven otherwise" over NoSQL-by-default.</p>
+    </div>
+
+    <h3>Three decisions interviewers expect you to raise yourself</h3>
+    <ul>
+      <li><strong>Dedup of identical URLs?</strong> If someone shortens the same match-preview link twice, do you return the existing key or mint a new one? Returning the existing key saves storage — but you need a <span class="term">secondary index</span> on <code>long_url</code> (an extra lookup structure so you can search by long URL), and users lose separate analytics. Most designs skip dedup; say so and give the reason.</li>
+      <li><strong>Don't reuse deleted keys.</strong> When a link expires, its key stays dead. Reissuing it lets a stranger inherit someone's printed flyers — a real phishing vector.</li>
+      <li><strong>Expiration: lazy beats eager.</strong> A background sweeper deleting expired rows is fine, but the read path should just check <code>expires_at</code> on lookup and 404 if passed. <span class="term">Lazy</span> = do the work when the item is next touched, not on a schedule. Fewer moving parts.</li>
+    </ul>
+  </section>
+
+  <section id="reads">
+    <div class="section-head"><span class="section-num">06</span><h2>Serving billions of redirects fast: the cache story</h2></div>
+    <p class="lede">Reads outnumber writes 10:1. Caching isn't an optimization here — it's the architecture. (This section is the <a href="caching-strategies.html">caching lesson</a> applied: if the vocabulary feels new, the cache lab there is the companion.)</p>
+
+    <div class="pitch">
+      <span class="tag">⚽ The ushers who memorize stubs</span>
+      <h4>Cache = the regulars' lane</h4>
+      <p>Picture the cup-final turnstiles. A handful of hospitality stubs get scanned thousands of times; most stubs get scanned once. The veteran ushers memorize the frequent ones and wave them through without checking the box-office ledger — that's your cache. And the <strong>80/20 rule</strong> (20% of links get 80% of clicks — a viral goal clip, the ticket link) means a cache that holds just the hot keys absorbs the vast majority of traffic. The ledger (database) only hears from the long tail.</p>
+    </div>
+
+    <h3>The layered design</h3>
+    <ol>
+      <li><strong>CDN / edge cache</strong> (e.g., CloudFront, Cloudflare) for the hottest keys. A 302 redirect served from the edge is ~10ms and never touches your servers. Set a short TTL — you want to keep control of expiry and analytics.</li>
+      <li><strong>Application cache</strong> (Redis/Memcached) in front of the database, <span class="term">cache-aside</span> pattern: on lookup, check Redis first; on miss, read the database and populate Redis. With an 80/20 traffic split, this layer serves the overwhelming majority of reads.</li>
+      <li><strong>The database</strong> handles cache misses and all writes.</li>
+    </ol>
+
+    <div class="callout">
+      <h4>The cache-invalidation trap (and why it barely bites here)</h4>
+      <p>Invalidating caches is famously one of the two hard problems in computer science. But URL shortener entries are <strong>effectively immutable</strong> — a short key's destination is set at creation and rarely changes. So the classic invalidation nightmare mostly doesn't apply: populate on miss, evict on expiry, and only invalidate on the rare destination-change. This is the "aha" that separates a memorized answer from an understood one: <strong>the workload's immutability makes caching almost free.</strong></p>
+    </div>
+
+    <div class="warn-box">
+      <p><strong>The thundering-herd footnote.</strong> When a hot key's cache entry expires, thousands of concurrent requests can miss simultaneously and all hit the database — a <span class="term">cache stampede</span> (everyone rushing the ledger at once). Mitigations from the caching lesson apply: <span class="term">probabilistic early refresh</span> (refresh the entry slightly before it expires, randomly staggered) or a <span class="term">single-flight</span> lock (first request refreshes, the rest wait). Mention it; it's a one-line senior signal.</p>
+    </div>
+  </section>
+
+  <section id="abuse">
+    <div class="section-head"><span class="section-num">07</span><h2>Abuse, security, and the things that break you</h2></div>
+    <p class="lede">A public URL shortener is a spammer's dream: free, anonymous, and it hides the real destination. Designing for abuse is not a bonus round — it's half the design.</p>
+    <ul>
+      <li><strong>Rate limit creation.</strong> Cap shortens per IP / per user per minute. The <a href="rate-limiting.html">rate limiting lesson</a> gives you the algorithms — a token bucket on the shorten endpoint is the standard pick. This is your #1 defense against link-spam factories.</li>
+      <li><strong>Destination screening.</strong> Check submitted URLs against a malware/phishing blocklist (Google Safe Browsing API is the canonical one) before issuing a key. Reject or quarantine matches.</li>
+      <li><strong>Don't leak existence.</strong> A lookup for a nonexistent key should return 404 — not an error that distinguishes "never existed" from "expired," and never any hint about other keys. Random non-enumerable keys (KGS) make bulk scraping impractical.</li>
+      <li><strong>Preview pages for suspicious links.</strong> Some shorteners show an interstitial ("you're about to visit…") for flagged domains instead of redirecting blindly — a product-level mitigation worth naming.</li>
+      <li><strong>Authenticated custom aliases.</strong> Anyone who can claim <code>shrt.ly/worldcup</code> can impersonate the club. Reserve vanity namespaces, require login for custom aliases, and enforce uniqueness at write time with a unique constraint.</li>
+    </ul>
+  </section>
+
+  <section id="analytics">
+    <div class="section-head"><span class="section-num">08</span><h2>Analytics: counting clicks without burning the database</h2></div>
+    <p class="lede">"How many clicks did each link get?" sounds trivial. At 4,000 redirects/second, a counter update per click is a write-amplification nightmare.</p>
+    <p>The naive approach — <code>UPDATE urls SET clicks = clicks + 1</code> on every redirect — turns your 10:1 read-heavy workload into a write-heavy one and puts a hot row lock on every viral link. Instead:</p>
+    <ol>
+      <li><strong>Decouple with a queue.</strong> On each redirect, the API server fires a tiny event <code>{short_key, timestamp, referrer}</code> into a <a href="message-queues.html">message queue</a> and returns the redirect immediately. Counting is asynchronous — off the critical path.</li>
+      <li><strong>Aggregate in batches.</strong> A consumer drains the queue, aggregates counts per key over a window (say, 1 minute), and writes one batched update per key. 4,000 events/second become a handful of writes.</li>
+      <li><strong>Approximate when exactness is overkill.</strong> For unique-visitor counts, a <span class="term">HyperLogLog</span> sketch estimates distinct visitors in ~12 KB of memory with ~2% error — versus storing every visitor ID. Name-drop this; it's a classic senior-level flourish. (A HyperLogLog is a probabilistic data structure: it trades exact counting for tiny memory by hashing visitors into buckets and estimating from the bucket patterns.)</li>
+    </ol>
+    <div class="green-box">
+      <p><strong>The principle.</strong> Analytics is a <strong>separate write path</strong> from the core redirect path. The redirect path stays a pure read (fast, cacheable); counting happens asynchronously in bulk. Whenever an interviewer adds "oh, and we need stats," your reflex should be: <em>queue it, batch it, keep it off the hot path.</em></p>
+    </div>
+  </section>
+
+  <section id="lab">
+    <div class="section-head"><span class="section-num">09</span><h2>Interactive lab: the key lab</h2></div>
+    <p class="lede">Two simulators. The first shows how base62 turns big numbers into short keys. The second lets you <em>feel</em> the birthday problem — generate thousands of random keys and watch collisions appear exactly where the math predicts.</p>
+
+    <div class="lab">
+      <h3>Part A — The base62 encoder</h3>
+      <p class="howto">Move the slider to pick a counter value, or type one in. Watch it shrink into a short key — this is exactly what the counter + base62 approach does for every new URL.</p>
+      <div class="slider-row">
+        <label for="enc-num">Counter value</label>
+        <input type="range" id="enc-num" min="1" max="5000000000" step="1" value="1000000" />
+        <output id="enc-num-out">1,000,000</output>
+      </div>
+      <div class="scoreboard">
+        <span class="team">short key</span>
+        <span class="goals" id="enc-key">—</span>
+      </div>
+      <p class="howto" id="enc-fact"></p>
+    </div>
+
+    <div class="lab">
+      <h3>Part B — The birthday collision explorer</h3>
+      <p class="howto">Pick a key length, then generate keys one batch at a time. A <strong>collision</strong> is two identical keys — in production, every collision forces a slow check-and-retry. Compare what you see with the birthday math prediction.</p>
+      <div class="slider-row">
+        <label for="col-len">Key length (characters)</label>
+        <input type="range" id="col-len" min="3" max="7" step="1" value="5" />
+        <output id="col-len-out">5</output>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Keys generated</div><div class="score" id="col-total">0</div></div>
+        <div class="stat"><div class="node-name">Collisions</div><div class="score" id="col-hits">0</div><span class="badge ok" id="col-badge">clean</span></div>
+        <div class="stat"><div class="node-name">Key space</div><div class="score" id="col-space" style="font-size:1.1rem">—</div></div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="col-gen">Generate 1,000 keys</button>
+        <button class="btn" id="col-reset">Reset</button>
+      </div>
+      <p class="howto" id="col-theory"></p>
+      <div class="log" id="col-log" aria-live="polite"></div>
+    </div>
+
+    <script>
+    (function () {
+      var ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      function base62(n) {
+        if (n === 0) return '0';
+        var s = '';
+        while (n > 0) { s = ALPHABET[n % 62] + s; n = Math.floor(n / 62); }
+        return s;
+      }
+      function fmt(n) { return n.toLocaleString('en-US'); }
+
+      // --- Part A: encoder ---
+      var encNum = document.getElementById('enc-num'),
+          encNumOut = document.getElementById('enc-num-out'),
+          encKey = document.getElementById('enc-key'),
+          encFact = document.getElementById('enc-fact');
+      function renderEnc() {
+        var n = parseInt(encNum.value, 10);
+        encNumOut.textContent = fmt(n);
+        var key = base62(n);
+        encKey.textContent = key;
+        var space = Math.pow(62, key.length);
+        encFact.textContent = 'That is counter #' + fmt(n) + ' expressed in base62 (' + key.length + ' chars). ' +
+          'With ' + key.length + '-char keys there are only ' + fmt(Math.round(space)) + ' possible keys — ' +
+          'every key the KGS hands out is guaranteed unique, so nothing is wasted on collisions.';
+      }
+      encNum.addEventListener('input', renderEnc);
+      renderEnc();
+
+      // --- Part B: collision explorer ---
+      var colLen = document.getElementById('col-len'),
+          colLenOut = document.getElementById('col-len-out'),
+          colTotal = document.getElementById('col-total'),
+          colHits = document.getElementById('col-hits'),
+          colBadge = document.getElementById('col-badge'),
+          colSpace = document.getElementById('col-space'),
+          colGen = document.getElementById('col-gen'),
+          colReset = document.getElementById('col-reset'),
+          colTheory = document.getElementById('col-theory'),
+          colLog = document.getElementById('col-log');
+      var seen = {}, total = 0, hits = 0;
+
+      function keySpace() { return Math.pow(62, parseInt(colLen.value, 10)); }
+      function birthday50() { return Math.round(1.1774 * Math.sqrt(keySpace())); }
+      function rndKey(len) {
+        var s = '';
+        for (var i = 0; i < len; i++) s += ALPHABET[Math.floor(Math.random() * 62)];
+        return s;
+      }
+      function renderTheory() {
+        var len = parseInt(colLen.value, 10);
+        colLenOut.textContent = len;
+        colSpace.textContent = fmt(keySpace());
+        colTheory.textContent = 'Key space: 62^' + len + ' = ' + fmt(keySpace()) + ' possible keys. ' +
+          'Birthday math predicts a ~50% chance of at least one collision after only ' + fmt(birthday50()) + ' keys. ' +
+          'Generate batches and watch the first collision land near that number.';
+      }
+      function log(msg, cls) {
+        var d = document.createElement('div');
+        if (cls) d.className = cls;
+        d.textContent = msg;
+        colLog.appendChild(d);
+        colLog.scrollTop = colLog.scrollHeight;
+      }
+      colLen.addEventListener('input', function () {
+        renderTheory();
+        log('— key length set to ' + colLen.value + ' chars; keep generating to compare —', 't');
+      });
+      colGen.addEventListener('click', function () {
+        var len = parseInt(colLen.value, 10), batch = 1000, batchHits = 0;
+        for (var i = 0; i < batch; i++) {
+          var k = rndKey(len);
+          total++;
+          if (seen[k]) { hits++; batchHits++; } else { seen[k] = 1; }
+        }
+        colTotal.textContent = fmt(total);
+        colHits.textContent = fmt(hits);
+        if (hits > 0) { colBadge.textContent = 'colliding'; colBadge.className = 'badge bad'; }
+        else if (total >= birthday50()) { colBadge.textContent = 'lucky so far'; colBadge.className = 'badge warn'; }
+        log('batch: ' + fmt(batch) + ' keys → ' + batchHits + ' new collisions (total keys ' + fmt(total) + ', total collisions ' + fmt(hits) + ')',
+            batchHits > 0 ? 'bad' : 'good');
+      });
+      colReset.addEventListener('click', function () {
+        seen = {}; total = 0; hits = 0;
+        colTotal.textContent = '0'; colHits.textContent = '0';
+        colBadge.textContent = 'clean'; colBadge.className = 'badge ok';
+        colLog.innerHTML = '';
+        renderTheory();
+      });
+      renderTheory();
+      log('Ready. Pick a key length and start generating — or drop to 3 chars and watch collisions rain.', 't');
+    })();
+    </script>
+
+    <div class="green-box">
+      <p><strong>What the lab just taught you.</strong> With 5-char keys (916M key space), collisions start showing up after tens of thousands of keys — long before the space "fills up." That's the birthday problem in action, and it's exactly why production shorteners don't hash-and-hope: they use KGS (unique by construction) or counters. When an interviewer asks "why not just MD5 the URL?", point at this feeling.</p>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">10</span><h2>Q&amp;A with full model answers</h2></div>
+    <p class="lede">Four questions that come up in the room, answered the way a senior engineer would answer them — verdict first, reasoning after.</p>
+
+    <div class="qa">
+      <div class="question">
+        <div class="qnum">Q1</div>
+        <div class="qtext">Why 302 instead of 301 for the redirect?</div>
+        <div class="context">The interviewer is testing whether you understand the operational consequences of HTTP semantics, not just the status codes.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "302, because a shortener's redirect is a policy decision, not a fact about the web. 301 tells the browser to cache the redirect permanently — after one visit, the browser never asks me again. That kills three things I need: click analytics (I stop seeing visits), destination changes (a user edits the long URL and the browser ignores it), and expiry (an expired link keeps working in the user's browser). 302 keeps the browser checking back every time, so I stay in control. The cost is one extra lookup per click, which my cache layer absorbs — that's exactly what the Redis/edge layer is for."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2</div>
+        <div class="qtext">How do you generate short keys at scale without collisions?</div>
+        <div class="context">This is the core of the question. They're listening for you to reject the naive answers with math, not just recite KGS.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "Three options. Hashing the URL looks clean, but the birthday problem kills it: with 7 base62 chars you have ~3.5 trillion keys and a 50% collision chance after only ~2 million keys — against a 6-billion-row table, every write becomes a check-and-retry loop. A distributed counter with range allocation is unique by construction and gives the shortest keys, but sequential keys are enumerable, which leaks private links. My pick is a Key Generation Service: it pre-generates random keys, stores them in an unused table, and hands them out; API servers keep a local buffer so the hot path never blocks on it. Standby KGS shares the same tables for failover. Uniqueness is structural, keys are unpredictable, and the write path stays fast."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3</div>
+        <div class="qtext">Walk me through what happens when someone clicks a short link.</div>
+        <div class="context">They want the full request path, end to end, with the cache layers named. Keep it to five steps.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "One: the browser hits <code>shrt.ly/abc12</code>. Two: the CDN edge checks its short-TTL cache — hottest links resolve here in ~10ms. Three: on a miss, the app server checks Redis, cache-aside; hot keys hit here. Four: on a Redis miss, it reads the database by primary key on <code>short_key</code>, checks <code>expires_at</code>, populates Redis, and returns a 302 with the long URL in the Location header. Five: asynchronously — off the critical path — it fires a click event into a queue for the analytics pipeline. The browser follows the 302. Total added latency on the cached path is a few milliseconds."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4</div>
+        <div class="qtext">How do you stop spammers from abusing your shortener?</div>
+        <div class="context">A security-flavored follow-up. They're checking whether you treat abuse as a design constraint from the start.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "Layered. First, rate limit the shorten endpoint — token bucket per IP and per user — so a spam factory can't mint links faster than a human. Second, screen every submitted destination against a phishing/malware blocklist before issuing a key, and quarantine matches. Third, use random non-enumerable keys so attackers can't scrape the link space. Fourth, require authentication for custom vanity aliases and reserve brand namespaces. And the read path only ever returns 404 for unknown keys — no oracle that tells an attacker which keys exist. The redirect itself stays unauthenticated, because the product only works if anyone can click."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">11</span><h2>Practice drills (untimed)</h2></div>
+    <p class="lede">Untimed, rubric-graded. Do them on paper or out loud — the point is the reasoning, not the clock.</p>
+
+    <div class="reveal">
+      <summary>Drill 1 — Size it: 1B URLs/month</summary>
+      <div class="body">
+        <p>Redo the §2 back-of-the-envelope math for 1 billion new URLs per month, 10:1 read ratio, 5-year retention. What breaks first in the design above, and what changes?</p>
+        <p><strong>Rubric:</strong> correct per-second rates (∼400 avg / ∼4,000 peak writes; ∼40,000/s peak reads) and storage (60B rows × 500 B ≈ 30 TB) · identifies that a single relational DB now needs sharding by short_key · notes the KGS key pool must be sized/generated faster, and the analytics queue becomes a first-class citizen · bonus: mentions Redis cluster + CDN becoming mandatory, not optional.</p>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <summary>Drill 2 — Defend the choice: counter vs KGS</summary>
+      <div class="body">
+        <p>Your interviewer says: "KGS is an extra service. Why not just use a database auto-increment counter with range allocation? Simpler." Give the two-minute rebuttal.</p>
+        <p><strong>Rubric:</strong> concedes the simplicity honestly · names enumeration as the decisive flaw (sequential keys leak private links) · notes range-allocation still needs a coordinator, so "simpler" is partly an illusion · lands on: KGS buys unpredictability + structural uniqueness for one small service — and offers the compromise (counter with a large random starting offset) if they push.</p>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <summary>Drill 3 — Design the expiry</summary>
+      <div class="body">
+        <p>A customer wants: "my campaign link dies exactly at midnight on Dec 31, and I want to see a branded 'expired' page, not a 404." Sketch the read path and the cleanup.</p>
+        <p><strong>Rubric:</strong> read path checks <code>expires_at</code> on lookup (lazy — no sweeper in the hot path) · returns a branded expired page (a 410 Gone is the correct status) instead of 404 · cache entries for expiring keys get TTL ≤ remaining lifetime so no stale redirects after midnight · background sweeper deletes old rows in batches off-peak · never reissues the key.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">12</span><h2>Cheat sheet &amp; 60-second framing</h2></div>
+
+    <div class="cheatsheet">
+      <h3>URL shortener — six decisions</h3>
+      <ol>
+        <li><strong>Asymmetry:</strong> write-once, read-many (10:1) — cache is the architecture, not an optimization.</li>
+        <li><strong>Redirect:</strong> 302, not 301 — keeps analytics, edits, and expiry under your control.</li>
+        <li><strong>Keys:</strong> KGS (unique by construction, non-enumerable); counter+base62 second; hash-and-hope dies to the birthday problem.</li>
+        <li><strong>Storage:</strong> trivial schema, short_key as primary key; SQL fine early, shard by key when growth demands.</li>
+        <li><strong>Abuse:</strong> rate-limit creation, screen destinations, random keys, auth for vanity aliases.</li>
+        <li><strong>Analytics:</strong> separate async write path — queue events, batch-aggregate, HyperLogLog for uniques.</li>
+      </ol>
+    </div>
+
+    <div class="framing">
+      <p><strong>60-second framing — how to open in the room:</strong></p>
+      <p>"A URL shortener is a write-once, read-many key-value store with a redirect on top. Scope: shorten, 302 redirect, custom aliases, expiry, click analytics — AP-flavored, low latency. Sizing: 100M URLs a month is ~40 writes a second, 400 peak; reads run 10:1; five years of data is about 3 terabytes — so this is a latency and key-generation problem, not a storage problem. Keys are the heart of it: I'll use a Key Generation Service that pre-mints random keys so uniqueness is structural, not checked. Reads go CDN → Redis → database, cache-aside, because entries are effectively immutable. Abuse gets rate limiting plus destination screening from day one, and analytics runs on a separate async queue so counting never touches the hot path."</p>
+    </div>
+
+    <footer>
+      <p>Lesson 15 · Part of the daily system design series. <a href="../index.html">← All lessons</a></p>
+    </footer>
+  </section>
+</div>
+</body>
+</html>
