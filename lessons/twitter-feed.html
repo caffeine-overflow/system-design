@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Design a Twitter/X Feed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 260px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .log .good { color: #7fd8a8; }
+    .log .bad { color: #ff8f7d; }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .scoreboard {
+      display: flex; align-items: center; justify-content: center; gap: 16px;
+      margin: 18px 0; padding: 18px;
+      border: 2px solid var(--ink); border-radius: 12px; background: var(--code); color: var(--code-ink);
+      font-family: "IBM Plex Mono", monospace;
+    }
+    .scoreboard .team { font-weight: 600; font-size: 1.1rem; }
+    .scoreboard .goals { font-size: 2.2rem; font-weight: 600; min-width: 3.2rem; text-align: center; }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .cheatsheet {
+      background: var(--surface); border: 2px solid var(--ink);
+      border-radius: var(--radius); padding: 22px 24px; margin: 24px 0; max-width: 46rem;
+    }
+    .cheatsheet h3 { margin: 0 0 10px; }
+    .cheatsheet ol { max-width: none; }
+    .framing {
+      border-left: 4px solid var(--purple); background: var(--purple-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .framing p { margin: 8px 0; max-width: none; }
+    footer { margin-top: 60px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 20px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <p class="crumbs"><a href="../index.html">← All lessons</a></p>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 16 · Classic Design</span>
+    <h1>Design a Twitter/X Feed</h1>
+    <p class="whyline">One post, a hundred million followers — where does the work of delivering it actually happen? The answer is the whole lesson: push vs pull fan-out, the celebrity problem, and the hybrid design every large feed runs.</p>
+    <div class="meta">
+      <span>~35 min read</span>
+      <span>Interactive: fan-out lab</span>
+      <span>4 Q&amp;A · 3 drills</span>
+      <span>Cheat sheet</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h2>In this lesson</h2>
+    <ol>
+      <li><a href="#what">What is a feed?</a></li>
+      <li><a href="#requirements">Requirements &amp; back-of-the-envelope math</a></li>
+      <li><a href="#api">The API surface</a></li>
+      <li><a href="#datamodel">Data model: posts, follows, and time-ordered IDs</a></li>
+      <li><a href="#fanout">The heart of the design: fan-out</a></li>
+      <li><a href="#reads">Reading fast: timelines, caches, and your own post</a></li>
+      <li><a href="#breaks">What breaks at soccer scale</a></li>
+      <li><a href="#lab">Interactive lab: the fan-out lab</a></li>
+      <li><a href="#qa">Q&amp;A with full model answers</a></li>
+      <li><a href="#drills">Practice drills (untimed)</a></li>
+      <li><a href="#cheatsheet">Cheat sheet &amp; 60-second framing</a></li>
+    </ol>
+  </nav>
+
+  <section id="what">
+    <div class="section-head"><span class="section-num">01</span><h2>What is a feed?</h2></div>
+    <p class="lede">Before any architecture: what the thing is, in plain words, with the running example we'll carry through the whole lesson.</p>
+
+    <div class="definition">
+      <strong class="term">Feed (home timeline)</strong>
+      <p>A feed is the personalized list of posts from the accounts you follow, shown newest-first when you open the app. It is <em>personalized</em> (every user sees a different one) and <em>assembled</em> (it doesn't exist anywhere as a single object — the system builds it from many authors' posts).</p>
+    </div>
+
+    <div class="pitch">
+      <span class="tag">Running example</span>
+      <h4>Matchday — a soccer social app</h4>
+      <p>Imagine <strong>Matchday</strong>, a soccer version of X. Fans follow clubs (@Arsenal), players (@Saka), and pundits. They post takes ("that offside call was criminal"), lineup news, and goal clips. Open the app and you get your <strong>home feed</strong>: everything from your follows, newest first. That's the product we're designing — and every decision below is explained through it.</p>
+    </div>
+
+    <p>Three terms we'll use constantly, defined once here:</p>
+    <ul>
+      <li><span class="term">Follow graph</span> — the directed network of who-follows-whom. <em>Directed</em> means it isn't mutual: you follow @Saka; @Saka does not follow you. Each edge is one row: <code>follower → followee</code>.</li>
+      <li><span class="term">Home timeline</span> — <em>your</em> feed: posts from everyone <em>you</em> follow, merged by time.</li>
+      <li><span class="term">User timeline</span> — one author's posts in order. @Saka's user timeline is just @Saka's posts. This distinction matters enormously in §5.</li>
+    </ul>
+
+    <div class="callout">
+      <h4>The central tension of this lesson</h4>
+      <p>Somebody has to do the <strong>joining</strong> — combining many authors' posts into one home feed. Either it happens <strong>when a post is written</strong> (the system pushes it into every follower's feed immediately), or it happens <strong>when a feed is read</strong> (the system gathers each followee's posts at load time). You can't avoid the work; you can only choose <em>where</em> it happens. That choice is called <strong>fan-out</strong>, and it's the heart of every feed design.</p>
+    </div>
+  </section>
+
+  <section id="requirements">
+    <div class="section-head"><span class="section-num">02</span><h2>Requirements &amp; back-of-the-envelope math</h2></div>
+    <p class="lede">Scope first, numbers second. The numbers tell you this is a fan-out problem, not a storage problem.</p>
+
+    <h3>Functional requirements</h3>
+    <ul>
+      <li>Post text (say 280 chars) with optional media (images, video clips).</li>
+      <li>Home timeline: paginated, newest first.</li>
+      <li>Follow / unfollow; like a post.</li>
+    </ul>
+    <p><strong>Out of scope</strong> (say this in the room — scoping is a skill): DMs, search, ads, notifications. Also: real X <em>ranks</em> the feed with ML; we'll do chronological and note exactly where a ranker would plug in (§5).</p>
+
+    <h3>Non-functional requirements</h3>
+    <ul>
+      <li><strong>Read-heavy.</strong> Timeline views outnumber posts ~20:1. Optimize the read path.</li>
+      <li><strong>Availability over strict consistency.</strong> A fan seeing a post a minute late is fine; the app being down during a derby is not. This is an <strong>AP-flavored</strong> system (our <a href="cap-theorem-consistency.html">CAP lesson</a>'s language): the feed is eventually consistent by design.</li>
+      <li><strong>Low latency:</strong> p99 timeline load under ~200&nbsp;ms.</li>
+    </ul>
+
+    <h3>The math</h3>
+    <table class="cmp">
+      <tr><th>Quantity</th><th>Assumption</th><th>Result</th></tr>
+      <tr><td>Daily active users</td><td>200M</td><td>—</td></tr>
+      <tr><td>Posts per day</td><td>0.5 per user</td><td><strong>100M/day</strong></td></tr>
+      <tr><td>Write rate</td><td>100M ÷ 86,400 s</td><td><strong>~1,200/s avg</strong>, ~2,400/s peak (2×)</td></tr>
+      <tr><td>Timeline loads per day</td><td>10 per user</td><td><strong>2B/day</strong></td></tr>
+      <tr><td>Read rate</td><td>2B ÷ 86,400 s</td><td><strong>~23K/s avg</strong>, ~50K/s peak</td></tr>
+      <tr><td>Read : write ratio</td><td>2B ÷ 100M</td><td><strong>~20 : 1</strong></td></tr>
+      <tr><td>Post storage</td><td>~1 KB per post record</td><td>100 GB/day → <strong>~36 TB/year</strong> (media lives separately in object storage)</td></tr>
+    </table>
+
+    <div class="green-box">
+      <p><strong>The verdict the math hands you.</strong> 36 TB/year is nothing — a handful of database nodes. 1,200 writes/s is nothing. The problem is <em>delivery</em>: each of those 100M posts has to reach hundreds of followers' screens, and 2B timeline loads a day have to assemble in milliseconds. This is a <strong>fan-out</strong> problem, not a storage problem.</p>
+    </div>
+  </section>
+
+  <section id="api">
+    <div class="section-head"><span class="section-num">03</span><h2>The API surface</h2></div>
+    <p class="lede">Four endpoints. Two design decisions hide inside them: cursor pagination and idempotent posting.</p>
+
+    <pre>POST /posts            { text, media_ids[], idempotency_key } → 201 { post_id, created_at }
+GET  /timeline?cursor=&lt;ts:id&gt;&amp;limit=20   → { posts[], next_cursor }
+POST /follows           { followee_id } → 201
+POST /likes             { post_id } → 201</pre>
+
+    <h3>Cursor pagination, not page numbers</h3>
+    <p>A <span class="term">cursor</span> is a bookmark into the feed — here, the <code>(created_at, post_id)</code> of the last post you saw. The next request says "give me 20 posts older than this bookmark." Contrast with <code>?page=47</code> + <code>OFFSET</code>: OFFSET makes the database <em>re-scan and discard</em> the first 46 pages on every request — slower the deeper you go, and it skips/duplicates posts when new ones arrive mid-scroll. A cursor is a position, so each page costs O(limit) regardless of depth. (Same idea as our <a href="indexing-deep-dive.html">indexing lesson</a>'s keyset pagination.)</p>
+
+    <h3>Idempotent posting</h3>
+    <p><span class="term">Idempotent</span> means safe to retry: doing it twice has the same effect as once. Posting from a phone on a flaky stadium connection <em>will</em> be retried — and nobody wants their goal-reaction posted twice. So the client generates an <span class="term">idempotency key</span> (a random UUID per compose) and sends it with the post; the server stores it and ignores repeats. (This is the same idempotency-keys pattern from our <a href="message-queues.html">message-queues lesson</a>, now protecting the write path instead of a consumer.)</p>
+
+    <div class="callout">
+      <h4>Note the 201 contract</h4>
+      <p><code>POST /posts</code> returns <strong>after the durable write</strong> — the post is safely stored — but <em>before</em> it has been delivered to anyone's feed. Delivery (fan-out) happens asynchronously. That split is the <strong>critical-path rule</strong> from our queues lesson: the user waits only for the write; everything else is background work.</p>
+    </div>
+  </section>
+
+  <section id="datamodel">
+    <div class="section-head"><span class="section-num">04</span><h2>Data model: posts, follows, and time-ordered IDs</h2></div>
+    <p class="lede">Four tables. The schema is shaped by the two queries the product lives or dies on.</p>
+
+    <pre>users    (user_id PK, handle, display_name, created_at, ...)
+posts    (post_id PK, author_id, text, created_at, media_ids[])
+follows  (follower_id, followee_id, created_at)   -- PK (follower_id, followee_id)
+likes    (post_id, user_id, created_at)           -- PK (post_id, user_id)</pre>
+
+    <h3>Query patterns drive the schema</h3>
+    <p>The two hot queries are: <em>"@Saka's recent posts"</em> (user timeline) and <em>"who follows @Saka"</em> (fan-out needs the follower list). The first is served by a composite index on <code>(author_id, created_at DESC)</code> — equality on the author, range on time, exactly the leftmost-prefix pattern from our <a href="indexing-deep-dive.html">indexing lesson</a>. The second needs the <em>reverse</em> direction of the follows table, so you keep a second index (or table) keyed by <code>(followee_id, follower_id)</code>. One table, two access directions — index both.</p>
+
+    <h3>Time-ordered IDs</h3>
+    <p><code>post_id</code> isn't a random UUID. It's a <span class="term">Snowflake-style ID</span>: ~41 bits of millisecond timestamp + worker ID + sequence number. That gives you IDs that are <strong>unique across machines with no coordination</strong> (the worker + sequence bits) and <strong>roughly time-ordered</strong> (the timestamp bits). Why it matters: time-ordered IDs make the merge in §5 and cursor pagination in §3 cheap — newer posts sort after older ones without reading a timestamp column — while random UUIDs would scatter every insert across the index (our indexing lesson's page-split tax, paid on every write).</p>
+  </section>
+
+  <section id="fanout">
+    <div class="section-head"><span class="section-num">05</span><h2>The heart of the design: fan-out</h2></div>
+    <p class="lede">One post, N followers. Someone pays N units of work. The only question is who, and when.</p>
+
+    <div class="definition">
+      <strong class="term">Fan-out</strong>
+      <p>Distributing one post to the views of many followers. <span class="term">Write amplification</span> is the multiplier: one logical write (the post) becoming N physical writes, where N is the follower count. <span class="term">Read amplification</span> is the mirror image: one timeline load triggering M lookups, where M is the number of accounts you follow.</p>
+    </div>
+
+    <h3>Option A — Push: fan-out on write</h3>
+    <p>When @Saka posts, the system writes the post ID into <strong>every follower's inbox</strong> — a per-user list (a Redis sorted set scored by timestamp works beautifully) holding "the posts I should show this user." Reading your timeline is then one lookup: <em>read my inbox, take the top 20</em>. No joining at read time; the read path is O(1)-ish and screaming fast.</p>
+    <p>The price is paid at write time: <strong>write amplification = follower count</strong>. For a fan with 500 followers, that's 500 inbox writes per post — fine. For a superstar with 100M followers posting 10 times a day, that's <strong>1 billion inbox writes a day from one user</strong>, ~200 bytes per inbox entry → <strong>~200 GB of writes per day from a single account</strong>. The write path burns. Two more papercuts: inactive users accumulate inbox writes nobody will ever read (wasted work), and every celebrity post is a thundering herd against the inbox store.</p>
+
+    <h3>Option B — Pull: fan-out on read</h3>
+    <p>The post is stored <strong>once</strong>, in the author's user timeline. Nobody's inbox is touched. When you load your feed, the system fetches your followee list (~200–500 accounts), reads each author's recent posts (one indexed lookup each — §4's composite index), and <strong>merges</strong> the top 20 by timestamp. Zero write amplification; the data is always fresh.</p>
+    <p>The price moves to read time: <strong>read amplification = followee count per load</strong>. At 2B timeline loads a day × 300 followees, that's ~600B index lookups a day, and every load pays a scatter-gather merge — p99 latency suffers, and phones burn data and battery re-merging on every refresh.</p>
+
+    <table class="cmp">
+      <tr><th></th><th>Push (fan-out on write)</th><th>Pull (fan-out on read)</th></tr>
+      <tr><td>Write cost per post</td><td>O(followers) — explodes for celebrities</td><td>O(1) — stored once</td></tr>
+      <tr><td>Read cost per timeline load</td><td>O(1) — read your own inbox</td><td>O(followees) — merge hundreds of lists</td></tr>
+      <tr><td>Freshness</td><td>Eventual — inboxes fill asynchronously</td><td>Always fresh</td></tr>
+      <tr><td>Wasted work</td><td>Writes for followers who never open the app</td><td>None — work happens only on read</td></tr>
+      <tr><td>Dies when…</td><td>A 100M-follower superstar posts 10×/day</td><td>2B loads/day each merge 300 lists</td></tr>
+    </table>
+
+    <h3>Option C — Hybrid: the production answer</h3>
+    <p>Split the world with a <span class="term">threshold</span> — say, 10K followers. Accounts <em>below</em> it get <strong>push</strong>: their posts fan out to followers' inboxes, keeping reads fast for the 99.99%. Accounts <em>above</em> it are <strong>celebrities</strong>: their posts are <em>skipped</em> during push. At read time, each timeline load merges the reader's inbox <em>plus</em> the recent posts of the few celebrities they follow — and since a user follows maybe 5 celebrities, that's 5 extra lookups per load, served from a Redis cache of each celebrity's recent posts.</p>
+    <p>The write storm is dead (the 1B-writes-a-day superstar now costs ~0 push writes), the read cost is bounded (5 cached merges, not 300 live ones), and the trade-off is honest: a celebrity's post can appear seconds later than a friend's — <strong>eventual consistency</strong>, which our non-functional requirements already blessed.</p>
+
+    <div class="callout">
+      <h4>Fan-out is async — always</h4>
+      <p><code>POST /posts</code> returns after the durable write; a <strong>queue</strong> carries the fan-out work to background workers (the critical-path rule again). This is what absorbs the World Cup-final spike in §7: posts keep succeeding at 1,200/s while the fan-out queue drains as fast as the worker fleet allows. Monitor <strong>queue depth and fan-out lag</strong> — "posts appear N seconds late" is the first thing that degrades, and it's the metric that tells you.</p>
+    </div>
+
+    <h3>Where ranking would live</h3>
+    <p>Real X doesn't show pure chronological — it scores posts by engagement, recency, and your history. In this design, the ranker plugs into exactly one place: <strong>the merge step</strong>, where inbox posts and celebrity posts are combined. Swap "sort by timestamp" for "score and sort," and the rest of the architecture doesn't move. Chronological keeps the lesson honest; ranking is a scoring function at the merge, not a different system.</p>
+  </section>
+
+  <section id="reads">
+    <div class="section-head"><span class="section-num">06</span><h2>Reading fast: timelines, caches, and your own post</h2></div>
+    <p class="lede">The read path is the product — 20× the write volume. Three layers keep it under 200 ms.</p>
+
+    <h3>Layer 1 — The inbox is the cache</h3>
+    <p>Notice something elegant about push: the per-user inbox <em>is</em> a cache. There's no invalidation problem, because a new post is a <em>write</em> to the inbox, not a stale entry to expire. Your timeline read is: read inbox IDs → fetch those post bodies → render. Inbox lives in Redis (hot, in-memory); overflow goes to SSD-backed storage per user shard.</p>
+
+    <h3>Layer 2 — Post bodies cached by ID</h3>
+    <p>Inboxes hold <strong>post IDs, not post bodies</strong> — one reason among several (drill 3 explores another). Bodies live in a <code>post:{id} → JSON</code> cache, so a merge never touches the database per post. The viral-goal-clip problem — one post read by 50M fans — is a <strong>hot key</strong>: one Redis key hammered by the world. The mitigations are straight from our <a href="caching-strategies.html">caching lesson</a>: jittered TTLs so replicas don't expire in lockstep, and request coalescing so 1,000 simultaneous misses become one database read.</p>
+
+    <h3>Layer 3 — Media never touches your servers</h3>
+    <p>Images and video go to object storage; the timeline API returns CDN URLs and the phone fetches bytes from the edge. Your application servers never proxy a single pixel — the CDN is the media read path.</p>
+
+    <div class="definition">
+      <strong class="term">Read-your-own-write (session guarantee)</strong>
+      <p>After you post, <em>you</em> see it instantly — not because fan-out is fast, but because the <code>201</code> response carries the post and your client <strong>prepends it to your own timeline locally</strong>. Your writes are immediately visible to you (a <em>session guarantee</em> from our <a href="cap-theorem-consistency.html">consistency lesson</a>); everyone else sees it once fan-out reaches them. This is why your post appears instantly while your friend's takes a minute — §9's Q3.</p>
+    </div>
+  </section>
+
+  <section id="breaks">
+    <div class="section-head"><span class="section-num">07</span><h2>What breaks at soccer scale</h2></div>
+    <p class="lede">Every design has a failure mode with your name on it. Here are this one's, with the fixes.</p>
+
+    <h3>The World Cup final spike</h3>
+    <p>Full time, controversial penalty, and posting volume goes 10× in minutes. What breaks <em>first</em> is not the post API — the durable write is cheap — it's <strong>fan-out lag</strong>: the queue depth climbs and posts appear minutes late. The response: the queue absorbs it (that's its job), you scale the fan-out worker fleet, and you alert on depth + lag. If it keeps climbing, <strong>degrade gracefully</strong>: stretch timeline cache TTLs, lengthen the celebrity-merge cache, and drop back to pure chronological to shed ranking CPU. The product stays up; it's just slightly staler. That's the AP choice, working as designed.</p>
+
+    <h3>The celebrity write storm</h3>
+    <p>Solved by the hybrid threshold in §5 — but the threshold needs teeth: it must be evaluated <em>per post at fan-out time</em>, because follower counts move. A pundit who goes viral overnight crosses the threshold mid-tournament; the fan-out worker checks the count on every job, not once at account creation.</p>
+
+    <h3>The viral hot key</h3>
+    <p>One goal clip, 50M views, one Redis key. Jittered TTL + request coalescing (§6, layer 2), and serve celebrity recent-post lists from dedicated cache replicas so the hot key can't starve normal inbox reads.</p>
+
+    <h3>Deletions</h3>
+    <p>A user deletes a post that's already in 500K inboxes. Eagerly fanning out the delete re-pays the write amplification you worked so hard to avoid. The standard answer is <strong>lazy</strong>: mark a <span class="term">tombstone</span> (a "this post is deleted" marker) on the post record, and filter tombstoned IDs at read/merge time. The ghost can linger for seconds in someone's feed — acceptable, and far cheaper than a delete storm. Tombstones get a TTL so they don't accumulate forever.</p>
+
+    <h3>Spam and fake follows</h3>
+    <p>Bot farms mint accounts to amplify posts. The defense is our <a href="rate-limiting.html">rate-limiting lesson</a> applied to the social graph: token buckets on posts-per-account and follows-per-account, tighter for new accounts. Rate limiting isn't just API protection — here it's <em>graph hygiene</em>, because every fake follow is future fan-out work.</p>
+
+    <div class="warn-box">
+      <p><strong>Deep pagination is a trap.</strong> Nobody scrolls 10,000 posts, but an attacker (or a bug) paginating with cursors forever will walk your entire hot set. Cap timeline depth — say 1,000 posts — and return an honest "you're all caught up." Cursor pagination makes each page cheap; the cap keeps the total bounded.</p>
+    </div>
+  </section>
+
+  <section id="lab">
+    <div class="section-head"><span class="section-num">08</span><h2>Interactive lab: the fan-out lab</h2></div>
+    <p class="lede">Two simulators. The first makes you <em>feel</em> the celebrity write storm: one post, N followers, watch the inbox writes explode. The second runs all three strategies at platform scale so you can see exactly where push dies and hybrid wins.</p>
+
+    <div class="lab">
+      <h3>Part A — One post, how many writes?</h3>
+      <p class="howto">Drag the sliders. <strong>Followers</strong> is how many people follow the poster — from a casual fan (10) to a superstar (100M). <strong>Posts today</strong> is how many times they posted. The stats show the inbox writes a pure-push design would pay. Each inbox entry is ~200 bytes.</p>
+      <div class="slider-row">
+        <label for="fa-followers">Followers</label>
+        <input type="range" id="fa-followers" min="0" max="7" step="1" value="2" />
+        <output id="fa-followers-out">1,000</output>
+      </div>
+      <div class="slider-row">
+        <label for="fa-posts">Posts today</label>
+        <input type="range" id="fa-posts" min="1" max="50" step="1" value="5" />
+        <output id="fa-posts-out">5</output>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Inbox writes · one post</div><div class="score" id="fa-per-post">—</div></div>
+        <div class="stat"><div class="node-name">Inbox writes · today</div><div class="score" id="fa-today">—</div></div>
+        <div class="stat"><div class="node-name">Write bytes · today</div><div class="score" id="fa-bytes" style="font-size:1.1rem">—</div><span class="badge ok" id="fa-badge">push-friendly</span></div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="fa-preset-fan">Casual fan · 500</button>
+        <button class="btn" id="fa-preset-club">Club account · 5M</button>
+        <button class="btn" id="fa-preset-star">Superstar · 100M</button>
+      </div>
+      <div class="log" id="fa-log" aria-live="polite"></div>
+    </div>
+
+    <div class="lab">
+      <h3>Part B — Push vs pull vs hybrid at platform scale</h3>
+      <p class="howto">Fixed world: <strong>200M users</strong>, <strong>10 timeline loads per user per day</strong> (2B loads/day). You set the average posts per user, the average follower count, and the celebrity threshold. The model assumes celebrity posts are 2% of all posts, normal users average min(followers, threshold) followers, and each timeline load merges 5 celebrity lists in the hybrid/pull path. Compare <em>relative</em> daily operation counts — the ratios are the lesson, not the absolute numbers.</p>
+      <div class="slider-row">
+        <label for="pb-ppu">Avg posts / user / day</label>
+        <input type="range" id="pb-ppu" min="0.1" max="5" step="0.1" value="0.5" />
+        <output id="pb-ppu-out">0.5</output>
+      </div>
+      <div class="slider-row">
+        <label for="pb-followers">Avg followers</label>
+        <input type="range" id="pb-followers" min="0" max="7" step="1" value="3" />
+        <output id="pb-followers-out">500</output>
+      </div>
+      <div class="slider-row">
+        <label for="pb-threshold">Celebrity threshold</label>
+        <input type="range" id="pb-threshold" min="0" max="5" step="1" value="2" />
+        <output id="pb-threshold-out">10,000</output>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Push · ops/day</div><div class="score" id="pb-push" style="font-size:1.15rem">—</div><span class="badge" id="pb-push-badge" style="display:none"></span></div>
+        <div class="stat"><div class="node-name">Pull · ops/day</div><div class="score" id="pb-pull" style="font-size:1.15rem">—</div><span class="badge" id="pb-pull-badge" style="display:none"></span></div>
+        <div class="stat"><div class="node-name">Hybrid · ops/day</div><div class="score" id="pb-hybrid" style="font-size:1.15rem">—</div><span class="badge" id="pb-hybrid-badge" style="display:none"></span></div>
+      </div>
+      <p class="howto" id="pb-verdict"></p>
+      <div class="log" id="pb-log" aria-live="polite"></div>
+    </div>
+
+    <script>
+    (function () {
+      function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+      function fmtBytes(n) {
+        if (n >= 1e12) return (n / 1e12).toFixed(1) + ' TB';
+        if (n >= 1e9) return (n / 1e9).toFixed(1) + ' GB';
+        if (n >= 1e6) return (n / 1e6).toFixed(1) + ' MB';
+        if (n >= 1e3) return (n / 1e3).toFixed(1) + ' KB';
+        return Math.round(n) + ' B';
+      }
+      function fmtOps(n) {
+        if (n >= 1e15) return (n / 1e15).toFixed(1) + 'Q';
+        if (n >= 1e12) return (n / 1e12).toFixed(1) + 'T';
+        if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+        if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+        return fmt(n);
+      }
+      var FOLLOWER_STEPS = [10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000];
+
+      // ---------- Part A ----------
+      var faF = document.getElementById('fa-followers'),
+          faFOut = document.getElementById('fa-followers-out'),
+          faP = document.getElementById('fa-posts'),
+          faPOut = document.getElementById('fa-posts-out'),
+          faPerPost = document.getElementById('fa-per-post'),
+          faToday = document.getElementById('fa-today'),
+          faBytes = document.getElementById('fa-bytes'),
+          faBadge = document.getElementById('fa-badge'),
+          faLog = document.getElementById('fa-log');
+      function faLogLine(msg, cls) {
+        var d = document.createElement('div');
+        if (cls) d.className = cls;
+        d.textContent = msg;
+        faLog.appendChild(d);
+        faLog.scrollTop = faLog.scrollHeight;
+      }
+      function renderFa(note) {
+        var F = FOLLOWER_STEPS[parseInt(faF.value, 10)],
+            P = parseInt(faP.value, 10);
+        faFOut.textContent = fmt(F);
+        faPOut.textContent = fmt(P);
+        var perPost = F, today = F * P, bytes = today * 200;
+        faPerPost.textContent = fmt(perPost);
+        faToday.textContent = fmt(today);
+        faBytes.textContent = fmtBytes(bytes);
+        if (F <= 10000) { faBadge.textContent = 'push-friendly'; faBadge.className = 'badge ok'; }
+        else if (F <= 1000000) { faBadge.textContent = 'push strains'; faBadge.className = 'badge warn'; }
+        else { faBadge.textContent = 'celebrity zone — push burns'; faBadge.className = 'badge bad'; }
+        if (note) faLogLine(note, F > 1000000 ? 'bad' : 't');
+      }
+      faF.addEventListener('input', function () { renderFa(); });
+      faP.addEventListener('input', function () { renderFa(); });
+      document.getElementById('fa-preset-fan').addEventListener('click', function () {
+        faF.value = 1; faP.value = 3; renderFa('preset: casual fan — 100 followers, 3 posts. ' + fmt(100 * 3) + ' inbox writes today. Push barely notices.');
+      });
+      document.getElementById('fa-preset-club').addEventListener('click', function () {
+        faF.value = 5; faP.value = 8; renderFa('preset: club account — 1M followers, 8 posts. ' + fmt(1000000 * 8) + ' inbox writes today (' + fmtBytes(1000000 * 8 * 200) + '). The write path is sweating.');
+      });
+      document.getElementById('fa-preset-star').addEventListener('click', function () {
+        faF.value = 7; faP.value = 10; renderFa('preset: superstar — 100M followers, 10 posts. ' + fmt(100000000 * 10) + ' inbox writes today (' + fmtBytes(100000000 * 10 * 200) + ') from ONE account. This is why the hybrid threshold exists.');
+      });
+      renderFa();
+      faLogLine('Ready. Try the Superstar preset — then ask yourself what 10 such accounts do to a push-only design.', 't');
+
+      // ---------- Part B ----------
+      var FOLLOWER_STEPS_B = [10, 50, 100, 500, 1000, 5000, 10000, 50000],
+          THRESH_STEPS = [1000, 5000, 10000, 50000, 100000, 500000];
+      var USERS = 200000000, LOADS = 2000000000, CELEB_POST_FRAC = 0.02, CELEB_MERGE = 5;
+      var pbPpu = document.getElementById('pb-ppu'),
+          pbPpuOut = document.getElementById('pb-ppu-out'),
+          pbF = document.getElementById('pb-followers'),
+          pbFOut = document.getElementById('pb-followers-out'),
+          pbT = document.getElementById('pb-threshold'),
+          pbTOut = document.getElementById('pb-threshold-out'),
+          pbPush = document.getElementById('pb-push'),
+          pbPull = document.getElementById('pb-pull'),
+          pbHybrid = document.getElementById('pb-hybrid'),
+          pbPushBadge = document.getElementById('pb-push-badge'),
+          pbPullBadge = document.getElementById('pb-pull-badge'),
+          pbHybridBadge = document.getElementById('pb-hybrid-badge'),
+          pbVerdict = document.getElementById('pb-verdict'),
+          pbLog = document.getElementById('pb-log');
+      function pbLogLine(msg, cls) {
+        var d = document.createElement('div');
+        if (cls) d.className = cls;
+        d.textContent = msg;
+        pbLog.appendChild(d);
+        pbLog.scrollTop = pbLog.scrollHeight;
+      }
+      function setWinner(el, badge, isWin, label) {
+        badge.style.display = isWin ? 'inline-block' : 'none';
+        if (isWin) { badge.textContent = label; badge.className = 'badge ok'; }
+      }
+      function renderPb() {
+        var ppu = parseFloat(pbPpu.value),
+            F = FOLLOWER_STEPS_B[parseInt(pbF.value, 10)],
+            T = THRESH_STEPS[parseInt(pbT.value, 10)];
+        pbPpuOut.textContent = ppu.toFixed(1);
+        pbFOut.textContent = fmt(F);
+        pbTOut.textContent = fmt(T);
+        var postsDay = USERS * ppu;
+        var push = postsDay * F;                    // every post fanned to every follower
+        var pull = LOADS * F;                       // every load merges every followee
+        var Fn = Math.min(F, T);                    // normal users' avg followers under hybrid
+        var hybrid = (1 - CELEB_POST_FRAC) * postsDay * Fn + LOADS * CELEB_MERGE;
+        pbPush.textContent = fmtOps(push);
+        pbPull.textContent = fmtOps(pull);
+        pbHybrid.textContent = fmtOps(hybrid);
+        var win = Math.min(push, pull, hybrid);
+        setWinner(pbPush, pbPushBadge, push === win, 'cheapest');
+        setWinner(pbPull, pbPullBadge, pull === win, 'cheapest');
+        setWinner(pbHybrid, pbHybridBadge, hybrid === win, 'cheapest');
+        var name = hybrid === win ? 'Hybrid' : (push === win ? 'Push' : 'Pull');
+        var ratio = (name === 'Hybrid' ? Math.min(push, pull) : hybrid) / win;
+        pbVerdict.textContent = name + ' wins here — about ' + ratio.toFixed(1) + '× cheaper than the next best. ' +
+          'Push pays ' + fmtOps(postsDay) + ' posts × ' + fmt(F) + ' followers; ' +
+          'pull pays ' + fmtOps(LOADS) + ' loads × ' + fmt(F) + ' followees; ' +
+          'hybrid pushes only below the ' + fmt(T) + ' threshold and merges ' + CELEB_MERGE + ' celebrity lists per load.';
+      }
+      [pbPpu, pbF, pbT].forEach(function (el) {
+        el.addEventListener('input', function () { renderPb(); });
+      });
+      renderPb();
+      pbLogLine('Ready. Crank avg followers to 50,000 and watch push explode — then lower the celebrity threshold and watch hybrid contain it.', 't');
+    })();
+    </script>
+
+    <div class="green-box">
+      <p><strong>What the lab just taught you.</strong> Part A: write amplification is <em>linear in followers</em>, so the cost distribution has a brutal tail — one superstar costs more than a million casual fans. Part B: push and pull each have a regime where they die (push at high followers, pull at high followers-per-load), and the hybrid's threshold is the dial that keeps you in the cheap regime on both sides. When someone asks "why not just pick one?", point at the crossover.</p>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">09</span><h2>Q&amp;A with full model answers</h2></div>
+    <p class="lede">Four questions that come up in the room, answered the way a senior engineer would answer them — verdict first, reasoning after.</p>
+
+    <div class="qa">
+      <div class="question">
+        <div class="qnum">Q1</div>
+        <div class="qtext">Push or pull for the home timeline — pick one and defend it.</div>
+        <div class="context">They're not looking for a coin flip. They're listening for you to name where each option dies, then refuse the false choice.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "Neither pure option survives contact with the tail. Push makes reads O(1) — beautiful at 20:1 read-heavy — but write amplification equals follower count, so one 100M-follower superstar posting 10 times a day is a billion inbox writes a day from a single account; the write path burns. Pull has zero write amplification and is always fresh, but every one of 2B daily timeline loads merges ~300 followee lists — that's hundreds of billions of index lookups a day and p99 latency nobody would ship. So: hybrid with a threshold around 10K followers. Below it, push — reads stay fast for the 99.99%. Above it, the celebrity's posts skip push entirely and get merged at read time from a cached recent-posts list, which is ~5 extra cached lookups per load. The honest trade is a few seconds of staleness on celebrity posts — eventual consistency, which the product already accepts. The question is really 'where do you pay the fan-out cost,' and the answer is 'below the threshold at write time, above it at read time.'"</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2</div>
+        <div class="qtext">A superstar with 100M followers posts. Walk me through exactly what happens, step by step.</div>
+        <div class="context">They want the full request path with the hybrid logic visible. Keep it to six steps and name what is <em>skipped</em>, not just what runs.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "One: <code>POST /posts</code> arrives with an idempotency key — the server checks it, writes the post durably with a Snowflake-style time-ordered ID, and returns 201. The user waits only for this. Two: a fan-out job goes on the queue with the post ID and author ID. Three: the worker sees the author's follower count is over the 10K threshold, so it <em>skips</em> the inbox push entirely — that's the billion inbox writes we just avoided. Four: it appends the post to the author's user timeline and refreshes the cached 'recent posts' list for that celebrity in Redis. Five: on each follower's next timeline load, the read path merges their push inbox with the cached celebrity lists — about 5 extra cached lookups. Six: post bodies come from the <code>post:{id}</code> cache and media from the CDN. Net: one durable write, zero push writes, and the post is visible within seconds — the staleness window is the fan-out lag, which we monitor."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3</div>
+        <div class="qtext">Why do I see my own post instantly, but my friend's post takes a minute to show up?</div>
+        <div class="context">A consistency question wearing a UX costume. They're checking whether you can connect the symptom to the architecture.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "Two different mechanisms. Your own post appears instantly because of read-your-own-write: the 201 response carries the post object and your client prepends it to your timeline locally — no server round-trip, no fan-out involved. That's a session guarantee, not system speed. Your friend's post has to travel the real path: durable write, then the async fan-out queue, then the worker writing it into your inbox. That queue is the shock absorber for traffic spikes, so under load the lag grows — seconds normally, minutes at peak. The alternative would be synchronous fan-out, which would make every post take as long as its slowest inbox write — during the World Cup final, posting itself would time out. So the design chooses availability and eventual consistency: your own writes are instant by construction, everyone else's converge as the queue drains."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4</div>
+        <div class="qtext">It's the World Cup final. Traffic is 10× normal. What breaks first, and what do you do?</div>
+        <div class="context">A spike question. They want the failure ordered by <em>what breaks first</em>, and degradation framed as a deliberate choice.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "What breaks first is fan-out lag, not the post API. The durable write is cheap, so posting keeps succeeding at 10× — but the fan-out queue depth climbs and posts appear minutes late instead of seconds. So: the queue absorbs it, that's its job; I scale the fan-out worker fleet on queue depth, and the metric I watch is lag, not throughput. On the read side I stretch timeline TTLs and lengthen the celebrity-merge cache — the product gets slightly staler, which the AP design already permits. Per-user rate limits hold the line against spam bots riding the spike. If lag keeps climbing, I degrade deliberately: drop the ranking step back to pure chronological to shed CPU, because the merge is where the ranker lives. The site stays up and posting works; freshness is what we spend. That's the trade the requirements section already made."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">10</span><h2>Practice drills (untimed)</h2></div>
+    <p class="lede">Untimed, rubric-graded. Do them on paper or out loud — the point is the reasoning, not the clock.</p>
+
+    <div class="reveal">
+      <summary>Drill 1 — Size it: 1B posts/day</summary>
+      <div class="body">
+        <p>Redo the §2 math for 1 billion posts per day, same 20:1 read ratio, 5-year retention. What breaks first in the design above, and what changes?</p>
+        <p><strong>Rubric:</strong> correct per-second rates (∼11,600 avg / ∼23,000 peak writes; ∼230K/s avg reads) and storage (365B rows × 1 KB ≈ 365 TB post records alone) · identifies the fan-out worker fleet and Redis inbox memory as the first bottlenecks, not the database · notes inboxes must be sharded by user_id (consistent hashing) with hot inboxes in Redis and cold inboxes on SSD · notes the celebrity threshold needs re-tuning and the fan-out queue becomes the most critical piece of infrastructure · bonus: mentions multi-region fan-out and the cross-region replication lag it adds to the staleness window.</p>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <summary>Drill 2 — Defend the choice: hybrid vs pure pull</summary>
+      <div class="body">
+        <p>Your interviewer says: "Pure pull is simpler — no fan-out service, no inboxes, no threshold to tune. Data is always fresh. Why carry the hybrid's complexity?" Give the two-minute rebuttal.</p>
+        <p><strong>Rubric:</strong> concedes the simplicity and freshness honestly · names read amplification as the decisive cost (2B loads/day × ~300 followees ≈ 600B lookups/day) and its p99/mobile-data consequences · notes the merge is a scatter-gather across shards with tail-latency math that gets worse exactly when traffic spikes · lands on: hybrid keeps pull's properties for the 0.01% of accounts that need them (celebrities) while push serves the 99.99% where reads dominate — the threshold is one number, not real complexity · bonus: offers the compromise (pull with aggressively cached user timelines) and names what it gives up.</p>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <summary>Drill 3 — Design post editing</summary>
+      <div class="body">
+        <p>Matchday wants editable posts: a user fixes a typo and every follower sees the corrected version. Inboxes already hold the post ID. Sketch the design and name the trade-off you're exploiting.</p>
+        <p><strong>Rubric:</strong> exploits the inbox-of-IDs decision: inboxes store IDs, not bodies, so no fan-out is needed at all · edit updates the post row + the <code>post:{id}</code> body cache (invalidate or overwrite) · readers see the fix on next body fetch; in-flight cached bodies converge on TTL · names the alternative honestly (storing full bodies in inboxes would make reads one lookup but edits a fan-out storm) · handles the edge: cap edit window (e.g., 30 min) to bound abuse like bait-and-switch edits · bonus: notes version history as an audit table, not in the hot path.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">11</span><h2>Cheat sheet &amp; 60-second framing</h2></div>
+
+    <div class="cheatsheet">
+      <h3>Twitter/X feed — six decisions</h3>
+      <ol>
+        <li><strong>Shape:</strong> read-heavy (~20:1), AP-flavored — staleness is acceptable, downtime is not.</li>
+        <li><strong>Fan-out:</strong> hybrid — push below a ~10K-follower threshold, pull-merge for celebrities above it; the threshold is evaluated per post at fan-out time.</li>
+        <li><strong>Critical path:</strong> POST returns after the durable write; fan-out rides a queue — lag, not throughput, is the metric to watch.</li>
+        <li><strong>Reads:</strong> inbox is the cache (no invalidation problem); bodies cached by post ID; media via CDN; cursor pagination, depth capped.</li>
+        <li><strong>IDs:</strong> Snowflake-style time-ordered IDs — unique without coordination, cheap merges and cursors.</li>
+        <li><strong>Failure modes:</strong> celebrity write storm (threshold), viral hot key (jittered TTL + coalescing), spike lag (scale workers, degrade to chronological), deletes via tombstones, spam via rate-limited graph.</li>
+      </ol>
+    </div>
+
+    <div class="framing">
+      <p><strong>60-second framing — how to open in the room:</strong></p>
+      <p>"A feed is a personalized, assembled list of posts from accounts you follow — the system has to join many authors' posts into one timeline, and the whole design is choosing where that work happens. Scope: post, home timeline, follow, like; chronological, with ranking as a scoring function at the merge step. Sizing: 200M daily users, 100M posts a day is ~1,200 writes a second; 2B timeline loads is ~23K reads a second — 20:1 read-heavy, so this is a fan-out problem, not a storage problem. The design: hybrid fan-out. Below a ~10K-follower threshold, push — write the post ID into each follower's inbox so reads are one lookup. Above it, the celebrity skips push and their posts merge at read time from a cached list — that kills the billion-writes-a-day write storm. POST returns after the durable write with a Snowflake-style time-ordered ID; fan-out rides a queue off the critical path. Reads go inbox → post-body cache → CDN for media, cursor-paginated. Consistency is AP by design: your own post appears instantly via read-your-own-write, everyone else's converges as fan-out drains — and during a World Cup-final spike, we spend freshness, not availability."</p>
+    </div>
+
+    <footer>
+      <p>Lesson 16 · Part of the daily system design series. <a href="../index.html">← All lessons</a></p>
+    </footer>
+  </section>
+</div>
+</body>
+</html>
