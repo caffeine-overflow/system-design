@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Design a Chat System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 260px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .log .good { color: #7fd8a8; }
+    .log .bad { color: #ff8f7d; }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .scoreboard {
+      display: flex; align-items: center; justify-content: center; gap: 16px;
+      margin: 18px 0; padding: 18px;
+      border: 2px solid var(--ink); border-radius: 12px; background: var(--code); color: var(--code-ink);
+      font-family: "IBM Plex Mono", monospace;
+    }
+    .scoreboard .team { font-weight: 600; font-size: 1.1rem; }
+    .scoreboard .goals { font-size: 2.2rem; font-weight: 600; min-width: 3.2rem; text-align: center; }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .cheatsheet {
+      background: var(--surface); border: 2px solid var(--ink);
+      border-radius: var(--radius); padding: 22px 24px; margin: 24px 0; max-width: 46rem;
+    }
+    .cheatsheet h3 { margin: 0 0 10px; }
+    .cheatsheet ol { max-width: none; }
+    .framing {
+      border-left: 4px solid var(--purple); background: var(--purple-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .framing p { margin: 8px 0; max-width: none; }
+    footer { margin-top: 60px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 20px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <p class="crumbs"><a href="../index.html">All lessons</a> · Lesson 17</p>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 17 · Real-time systems</span>
+    <h1>Design a Chat System</h1>
+    <p class="whyline">Messaging looks trivial until you add fifty million phones, dead batteries, tunnel blackouts, and the human expectation that "sent" means seen. This lesson is the real-time layer: persistent connections, store-and-forward delivery, ordering, presence, and encryption — the WhatsApp-style design problem.</p>
+    <div class="meta">
+      <span>Classic design problem</span>
+      <span>WebSockets · delivery semantics · ordering</span>
+      <span>~35 min read + labs</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#what">What is a chat system? — the definition from zero</a></li>
+      <li><a href="#requirements">Requirements and back-of-the-envelope sizing</a></li>
+      <li><a href="#api">The API: three endpoints and a state machine</a></li>
+      <li><a href="#datamodel">Data model: sharded conversations, cursors, cold history</a></li>
+      <li><a href="#connections">The connection layer: fifty million sockets</a></li>
+      <li><a href="#path">One message, start to finish — the full path</a></li>
+      <li><a href="#hard">The hard parts: offline, ordering, presence, encryption, groups</a></li>
+      <li><a href="#lab">Interactive lab: size the fleet, walk the group send</a></li>
+      <li><a href="#qa">Q&amp;A with full model answers</a></li>
+      <li><a href="#drills">Practice drills (untimed)</a></li>
+      <li><a href="#cheatsheet">Cheat sheet &amp; 60-second framing</a></li>
+    </ol>
+  </nav>
+
+  <section id="what">
+    <div class="section-head"><span class="section-num">01</span><h2>What is a chat system?</h2></div>
+    <p class="lede">Before any architecture: what the thing actually is, defined from zero, with one running example carried through the whole lesson.</p>
+
+    <div class="definition">
+      <strong class="term">Definition</strong>
+      <p>A <span class="term">chat system</span> moves short messages between people with <span class="term">near-real-time delivery</span> (under ~1 second while both sides are online), keeps messages <span class="term">ordered per conversation</span>, and <span class="term">stores and forwards</span> — persists each message and holds it until an offline recipient returns — so no message is lost to a dead phone or a tunnel.</p>
+    </div>
+
+    <p>Our running example: <strong>Riverside FC</strong>, a football club. The coach runs a <strong>squad group chat</strong> (35 members: players, physio, kit staff). Players also send each other <strong>1:1 direct messages</strong>. The club has a <strong>fan announcement channel</strong> with 100,000 subscribers for fixture news. Every concept below gets tested against this one club.</p>
+
+    <h3>Chat is different from email — and from a feed</h3>
+    <p>Three expectations make chat its own design problem:</p>
+    <ul>
+      <li><strong>Latency is a UX contract.</strong> A message that arrives 30 seconds late feels broken; a tweet that arrives 30 seconds late is fine. Humans start feeling delay around 1 second.</li>
+      <li><strong>Phones are hostile infrastructure.</strong> Radios sleep to save battery, networks flap on trains, apps get killed by the OS. The system must assume the recipient's device is usually half-dead — this is why store-and-forward exists.</li>
+      <li><strong>Order is meaning.</strong> "Yes" arriving <em>before</em> "Training at 7?" reads as a different conversation than "yes" arriving after. Delivery without ordering is a bug, not a feature.</li>
+    </ul>
+
+    <h3>Two axes</h3>
+    <p>Every chat feature sits on two axes. <strong>Topology:</strong> 1:1 (two people) vs group (N people, one shared sequence). <strong>Reachability:</strong> online (push it down a live socket now) vs offline (hold it; deliver on reconnect). The whole design is the machinery that makes those four combinations work.</p>
+
+    <div class="callout">
+      <h4>The one-sentence architecture</h4>
+      <p>A chat system is: <strong>persistent sockets</strong> for instant delivery + a <strong>durable message store</strong> so nothing is lost + <strong>cursors</strong> so every device picks up exactly where it left off + a <strong>roster</strong> (who-is-connected-where) so the router knows which socket to push to.</p>
+    </div>
+  </section>
+
+  <section id="requirements">
+    <div class="section-head"><span class="section-num">02</span><h2>Requirements and back-of-the-envelope sizing</h2></div>
+    <p class="lede">Say the numbers out loud first — they decide which parts of the design are allowed to be simple.</p>
+
+    <h3>Functional requirements</h3>
+    <ul>
+      <li>1:1 and group conversations; send text, images, video.</li>
+      <li>Near-real-time delivery when the recipient is online; reliable delivery when they are not.</li>
+      <li>Per-conversation ordering; read receipts; typing indicators; presence (online / last seen).</li>
+      <li>Multi-device: phone + desktop stay in sync.</li>
+      <li>End-to-end encryption for message content (server routes ciphertext it cannot read).</li>
+    </ul>
+
+    <h3>The math</h3>
+    <ul>
+      <li><strong>Traffic:</strong> 50M daily users × 100 messages/day = <strong>5B messages/day</strong>. Average: 5B ÷ 86,400 ≈ <strong>58K messages/sec</strong>. Peak (match evenings, 4–5×) ≈ <strong>250–300K/sec</strong>.</li>
+      <li><strong>Storage:</strong> average payload ~150 bytes → 5B × 150B ≈ 750 GB/day of raw payload. With replication and indexes (~3×) ≈ <strong>2.2 TB/day</strong>, ≈ <strong>800 TB/year</strong>, multi-petabyte over a 5-year retention. Big, but cheap object-store big — not the hard part.</li>
+      <li><strong>Connections:</strong> 50M daily users, ~30% online at peak → <strong>~15M concurrent sockets</strong> to hold. That number drives the entire connection layer (§5).</li>
+    </ul>
+
+    <div class="green-box">
+      <p><strong>Reading the numbers:</strong> this is a <strong>connection-and-fan-out problem, not a storage problem</strong>. The database writes are 58K/sec — any sharded store handles that in its sleep. The hard constraints are holding 15M live sockets, pushing each message to the right ones in under a second, and never losing a message to a flapping phone.</p>
+    </div>
+
+    <h3>Non-functional requirements</h3>
+    <ul>
+      <li><strong>Latency:</strong> send → delivered to an online recipient, p99 under 1 second.</li>
+      <li><strong>Availability:</strong> chat is treated like a utility — survive a single-region failure without losing messages.</li>
+      <li><strong>Consistency:</strong> per-conversation ordering guaranteed; global total order across all conversations not needed (and not paid for).</li>
+      <li><strong>Durability:</strong> once the server says "sent," the message exists even if every connection server dies that second.</li>
+    </ul>
+  </section>
+
+  <section id="api">
+    <div class="section-head"><span class="section-num">03</span><h2>The API: three endpoints and a state machine</h2></div>
+    <p class="lede">The surface is small on purpose. Three endpoints, one event stream, and a message lifecycle the client drives.</p>
+
+    <h3>Send: <code>POST /messages</code></h3>
+    <p>Request: <code>{ conversation_id, client_msg_id, payload, media_ref? }</code>. The <span class="term">client_msg_id</span> is a UUID the sender's phone generates — an <span class="term">idempotency key</span>, a unique token that lets the server recognize "this is the same send attempt I already processed" and drop duplicates. Response: <code>202 Accepted { server_seq, ts }</code>.</p>
+    <p>Why <strong>202</strong> and not 201: the durable write is the commit. Routing to recipients happens asynchronously, off the critical path — the sender's wait ends at persistence, exactly like the Twitter fan-out lesson's "POST returns after the durable write."</p>
+
+    <h3>History: <code>GET /conversations/{id}/messages?cursor={seq}&amp;limit=50</code></h3>
+    <p><span class="term">Cursor pagination</span> on the per-conversation sequence number — no offsets, no deep-pagination collapse. The client keeps a <span class="term">cursor</span> (the highest sequence number it has seen) per conversation and asks for "everything after this." Reconnect sync is literally this endpoint.</p>
+
+    <h3>The live stream: one WebSocket per device</h3>
+    <p>Events pushed down the socket: <code>message.new</code>, <code>presence.update</code>, <code>typing.start/stop</code>, <code>receipt.read</code>. (WebSocket itself is defined in §5.)</p>
+
+    <h3>The message state machine</h3>
+    <p>Every message walks four states on the sender's phone: <strong>sending</strong> (not yet acknowledged by the server) → <strong>sent</strong> (persisted, 202 received) → <strong>delivered</strong> (recipient's device acknowledged receipt) → <strong>read</strong> (recipient opened the chat; their client advanced its read cursor and told us). The transitions are driven by acknowledgements flowing back — each hop confirms to the previous one.</p>
+
+    <div class="callout">
+      <h4>Riverside FC check</h4>
+      <p>The coach sends "Formation change: 4-3-3 for Saturday." to the squad chat. His phone shows one tick (sent) the moment the 202 lands — before a single player has received anything. Two ticks when a player's device acks; blue ticks when the player opens the chat. The sender's UX is decoupled from the fan-out, by construction.</p>
+    </div>
+  </section>
+
+  <section id="datamodel">
+    <div class="section-head"><span class="section-num">04</span><h2>Data model: sharded conversations, cursors, cold history</h2></div>
+    <p class="lede">The store is write-optimized and boring — chat's drama is never in the database schema.</p>
+
+    <h3>Messages table</h3>
+    <p>Shard by <code>conversation_id</code> (consistent hashing across the fleet — the same ring idea from the consistent-hashing lesson, now mapping conversations to database nodes). Row key: <code>(conversation_id, seq)</code>. Columns: <code>sender_id</code>, <code>payload</code> (ciphertext under E2EE), <code>ts</code> (server-assigned), <code>client_msg_id</code> with a uniqueness constraint for dedupe (§7).</p>
+
+    <h3>The per-conversation sequence</h3>
+    <p>Each conversation owns a <span class="term">sequence counter</span> — a single atomic integer that hands out the next <code>seq</code> when a message is persisted. One counter per conversation means one writer's worth of coordination per conversation, and conversations are independent, so the whole fleet scales: 58K writes/sec spread over millions of counters is ~zero contention per counter. This counter <em>is</em> the ordering guarantee — messages are ordered by the sequence they were assigned at persist time. (Group-chat interleaving is discussed in §7.)</p>
+
+    <h3>Per-user state</h3>
+    <ul>
+      <li><strong>Conversation list:</strong> per user, their conversations ordered by last activity — a small index, heavily read.</li>
+      <li><strong>Read cursors:</strong> per (user, conversation), the highest seq the user has read — this is what read receipts and unread badges are built from.</li>
+      <li><strong>Sync cursor:</strong> per (device, conversation), the highest seq the device has received — offline catch-up replays from here.</li>
+    </ul>
+
+    <h3>Storage tiers</h3>
+    <p>The workload is append-heavy and rarely updated — a textbook fit for an <span class="term">LSM-tree</span> store (memtable → SSTables, from the indexing lesson): Cassandra/Scylla-style. Hot data (recent conversations) on fast disks; history older than N days (or N messages) migrates to cheap object storage and is served from there on scroll-back. Media lives in blob storage from the start — the message row carries only a reference.</p>
+  </section>
+
+  <section id="connections">
+    <div class="section-head"><span class="section-num">05</span><h2>The connection layer: fifty million sockets</h2></div>
+    <p class="lede">The piece that makes chat "real-time." Why HTTP can't do it, what holds 15M sockets, and the design decision that makes crashes boring.</p>
+
+    <h3>Why not HTTP?</h3>
+    <p>A <span class="term">WebSocket</span> is a persistent TCP connection: client and server complete one HTTP handshake, then keep the same socket open and exchange tiny <span class="term">frames</span> (a few bytes of header) in both directions, any time. HTTP polling is the alternative — the client asks "anything new?" every N seconds — and it loses three ways:</p>
+    <ul>
+      <li><strong>Overhead:</strong> every HTTP request carries ~1 KB of headers for a 150-byte message. Polling 15M devices every 2 seconds is ~7.5M requests/sec of pure header tax.</li>
+      <li><strong>Latency floor:</strong> with polling, delivery latency can never beat the poll interval. WebSocket delivery is limited only by network time.</li>
+      <li><strong>Battery:</strong> each poll wakes the phone's radio. Persistent sockets with infrequent heartbeats let the radio sleep — this is why real chat apps feel instant <em>and</em> don't drain the battery.</li>
+    </ul>
+
+    <h3>Connection servers: a stateful edge tier</h3>
+    <p>One WebSocket per device, held by a fleet of <span class="term">connection servers</span> — machines whose only job is holding sockets and shoving frames down them. Each box holds roughly <strong>500K–1M sockets</strong> (each socket costs tens of KB of kernel + app memory). 15M peak sockets ÷ 750K per box ≈ <strong>20 boxes</strong> — small fleet, but every box is load-bearing.</p>
+
+    <h3>The roster: who is connected where</h3>
+    <p>The <span class="term">roster</span> is a fast lookup — <code>user_id → connection server</code> — held in a low-latency store (Redis-style). When a device connects, it registers. When the router needs to deliver to a user, it asks the roster which box holds their socket. Users are mapped to connection servers by <strong>consistent hashing</strong> on <code>user_id</code>, so a reconnecting phone usually lands on the same box and the roster barely churns.</p>
+
+    <h3>Heartbeats and NAT</h3>
+    <p><span class="term">NAT</span> (network address translation) is the box between a phone and the internet that quietly drops idle mappings — typically after a few minutes. A <span class="term">heartbeat</span> is a tiny ping every 30–60 seconds that keeps the mapping alive and doubles as a liveness check: miss several heartbeats and the roster entry is expired, marking the user offline. (Lab Part A makes you feel this cost at 15M sockets.)</p>
+
+    <div class="green-box">
+      <p><strong>The decision that makes crashes boring:</strong> the connection server holds <strong>no authoritative state</strong>. Messages live in the message store (§4); routing state lives in the roster. A connection server crash loses only sockets — clients reconnect within seconds, re-register in the roster, and replay from their cursor. There is nothing to recover, because there was nothing to lose. Stateless-by-design at the edge is what lets this tier be simple.</p>
+    </div>
+
+    <h3>Graceful drain</h3>
+    <p>Deploying new code to a box holding 750K sockets can't be a kill −9. The box stops accepting new connections, waits for existing sockets to migrate (clients reconnect to a new box via the consistent-hash mapping), and only then shuts down. The roster is updated as each client re-registers.</p>
+  </section>
+
+  <section id="path">
+    <div class="section-head"><span class="section-num">06</span><h2>One message, start to finish — the full path</h2></div>
+    <p class="lede">The coach's formation-change message, traced through every component. Six steps; notice what is <em>skipped</em> as well as what runs.</p>
+
+    <ol>
+      <li><strong>Connect.</strong> The coach opens the app. His phone opens a WebSocket to a connection server and registers <code>coach → conn-server-7</code> in the roster. A player on a train with no signal has no roster entry — that absence <em>is</em> the offline signal.</li>
+      <li><strong>Compose.</strong> He types "Formation change: 4-3-3 for Saturday." and taps send. His phone stamps a <code>client_msg_id</code> (a fresh UUID) on the message — the idempotency key from §3.</li>
+      <li><strong>Persist.</strong> <code>POST /messages</code> hits the API tier: validate, rate-limit, then write to the message store with the conversation's next sequence number (atomic increment on the squad-chat counter). The server returns <strong>202</strong>. The coach sees one tick. <strong>The send path ends here</strong> — everything after is asynchronous.</li>
+      <li><strong>Route.</strong> A router (async worker) reads the persisted message, looks up the 34 other members in the roster, and for each <em>online</em> member pushes the message to their connection server, which writes it down the open socket. Roster misses — the player on the train — are simply skipped.</li>
+      <li><strong>Ack.</strong> Each receiving device sends a receipt ack. The coach's phone advances those messages to "delivered" (two ticks) as acks arrive. The player on the train gets nothing yet — and that's fine, because the message is already durable.</li>
+      <li><strong>Read.</strong> A player opens the squad chat. Her client advances its read cursor past the message's seq and publishes a read receipt to the conversation's members — the coach sees blue ticks.</li>
+    </ol>
+
+    <div class="warn-box">
+      <p><strong>The ordering rule that must never break:</strong> <strong>persist before route, always.</strong> If you route first and crash before persisting, some players saw a message the system has no record of — it can never be re-fetched, re-synced, or shown on the coach's second device. Persist-first means a crash between steps 3 and 4 is harmless: the router replays from the durable record. Idempotent routing (same message, same seq, delivered twice = deduped by the client) makes the replay safe.</p>
+    </div>
+
+    <h3>Reconnect: the player on the train</h3>
+    <p>Signal returns. His phone opens a socket, registers in the roster, and calls <code>GET /messages?cursor={last_seq}</code> for each conversation. The server returns everything after his cursor — the formation change, the physio's reply, the kit man's thumbs-up — in sequence order. His client walks its cursor forward. No special "offline queue" exists: <strong>the conversation store <em>is</em> the offline queue</strong>. (Contrast with the Twitter lesson's per-user inbox writes — chat doesn't need them, because a conversation's members are bounded and reads are cursor scans.)</p>
+  </section>
+
+  <section id="hard">
+    <div class="section-head"><span class="section-num">07</span><h2>The hard parts</h2></div>
+    <p class="lede">One idea at a time. Each of these is a question that comes up in the room — and each has a crisp, defensible answer.</p>
+
+    <h3>Ordering: whose "first" wins?</h3>
+    <p>Ordering is defined as <strong>arrival order at the per-conversation writer</strong>: whichever message gets the next sequence number from the counter is "earlier," full stop. In a 1:1 chat this matches intuition. In the squad group, two players replying simultaneously get whatever order the counter assigned — and that is <em>correct by definition</em>, because there is no physical "simultaneous" across two phones with unsynchronized clocks. Never trust client timestamps for ordering (<span class="term">clock skew</span> — phones disagree about the time by seconds); the server assigns <code>ts</code> at persist. Total order <em>across</em> conversations is never attempted — nobody needs the physio's DM ordered against the squad chat.</p>
+
+    <h3>Exactly-once UX over an at-least-once network</h3>
+    <p>The network gives <span class="term">at-least-once</span> delivery: a phone whose POST times out will retry, and the retry can arrive after the original actually persisted. The fix is the idempotency key: the <code>client_msg_id</code> has a uniqueness constraint in the message store, so a retried send is recognized and dropped — the client just gets the original <code>server_seq</code> back. On the receiving side, the client keeps a small dedupe cache of recent <code>client_msg_id</code>s and ignores replays. Formula to say in the room: <strong>at-least-once network + idempotent writes = exactly-once user experience.</strong> (Retry storms — a phone hammering retries — are bounded by the same rate limiter from the rate-limiting lesson.)</p>
+
+    <h3>Presence: who is online?</h3>
+    <p><span class="term">Presence</span> rides a separate, lightweight channel — never the message path. Heartbeats refresh a TTL key per user (say 60 seconds); expiry means offline. Updates are <span class="term">last-writer-wins</span>: the newest heartbeat overwrites, no coordination needed. The subtle decision is <strong>fan-out scope</strong>: you do <em>not</em> broadcast "coach is online" to all 100K fans. Presence goes only to people with an open or recent conversation with you — O(open chats), not O(contacts). <strong>Typing indicators</strong> are even more ephemeral: a <code>typing.start</code> event with a few-seconds TTL, never persisted, never replayed on reconnect.</p>
+
+    <h3>Read receipts without a write storm</h3>
+    <p>A read receipt is just the per-conversation <strong>read cursor</strong> advancing (§4) — one tiny write per conversation opened, fanned out only to that conversation's members. The coach sees blue ticks because the squad chat has 35 members, not because the system did 35 expensive things per reader.</p>
+
+    <h3>Groups at scale: the announcement-channel problem</h3>
+    <p>Groups are capped (1K–50K members) precisely because fan-out cost is O(members). The club's 100K-subscriber <strong>fan announcement channel</strong> breaks that model — so it's a different product shape, a <strong>broadcast channel</strong>: the message is persisted once, and subscribers <em>pull</em> with their cursor (or receive it via a segmented fan-out that walks the roster in batches, not one giant push). No per-member roster walk on the send path; readers who are offline just sync later. The honest framing: chat is push for the conversational scale, pull for the broadcast scale.</p>
+
+    <h3>End-to-end encryption</h3>
+    <p>Under <span class="term">end-to-end encryption (E2EE)</span>, message payloads are ciphertext the server cannot read — it routes opaque blobs. The standard construction is the <span class="term">Signal protocol</span>: at session setup the two devices perform a key exchange (X3DH — each side combines long-term and one-time keys so they agree on a secret without ever sending it), then a <span class="term">double ratchet</span> derives a fresh encryption key per message, so compromising one key doesn't expose past or future messages (<span class="term">forward secrecy</span>). What the server still sees: <strong>metadata</strong> — who talked to whom, when, how many bytes. Encryption hides content, not the fact of conversation. Key verification (comparing safety numbers) happens out of band between the humans.</p>
+
+    <h3>Media: never through the message path</h3>
+    <p>Photos and video never ride the WebSocket. The client uploads to blob storage first (<span class="term">resumable upload</span> — a half-uploaded video survives a tunnel), the server generates a thumbnail, and the <em>message</em> carries only a blob reference. Downloads come from the CDN. The message path stays small and fast because the bytes went around it.</p>
+
+    <h3>Push notifications: the dead-app path</h3>
+    <p>When the app is killed, there is no socket — delivery falls back to <span class="term">push notifications</span> (FCM on Android, APNs on iOS), the OS-level channels that can wake an app. The payload is an opaque "new message" nudge (under E2EE the phone decrypts after waking); a <span class="term">silent push</span> can wake the app to sync via the normal cursor endpoint instead of showing a banner. Push is the backup generator, not the architecture.</p>
+
+    <h3>Multi-device</h3>
+    <p>Each device is an independent socket with its own sync cursor. A message to the coach is fanned out to <em>all</em> of his devices — the roster maps <code>user_id → [conn-server per device]</code>. "Read on desktop" advances the shared read cursor, so the phone's badge clears too: read state is per user, sync state is per device.</p>
+
+    <div class="callout">
+      <h4>Senior-depth traps (know these cold)</h4>
+      <ul>
+        <li><strong>"Just use Kafka for delivery."</strong> A log is great for durability, but per-user delivery needs per-recipient routing state (the roster) and socket affinity — a queue doesn't know which box holds the player's phone. Kafka can sit <em>behind</em> the API as the durable buffer before routing, but the last mile is always roster → socket.</li>
+        <li><strong>"Why not one global sequence?"</strong> A single counter for all messages is a single point of contention at 58K writes/sec — and buys nothing, since no conversation needs ordering against another. Per-conversation counters are the whole trick.</li>
+        <li><strong>"Deliver to 100K members synchronously."</strong> That's the broadcast problem wearing a group-chat costume — §7's answer: it's a different product shape, pull-based.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="lab">
+    <div class="section-head"><span class="section-num">08</span><h2>Interactive lab: size the fleet, walk the group send</h2></div>
+    <p class="lede">Two simulators. The first prices the connection layer — heartbeats are cheap until you multiply by fifteen million. The second walks one group message through online, offline, and multi-device members, and shows why fan-out never sits on the send path.</p>
+
+    <div class="lab">
+      <h3>Part A — Size the connection fleet</h3>
+      <p class="howto">Drag the sliders. <strong>DAU</strong> is daily active users. <strong>Peak online</strong> is the share with an open socket at the busiest minute. <strong>Sockets/server</strong> is how many connections one box holds. <strong>Heartbeat</strong> is the keep-alive interval. Each heartbeat is ~100 bytes up and ~100 bytes down.</p>
+      <div class="slider-row">
+        <label for="cf-dau">DAU (millions)</label>
+        <input type="range" id="cf-dau" min="2" max="200" step="2" value="50" />
+        <output id="cf-dau-out">50M</output>
+      </div>
+      <div class="slider-row">
+        <label for="cf-online">Peak online %</label>
+        <input type="range" id="cf-online" min="5" max="60" step="1" value="30" />
+        <output id="cf-online-out">30%</output>
+      </div>
+      <div class="slider-row">
+        <label for="cf-perbox">Sockets / server</label>
+        <input type="range" id="cf-perbox" min="250000" max="1000000" step="50000" value="750000" />
+        <output id="cf-perbox-out">750K</output>
+      </div>
+      <div class="slider-row">
+        <label for="cf-hb">Heartbeat every (s)</label>
+        <input type="range" id="cf-hb" min="10" max="120" step="5" value="45" />
+        <output id="cf-hb-out">45s</output>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Concurrent sockets</div><div class="score" id="cf-sockets" style="font-size:1.15rem">—</div></div>
+        <div class="stat"><div class="node-name">Connection servers</div><div class="score" id="cf-servers">—</div></div>
+        <div class="stat"><div class="node-name">Heartbeats / sec</div><div class="score" id="cf-hbps" style="font-size:1.15rem">—</div></div>
+        <div class="stat"><div class="node-name">Heartbeat traffic</div><div class="score" id="cf-hbbytes" style="font-size:1.1rem">—</div><span class="badge ok" id="cf-badge">cheap</span></div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="cf-preset-club">Riverside FC scale · 50M</button>
+        <button class="btn" id="cf-preset-giant">Global giant · 200M</button>
+        <button class="btn" id="cf-preset-tight">Aggressive heartbeats · 15s</button>
+      </div>
+      <div class="log" id="cf-log" aria-live="polite"></div>
+    </div>
+
+    <div class="lab">
+      <h3>Part B — One group message, N members</h3>
+      <p class="howto">The coach sends one message to a group. <strong>Group size</strong> runs from a 1:1 chat to the 100K fan channel. <strong>Online %</strong> is the share with a live socket; the rest sync from their cursor later. <strong>Devices/user</strong> counts multi-device fan-out. A push is one roster lookup + one socket write.</p>
+      <div class="slider-row">
+        <label for="gs-size">Group size</label>
+        <input type="range" id="gs-size" min="0" max="7" step="1" value="3" />
+        <output id="gs-size-out">200</output>
+      </div>
+      <div class="slider-row">
+        <label for="gs-online">Online %</label>
+        <input type="range" id="gs-online" min="0" max="100" step="5" value="60" />
+        <output id="gs-online-out">60%</output>
+      </div>
+      <div class="slider-row">
+        <label for="gs-devices">Devices / user</label>
+        <input type="range" id="gs-devices" min="1" max="3" step="1" value="2" />
+        <output id="gs-devices-out">2</output>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Durable writes</div><div class="score" id="gs-writes">1</div></div>
+        <div class="stat"><div class="node-name">Fan-out pushes</div><div class="score" id="gs-pushes" style="font-size:1.15rem">—</div></div>
+        <div class="stat"><div class="node-name">Offline · cursor-served</div><div class="score" id="gs-offline" style="font-size:1.15rem">—</div></div>
+        <div class="stat"><div class="node-name">Sender waits for</div><div class="score" id="gs-sender" style="font-size:1.1rem">1 write</div><span class="badge ok" id="gs-badge">async fan-out</span></div>
+      </div>
+      <p class="howto" id="gs-verdict"></p>
+      <div class="log" id="gs-log" aria-live="polite"></div>
+    </div>
+
+    <script>
+    (function () {
+      function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+      function fmtShort(n) {
+        if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+        if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+        if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+        return fmt(n);
+      }
+      function fmtBytes(n) {
+        if (n >= 1e12) return (n / 1e12).toFixed(1) + ' TB/s';
+        if (n >= 1e9) return (n / 1e9).toFixed(1) + ' GB/s';
+        if (n >= 1e6) return (n / 1e6).toFixed(1) + ' MB/s';
+        if (n >= 1e3) return (n / 1e3).toFixed(1) + ' KB/s';
+        return Math.round(n) + ' B/s';
+      }
+      function log(el, msg) {
+        var line = document.createElement('div');
+        line.textContent = msg;
+        el.prepend(line);
+        while (el.children.length > 6) el.removeChild(el.lastChild);
+      }
+
+      // ---------- Part A: connection fleet ----------
+      var cfDau = document.getElementById('cf-dau'),
+          cfDauOut = document.getElementById('cf-dau-out'),
+          cfOnline = document.getElementById('cf-online'),
+          cfOnlineOut = document.getElementById('cf-online-out'),
+          cfPerBox = document.getElementById('cf-perbox'),
+          cfPerBoxOut = document.getElementById('cf-perbox-out'),
+          cfHb = document.getElementById('cf-hb'),
+          cfHbOut = document.getElementById('cf-hb-out'),
+          cfSockets = document.getElementById('cf-sockets'),
+          cfServers = document.getElementById('cf-servers'),
+          cfHbps = document.getElementById('cf-hbps'),
+          cfHbBytes = document.getElementById('cf-hbbytes'),
+          cfBadge = document.getElementById('cf-badge'),
+          cfLog = document.getElementById('cf-log');
+
+      function cfUpdate(narrate) {
+        var dau = cfDau.value * 1e6,
+            onlinePct = cfOnline.value / 100,
+            perBox = +cfPerBox.value,
+            hb = +cfHb.value;
+        cfDauOut.textContent = cfDau.value + 'M';
+        cfOnlineOut.textContent = cfOnline.value + '%';
+        cfPerBoxOut.textContent = fmtShort(perBox);
+        cfHbOut.textContent = hb + 's';
+        var sockets = dau * onlinePct,
+            servers = Math.ceil(sockets / perBox),
+            hbps = sockets / hb,
+            hbBytes = hbps * 200; // 100 B up + 100 B down
+        cfSockets.textContent = fmtShort(sockets);
+        cfServers.textContent = fmt(servers);
+        cfHbps.textContent = fmtShort(hbps);
+        cfHbBytes.textContent = fmtBytes(hbBytes);
+        var heavy = hbBytes > 200e6; // > 200 MB/s of pure keep-alive
+        cfBadge.textContent = heavy ? 'pricey' : 'cheap';
+        cfBadge.className = 'badge ' + (heavy ? 'warn' : 'ok');
+        if (narrate) {
+          if (heavy) log(cfLog, 'Heartbeat traffic is now ' + fmtBytes(hbBytes) + ' — pure keep-alive tax. Lengthen the interval or accept the burn.');
+          else log(cfLog, fmtShort(sockets) + ' sockets → ' + fmt(servers) + ' boxes; heartbeats cost ' + fmtBytes(hbBytes) + '. The fleet is small — the tax is the chatter.');
+        }
+      }
+      [cfDau, cfOnline, cfPerBox, cfHb].forEach(function (el) {
+        el.addEventListener('input', function () { cfUpdate(true); });
+      });
+      document.getElementById('cf-preset-club').addEventListener('click', function () {
+        cfDau.value = 50; cfOnline.value = 30; cfPerBox.value = 750000; cfHb.value = 45; cfUpdate(true);
+      });
+      document.getElementById('cf-preset-giant').addEventListener('click', function () {
+        cfDau.value = 200; cfOnline.value = 40; cfPerBox.value = 750000; cfHb.value = 45; cfUpdate(true);
+      });
+      document.getElementById('cf-preset-tight').addEventListener('click', function () {
+        cfHb.value = 15; cfUpdate(true);
+        log(cfLog, '15s heartbeats detect dead phones 3× faster — and triple the chatter. Presence freshness is bought with bandwidth.');
+      });
+      cfUpdate(false);
+      log(cfLog, 'Riverside FC at scale: 50M DAU, 30% online at peak. Move the sliders to feel the trade-offs.');
+
+      // ---------- Part B: group send ----------
+      var GROUP_STEPS = [2, 10, 50, 200, 1000, 5000, 25000, 100000];
+      var gsSize = document.getElementById('gs-size'),
+          gsSizeOut = document.getElementById('gs-size-out'),
+          gsOnline = document.getElementById('gs-online'),
+          gsOnlineOut = document.getElementById('gs-online-out'),
+          gsDevices = document.getElementById('gs-devices'),
+          gsDevicesOut = document.getElementById('gs-devices-out'),
+          gsPushes = document.getElementById('gs-pushes'),
+          gsOffline = document.getElementById('gs-offline'),
+          gsSender = document.getElementById('gs-sender'),
+          gsVerdict = document.getElementById('gs-verdict'),
+          gsLog = document.getElementById('gs-log');
+
+      function gsUpdate(narrate) {
+        var size = GROUP_STEPS[+gsSize.value],
+            onlinePct = gsOnline.value / 100,
+            devices = +gsDevices.value;
+        gsSizeOut.textContent = fmt(size);
+        gsOnlineOut.textContent = gsOnline.value + '%';
+        gsDevicesOut.textContent = devices;
+        var online = Math.round(size * onlinePct),
+            offline = size - online,
+            pushes = online * devices;
+        document.getElementById('gs-writes').textContent = '1';
+        gsPushes.textContent = fmt(pushes);
+        gsOffline.textContent = fmt(offline);
+        gsSender.textContent = '1 write';
+        var broadcast = size >= 25000;
+        gsVerdict.textContent = broadcast
+          ? 'At ' + fmt(size) + ' members this stopped being a group chat: ' + fmt(pushes) + ' pushes per message is the broadcast problem — this is where the design switches to pull-with-cursor (§7).'
+          : 'One durable write, then ' + fmt(pushes) + ' async pushes to live sockets. The ' + fmt(offline) + ' offline members cost nothing now — they replay from their cursor on reconnect.';
+        if (narrate) {
+          if (broadcast) log(gsLog, 'Fan channel mode: persisting once, letting ' + fmt(size) + ' subscribers pull. Pushing to all of them per message would make every send O(100K).');
+          else log(gsLog, 'Coach hits send: 1 write commits it, ' + fmt(pushes) + ' pushes fan out async, ' + fmt(offline) + ' offline members wait for their cursor replay.');
+        }
+      }
+      [gsSize, gsOnline, gsDevices].forEach(function (el) {
+        el.addEventListener('input', function () { gsUpdate(true); });
+      });
+      gsUpdate(false);
+      log(gsLog, 'Start with the squad chat (200 members, 60% online), then drag to the 100K fan channel and watch the shape of the problem change.');
+    })();
+    </script>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">09</span><h2>Q&amp;A with full model answers</h2></div>
+    <p class="lede">Four questions that come up in the room, answered the way a senior engineer would answer them — verdict first, reasoning after.</p>
+
+    <div class="qa">
+      <div class="question">
+        <div class="qnum">Q1</div>
+        <div class="qtext">Why WebSockets? Why not just have the client poll every couple of seconds?</div>
+        <div class="context">A "prove you did the math" question. They want the three costs named with numbers, not vibes.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "Polling loses three ways, and I can price all three. One: header tax — every HTTP request carries roughly a kilobyte of headers for a 150-byte message. Polling 15M devices every 2 seconds is 7.5M requests a second of pure overhead; a WebSocket frame is a few bytes on a connection we already paid to open. Two: latency floor — with polling, delivery can never beat the poll interval, so 'real-time' is a lie you tune with the interval knob; a socket delivers in network time. Three: battery — each poll wakes the phone's radio, while a socket with a 45-second heartbeat lets the radio sleep between pings. That's why every real chat app is sockets at the edge. The price we pay is stateful servers — 15M sockets across ~20 boxes — and the roster to find which box holds whom. But the alternative is burning bandwidth and battery to simulate what a socket does natively."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2</div>
+        <div class="qtext">A player hits send as the train enters a tunnel. The POST times out, the phone retries, and he emerges with signal. Is the message delivered once, twice, or never?</div>
+        <div class="context">A delivery-semantics question wearing a UX costume. They're checking idempotency, not networking trivia.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "Once — by construction, not by luck. Walk it through. The first POST may or may not have persisted before the tunnel ate the response; the phone doesn't know, so it retries with the <em>same</em> client_msg_id. The message store has a uniqueness constraint on that key: if the first attempt persisted, the retry is recognized as a duplicate and the server just returns the original server_seq — no second row, no second sequence number. If the first attempt never landed, the retry persists normally. Either way the conversation holds exactly one copy. On the receive side, devices keep a small dedupe cache of recent client_msg_ids, so even a replayed push is ignored. The formula: at-least-once network plus idempotent writes equals exactly-once user experience. The failure mode I'd actually worry about is a retry <em>storm</em> — a phone hammering POSTs in a flap — and that's what the per-user rate limiter is for."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3</div>
+        <div class="qtext">The club launches a 100K-subscriber announcement channel. Your group-chat design does a roster lookup and a push per member. Defend or redesign.</div>
+        <div class="context">They're testing whether you recognize when a problem changes shape. The wrong answer is "shard it harder."</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "Redesign — because at 100K members this stopped being a group chat. The per-message cost of my design is O(members): 100K roster lookups and up to 100K socket pushes per announcement, and one popular post an hour makes the router do this all day. That's the broadcast problem, and broadcast wants pull, not push. So: the channel becomes a single persisted, sequenced log — one durable write per announcement. Subscribers read with their cursor, exactly like offline sync; online subscribers get a lightweight 'new posts available' nudge rather than the full payload pushed. No per-member fan-out on the send path at all. The trade is honest: announcements arrive with pull latency instead of push latency, which is fine for fixture news and wrong for a conversation. The general principle: push for conversational scale where every member might reply, pull for broadcast scale where 99.9% of members only read. Same building blocks, different shape."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4</div>
+        <div class="qtext">A connection server dies mid-evening with 700K sockets on it. Walk me through what the users feel.</div>
+        <div class="context">A failure-mode question. They want the blast radius named precisely — and what <em>doesn't</em> break.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "Almost nothing — and that's the design working. What dies: 700K TCP sockets. What doesn't die: any message, any conversation, any cursor — because the connection server holds no authoritative state. Messages live in the message store, routing state lives in the roster. So each affected phone's socket drops; the client reconnects within seconds — consistent hashing usually lands it on a nearby box — re-registers in the roster, and replays from its per-conversation cursor. Messages sent <em>during</em> the gap were persisted by the API tier before routing, so they're waiting in the store; the reconnect sync picks them up in order. What the user feels: the app shows 'connecting…' for a few seconds, then everything arrives — possibly a burst of catch-up messages, all in sequence. The thing I'd watch on the dashboard is the reconnect thundering herd: 700K clients reconnecting at once is its own spike, so clients reconnect with jittered backoff. The deeper point: this is why the edge is stateless by design — crashes are a reconnect event, not a recovery event."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">10</span><h2>Practice drills (untimed)</h2></div>
+    <p class="lede">Untimed, rubric-graded. Do them on paper or out loud — the point is the reasoning, not the clock.</p>
+
+    <div class="reveal">
+      <summary>Drill 1 — Size it: matchday spike</summary>
+      <div class="body">
+        <p>Riverside FC reaches the cup final. DAU doubles to 100M for the evening, 50% are online at peak, and message rate hits 8× the daily average. Using §2's baseline (50M DAU, 58K msgs/sec avg), compute: peak concurrent sockets, connection servers needed at 750K sockets/box, and peak messages/sec. Then name what breaks first and your first two mitigations.</p>
+        <p><strong>Rubric:</strong> sockets = 100M × 50% = 50M → ~67 boxes (up from ~20) · peak writes = 58K × 8 ≈ 464K/sec, still fine for a sharded LSM store spread over per-conversation counters · identifies the <em>connection tier and router fan-out</em> as the first bottleneck, not the database · mitigation 1: pre-scale connection servers ahead of the known event (it's on the calendar) · mitigation 2: shed load gracefully — stretch heartbeat intervals, degrade typing indicators/presence first (ephemeral features), protect message persist+route · bonus: notes the reconnect herd if a box dies under the spike, and jittered backoff.</p>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <summary>Drill 2 — Defend the choice: per-conversation sequence vs timestamps</summary>
+      <div class="body">
+        <p>Your interviewer says: "Sequence counters are coordination overhead. Just stamp each message with the server's receive time and sort by it — simpler, no counters." Give the two-minute rebuttal.</p>
+        <p><strong>Rubric:</strong> concedes timestamps look simpler · names the two-message-same-millisecond tie problem and that ties need a tiebreaker anyway (which <em>is</em> a sequence) · notes clock granularity across API servers and that sorting 50-message pages by (ts, tiebreak) at read time pushes ordering cost to every read · lands on: the counter's 'coordination' is one atomic increment per conversation — conversations are independent, so there is no global contention; it buys O(1) ordered writes and trivial cursor pagination · bonus: mentions hybrid logical clocks as the real alternative and why they're overkill here.</p>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <summary>Drill 3 — Design disappearing messages</summary>
+      <div class="body">
+        <p>Riverside FC wants disappearing messages: the coach sets the squad chat to 24-hour expiry, and every message vanishes from every device 24h after sending. Sketch the design — where the timer lives, what "vanish" means for the store, the caches, and E2EE — and name what you deliberately don't guarantee.</p>
+        <p><strong>Rubric:</strong> timer is server-side (client clocks can't be trusted) — an expiry timestamp on the message row, enforced at read time ("don't serve expired") plus a background sweeper for the store · tombstone or hard delete from hot storage; media blobs deleted from blob store · read-path enforcement covers caches (cache entries keyed with TTL ≤ remaining life, or checked against the row) · under E2EE the server deletes ciphertext it can't read — same mechanism works · explicitly does <em>not</em> guarantee deletion from screenshots, rooted devices, or backups already taken — says this out loud · bonus: notes the read-receipt/cursor edge (a message expiring before its read cursor passes it) and resolves it (cursors advance past expired seqs on sync).</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">11</span><h2>Cheat sheet &amp; 60-second framing</h2></div>
+
+    <div class="cheatsheet">
+      <h3>Chat system — six decisions</h3>
+      <ol>
+        <li><strong>Transport:</strong> one WebSocket per device; connection servers hold sockets, roster maps user → box; edge holds no authoritative state, so crashes are reconnect events.</li>
+        <li><strong>Commit:</strong> persist before route — the 202 ends the send path; routing is async, idempotent, and replayable from the durable record.</li>
+        <li><strong>Ordering:</strong> per-conversation sequence counter (one atomic increment, no global contention); arrival order is definitionally correct; never trust client clocks.</li>
+        <li><strong>Delivery:</strong> at-least-once network + idempotent writes (client_msg_id) = exactly-once UX; offline is just cursor replay — the store <em>is</em> the queue.</li>
+        <li><strong>Ephemerals:</strong> presence and typing ride a separate channel with TTLs, fanned out to open conversations only — never the message path, never persisted.</li>
+        <li><strong>Scale shapes:</strong> push for conversational scale (bounded groups), pull for broadcast scale (100K channels); media via blob store + CDN, never through the socket; FCM/APNs as the dead-app fallback; E2EE hides content, not metadata.</li>
+      </ol>
+    </div>
+
+    <div class="framing">
+      <p><strong>60-second framing — how to open in the room:</strong></p>
+      <p>"A chat system moves short messages between people in under a second while they're online, keeps them ordered per conversation, and never loses one to a dead phone. Scope: 1:1 and group chat, text plus media, presence, typing, read receipts, multi-device, end-to-end encryption. Sizing: 50M daily users at 100 messages a day is 5B messages a day — about 58K writes a second average, 4–5× at peak — and roughly 15M concurrent sockets at the busiest minute, so this is a connection-and-fan-out problem, not a storage problem. The design: one WebSocket per device held by a fleet of connection servers, with a roster mapping each user to their box — and the edge holds no authoritative state, so a crash is a reconnect event, not a recovery. Sending is POST with a client-generated idempotency key; the server persists the message with the conversation's next sequence number and returns 202 — that ends the send path. Routing happens async: roster lookup per recipient, push down live sockets, skip the offline. Offline isn't a special case — the client keeps a per-conversation cursor and replays everything after it on reconnect. Ordering comes from the per-conversation counter, which is one atomic increment with no global contention. Presence and typing ride a separate TTL-based channel, never the message path. Groups past ~tens of thousands of members change shape into broadcast channels, which are pull-based. Media goes via blob store and CDN, never through the socket; killed apps fall back to OS push; encryption hides content but not metadata."</p>
+    </div>
+
+    <footer>
+      <p>Lesson 17 · Part of the daily system design series. <a href="../index.html">← All lessons</a></p>
+    </footer>
+  </section>
+</div>
+</body>
+</html>
