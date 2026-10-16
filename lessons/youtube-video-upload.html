@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Design a Video Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 260px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .log .good { color: #7fd8a8; }
+    .log .bad { color: #ff8f7d; }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .cheatsheet {
+      background: var(--surface); border: 2px solid var(--ink);
+      border-radius: var(--radius); padding: 22px 24px; margin: 24px 0; max-width: 46rem;
+    }
+    .cheatsheet h3 { margin: 0 0 10px; }
+    .cheatsheet ol { max-width: none; }
+    .framing {
+      border-left: 4px solid var(--purple); background: var(--purple-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .framing p { margin: 8px 0; max-width: none; }
+    footer { margin-top: 60px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 20px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <p class="crumbs"><a href="../index.html">All lessons</a> · Lesson 18</p>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 18 · Media systems</span>
+    <h1>Design a Video Platform</h1>
+    <p class="whyline">A fan uploads a shaky 4K clip from the stands on bad stadium Wi-Fi; two minutes later a million phones are watching it smoothly on trains, in tunnels, on 3G. This is the YouTube-style design problem: resumable uploads, the transcoding pipeline, adaptive streaming, and the CDN economics that make video 80% of internet traffic affordable.</p>
+    <div class="meta">
+      <span>Classic design problem</span>
+      <span>Transcoding · HLS/DASH · CDN</span>
+      <span>~40 min read + labs</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#what">What is a video platform? — the definition from zero</a></li>
+      <li><a href="#requirements">Requirements and back-of-the-envelope sizing</a></li>
+      <li><a href="#upload">The upload path: shaky Wi-Fi, giant files</a></li>
+      <li><a href="#transcode">The heart: the transcoding pipeline</a></li>
+      <li><a href="#storage">Storage &amp; data model: petabytes that sit still</a></li>
+      <li><a href="#playback">Playback: adaptive streaming and the CDN</a></li>
+      <li><a href="#hard">The hard parts: virality, surges, live vs VOD, the long tail</a></li>
+      <li><a href="#lab">Interactive lab: price the transcode fleet, feel the CDN skew</a></li>
+      <li><a href="#qa">Q&amp;A with full model answers</a></li>
+      <li><a href="#drills">Practice drills (untimed)</a></li>
+      <li><a href="#cheatsheet">Cheat sheet &amp; 60-second framing</a></li>
+    </ol>
+  </nav>
+
+  <section id="what">
+    <div class="section-head"><span class="section-num">01</span><h2>What is a video platform?</h2></div>
+    <p class="lede">Before any architecture: what the thing actually is, defined from zero, with one running example carried through the whole lesson.</p>
+
+    <div class="definition">
+      <strong class="term">Definition</strong>
+      <p>A <span class="term">video platform</span> accepts video files from anyone (upload), converts them into a family of playable versions (transcode), keeps every version durable and cheap (store), and streams the right version to every viewer at every moment given their network (deliver). Upload → process → store → deliver: those four verbs are the whole system, and each one is a different engineering problem.</p>
+    </div>
+
+    <p>Our running example: <strong>FC Replay</strong>, Riverside FC's fan platform. The club uploads full-match footage and official goal highlights. Fans upload shaky phone clips from the stands — goal reactions, chants, the bus parade. Viewers watch on phones, laptops, and the stadium's big screen, on everything from fibre to 3G in a tunnel.</p>
+
+    <h3>The four verbs, and why each is hard</h3>
+    <ul>
+      <li><strong>Upload.</strong> A 4K phone clip can be 2 GB. Uploads fail — tunnels, dead batteries, stadium Wi-Fi with 40,000 phones on it. The system must accept files bigger than anyone's patience, and survive interruption. (This is §3.)</li>
+      <li><strong>Process.</strong> The uploaded file is almost never the file you serve: wrong codec, one giant bitrate, no thumbnails, no captions. Converting it — <span class="term">transcoding</span>, re-encoding a video from one format/bitrate into others — is the compute heart of the system and the most expensive thing in it. (This is §4.)</li>
+      <li><strong>Store.</strong> Every upload becomes 5–8 playable versions plus thumbnails plus the original. Storage grows at petabytes per year and sits mostly unread — the long tail of videos nobody watches this month. (This is §5.)</li>
+      <li><strong>Deliver.</strong> A viewer on 3G and a viewer on fibre watch the same goal; the system must hand each the version their network can carry, second by second, and do it for millions of concurrent viewers without bankrupting itself on bandwidth. (This is §6.)</li>
+    </ul>
+
+    <div class="pitch">
+      <span class="tag">Soccer analogy</span>
+      <h4>The broadcast van</h4>
+      <p>Think of a match broadcast. The cameras (upload) capture raw footage. The production truck (transcode) turns 40 camera feeds into one programme plus replays, slow-mos, and graphics — the expensive, skilled, compute-heavy step. The archive (store) keeps every match tape forever, cheaply. The transmission (deliver) adapts: the same match reaches a 4K TV, a phone on a train, and a radio-style low-bandwidth stream. A video platform is that truck, archive, and transmitter, running for millions of "matches" at once.</p>
+    </div>
+
+    <h3>The vocabulary, fixed now</h3>
+    <ul>
+      <li><span class="term">Codec</span> — the algorithm that compresses raw pixels into a small file (and decompresses them for playback). H.264 (a.k.a. AVC) is the universal one; H.265 (HEVC) and AV1 compress better but cost more CPU to encode. The <span class="term">container</span> (MP4, WebM) is just the wrapper holding video + audio + metadata.</li>
+      <li><span class="term">Bitrate</span> — bits per second of compressed video. Higher bitrate ≈ better quality ≈ bigger file ≈ more bandwidth to stream. A 1080p stream is typically 4–8 Mbps.</li>
+      <li><span class="term">Resolution</span> — the pixel grid: 144p, 240p, 360p, 480p, 720p, 1080p, 4K. A <span class="term">rendition</span> is one (resolution, bitrate, codec) version of a video — e.g. "720p at 2.5 Mbps in H.264". The set of renditions is the <span class="term">bitrate ladder</span>.</li>
+      <li><span class="term">Transcoding</span> — decoding the uploaded video and re-encoding it into every rung of the ladder (plus thumbnails, previews, captions).</li>
+      <li><span class="term">CDN</span> (content delivery network) — a fleet of servers placed near viewers (at ISPs, in cities) that caches popular content so viewers fetch from 10 ms away instead of across the ocean. The <span class="term">origin</span> is your own storage behind them.</li>
+    </ul>
+
+    <div class="callout">
+      <h4>The one-sentence architecture</h4>
+      <p>A video platform is: <strong>resumable chunked uploads straight into blob storage</strong> + an <strong>async transcoding fleet</strong> that turns each upload into an immutable bitrate ladder + a <strong>metadata database</strong> + a <strong>CDN</strong> that serves each viewer the ladder rung their network can carry, switching rungs every few seconds as conditions change.</p>
+    </div>
+  </section>
+
+  <section id="requirements">
+    <div class="section-head"><span class="section-num">02</span><h2>Requirements and back-of-the-envelope sizing</h2></div>
+    <p class="lede">Say the numbers out loud first — they decide which parts of the design are allowed to be simple.</p>
+
+    <h3>Functional requirements</h3>
+    <ul>
+      <li>Upload video (minutes to hours, up to 4K) from phones and desktops, resumable across failures.</li>
+      <li>Playable within minutes of upload completing; multiple renditions so every network gets a smooth stream.</li>
+      <li>Search, titles, thumbnails, view counts, like/share; playback on web, iOS, Android, TV.</li>
+      <li>Virality-proof: a goal clip can go from 0 to millions of views in an hour without the site falling over.</li>
+    </ul>
+
+    <h3>The math</h3>
+    <ul>
+      <li><strong>Ingest:</strong> 50K uploads/day × 300 MB average = <strong>15 TB/day</strong> of raw uploads. (For reference, YouTube publicly cites 500+ hours of video uploaded every minute — our platform is a small-town version of that river.)</li>
+      <li><strong>Transcode compute:</strong> 50K uploads × 10 min average × ~0.6 CPU-min per video-minute per rendition × 6 renditions ≈ <strong>1.8M CPU-min/day ≈ 30K CPU-hours/day</strong> — about <strong>1,250 cores burning 24/7</strong> just to keep up. Transcoding is the compute bill of the company. (Lab Part A lets you move these knobs.)</li>
+      <li><strong>Storage:</strong> 6 renditions ≈ ~2.5× the source bytes (the ladder's rungs sum to more than the original) + thumbnails → ~40 TB/day → <strong>~14 PB/year</strong> before replication. Cheap per byte, enormous in aggregate.</li>
+      <li><strong>Egress (the money line):</strong> 10M daily viewers × 40 min/day × 3 Mbps average = 10M × 2,400 s × 3 Mb/s = 72 petabits/day ≈ <strong>9 PB/day</strong> of video flowing to viewers. At ~$0.05/GB CDN pricing that's ~$450K/day if you paid retail — which is why the CDN deal and the cache hit rate are the business, not a detail.</li>
+    </ul>
+
+    <div class="green-box">
+      <p><strong>Reading the numbers:</strong> this is a <strong>bandwidth-and-compute problem, not a database problem</strong>. The metadata DB holds millions of small rows — trivial. The hard constraints are: (1) transcoding 15 TB of new video a day without a backlog that stretches to hours, (2) pushing 9 PB a day to viewers at a cache hit rate that keeps the origin — and the bill — sane, and (3) making an upload that fails at 92% resume instead of restarting.</p>
+    </div>
+
+    <h3>Non-functional requirements</h3>
+    <ul>
+      <li><strong>Time-to-playable:</strong> a 10-minute upload is watchable (at least at low rungs) within a few minutes of the upload completing.</li>
+      <li><strong>Playback smoothness:</strong> rebuffering (the spinning wheel) under ~1% of watch time; startup under 2 seconds on broadband.</li>
+      <li><strong>Durability:</strong> uploaded originals never lost — 11 nines territory via replication/erasure coding.</li>
+      <li><strong>Cost discipline:</strong> every design choice is priced in $/GB stored and $/GB delivered; the long tail must not be stored like the hits.</li>
+    </ul>
+  </section>
+
+  <section id="upload">
+    <div class="section-head"><span class="section-num">03</span><h2>The upload path: shaky Wi-Fi, giant files</h2></div>
+    <p class="lede">The first verb. A fan's 2 GB 4K clip must survive the stadium's Wi-Fi, and the server must never be the bottleneck for bytes it doesn't need to touch.</p>
+
+    <h3>Bytes never touch the API server</h3>
+    <p>The client requests an upload session: <code>POST /uploads { filename, size, checksum }</code>. The server creates an <span class="term">upload ID</span> (a client-generated UUID doubles as the <span class="term">idempotency key</span> — retrying the session creation returns the same ID instead of a duplicate) and hands back <strong>signed URLs</strong>: time-limited, capability-scoped URLs that let the client PUT bytes <strong>directly into blob storage</strong>. The API server handles kilobytes of control traffic; gigabytes flow phone → blob store. This is the same instinct as the chat lesson's "media via blob store, never through the message path" — at video scale it's not an optimization, it's the only shape that works.</p>
+
+    <h3>Chunked and resumable</h3>
+    <p>The client splits the file into <strong>chunks</strong> (5–10 MB each). Each chunk gets its own signed URL, its own PUT, and its own <strong>checksum</strong> (SHA-256) so corruption is caught per chunk, not per 2 GB file. The server keeps a <strong>parts manifest</strong>: which chunks have landed. If the fan's train enters a tunnel at 92%, the client asks "which parts are missing?" and resumes exactly there — no restart, no re-upload of the 92% that made it. When all parts land, the client calls <code>POST /uploads/{id}/complete</code>; the server verifies the assembled checksum and enqueues the transcoding job. Parallel chunk uploads (4–8 at a time) also saturate good connections — resumability and speed come from the same chunking.</p>
+
+    <h3>Dedupe: the same goal, uploaded twice</h3>
+    <p>Two fans film the same winning goal from adjacent seats and upload near-identical clips; the club re-uploads last week's highlight with a new title. The server hashes the complete file (or a robust <span class="term">perceptual hash</span> for near-duplicates) and checks a <strong>dedupe index</strong> before transcoding. An exact duplicate skips re-upload entirely ("we already have this file" — the client can even skip sending bytes after the first chunk hash matches). Near-duplicates still get their own metadata row but can share renditions. Dedupe is a storage and compute discount you get almost for free at the manifest step.</p>
+
+    <div class="callout">
+      <h4>FC Replay check</h4>
+      <p>A fan records the 89th-minute winner on her phone (4K, 1.8 GB) and starts the upload on stadium Wi-Fi. Chunks 1–180 land; her phone dies at chunk 181 of 200. She charges up at halftime of the next match, reopens the app, and the client asks for the parts manifest: chunks 1–180 present, checksums verified. It resumes at 181, completes, and the server enqueues transcoding. She uploaded 2 GB across two sessions and one dead battery; the system never saw a "failed upload" — only a paused one.</p>
+    </div>
+  </section>
+
+  <section id="transcode">
+    <div class="section-head"><span class="section-num">04</span><h2>The heart: the transcoding pipeline</h2></div>
+    <p class="lede">The second verb, and the most expensive. One uploaded file becomes a ladder of renditions, thumbnails, and previews — through a pipeline built for parallelism, retries, and progress you can show the uploader.</p>
+
+    <h3>Why the uploaded file is never the served file</h3>
+    <p>Three reasons, each decisive:</p>
+    <ul>
+      <li><strong>Bandwidth waste.</strong> A phone-recorded 4K clip at 40 Mbps would burn 300 MB for a 1-minute video — on a 3G connection it simply never plays. The 480p rung at 1 Mbps delivers the same goal for 7.5 MB.</li>
+      <li><strong>Compatibility.</strong> Phones record in whatever the camera app chose (HEVC, odd containers, variable frame rates). The ladder is normalized: H.264 in MP4 everywhere, because every device made in the last 15 years plays it.</li>
+      <li><strong>Adaptivity.</strong> Smooth playback needs the player to switch quality mid-stream as the network changes — which needs every rung of the ladder to exist, aligned to the same segment boundaries. (§6)</li>
+    </ul>
+
+    <h3>Keyframes: the hinges of the whole system</h3>
+    <p>Video compression stores most frames as <em>differences</em> from a reference frame — only <span class="term">keyframes</span> (I-frames) are complete pictures. A <span class="term">GOP</span> (group of pictures) is the run of frames between two keyframes. Two consequences: <strong>seeking</strong> can only start cleanly at a keyframe, and <strong>segments</strong> for streaming must begin at keyframes. So the pipeline forces keyframes on a fixed cadence (every 2 seconds): that cadence becomes the segment grid that the encoder, the packager, and the player all agree on. One decision — keyframe every 2 s — coordinates three subsystems.</p>
+
+    <h3>The job DAG</h3>
+    <p>One upload fans out into a <span class="term">DAG</span> (directed acyclic graph) of jobs, exactly the shape the message-queues lesson taught: producers enqueue, competing consumers drain, poison tasks go to a DLQ.</p>
+    <ol>
+      <li><strong>Probe.</strong> Read the container: duration, codec, resolution, frame rate. Validates the file is actually video (rejects the renamed .zip) and decides the ladder — a 720p source gets no 4K rung; upscaling invents pixels nobody asked for.</li>
+      <li><strong>Split.</strong> Cut the source into 2-second segments aligned to keyframes. A 90-minute match becomes 2,700 independent segments.</li>
+      <li><strong>Encode.</strong> For each segment × each ladder rung, one encode task. 2,700 segments × 6 rungs = 16,200 tasks for one match — each small, idempotent, retryable. This is where the parallelism lives: 16,200 tasks drain across the fleet in minutes instead of one machine grinding for hours.</li>
+      <li><strong>Package.</strong> Stitch per-segment outputs into per-rung streams and write the <span class="term">manifests</span> (the playlists from §6). Verify: every rung has the same segment count and aligned boundaries.</li>
+      <li><strong>Derivatives.</strong> Thumbnails (grab frames at 25/50/75%, plus scene-change detection so the thumbnail isn't a blurry crowd shot), preview sprites (the filmstrip you see scrubbing the timeline), audio normalization, caption generation.</li>
+    </ol>
+
+    <div class="warn-box">
+      <p><strong>The failure math that shapes the design:</strong> at 16,200 tasks per long video, a 0.1% task failure rate means ~16 failed tasks <em>per video</em>. Failures are not exceptional — they are the steady state. So every encode task is idempotent (same input → same output path, safe to retry), workers <strong>lease</strong> tasks with visibility timeouts (a crashed worker's task reappears for someone else — the message-queue pattern verbatim), and a task that fails N times goes to a <strong>dead-letter queue</strong> with an alert instead of blocking the 16,199 that succeeded. The pipeline completes when the DAG completes; the DLQ is how a human finds the one cursed segment.</p>
+    </div>
+
+    <h3>Priority lanes and the "processing" UX</h3>
+    <p>The queue is not one FIFO — it's <strong>priority lanes</strong>. New uploads get a fast lane (a few workers reserved) so a 3-minute fan clip doesn't wait behind a 4-hour match dump; long jobs drain from the bulk lane. The DAG also orders <em>rungs</em>: encode 480p and 720p first, publish "watchable now," then fill in 1080p and 4K behind it. The uploader's progress bar ("Processing 42%") is just DAG completion fraction — honest because the DAG is the truth. And because workers are <strong>stateless and preemptible</strong> (spot instances at a fraction of on-demand price, checkpointing per segment), the fleet scales with the queue depth: match-night surge → autoscale up; 3 AM → scale to the floor.</p>
+
+    <table class="cmp">
+      <tr><th>Codec</th><th>Compression vs H.264</th><th>Encode cost</th><th>Where it fits</th></tr>
+      <tr><td><strong>H.264 (AVC)</strong></td><td>baseline (1×)</td><td>1× — the reference</td><td>Every rung of the compatibility ladder; the one codec you can assume exists</td></tr>
+      <tr><td><strong>H.265 (HEVC)</strong></td><td>~2× better</td><td>~3× slower; patent licensing</td><td>4K rungs, TV apps, Apple ecosystem</td></tr>
+      <tr><td><strong>AV1</strong></td><td>~2.5–3× better</td><td>~8–12× slower (improving fast)</td><td>Top rungs where bandwidth savings pay for the CPU; royalty-free</td></tr>
+      <tr><td><strong>VP9</strong></td><td>~2× better</td><td>~4× slower</td><td>Legacy web ladder (YouTube's older stack)</td></tr>
+    </table>
+    <p>The strategy the table implies: <strong>H.264 everywhere for reach, AV1/HEVC at the top rungs for efficiency</strong>. Encoding a whole ladder in AV1 would bankrupt the compute budget; encoding only the 1080p/4K rungs in AV1 buys most of the bandwidth saving for a fraction of the CPU.</p>
+  </section>
+
+  <section id="storage">
+    <div class="section-head"><span class="section-num">05</span><h2>Storage &amp; data model: petabytes that sit still</h2></div>
+    <p class="lede">The third verb. Bytes are written once, read forever, and almost never read at all — the storage design follows from that asymmetry.</p>
+
+    <h3>Two stores, not one</h3>
+    <ul>
+      <li><strong>Blob object storage</strong> holds the bytes: the original upload (the <span class="term">mezzanine</span> master — never deleted, it's the source you'd re-transcode from if codecs improve), every rendition segment, thumbnails, sprites, captions. Objects are <span class="term">immutable</span>: a segment, once written, never changes. Immutability is a superpower — it makes CDN caching trivial (nothing to invalidate, §6) and dedupe safe.</li>
+      <li><strong>Metadata database</strong> holds the facts <em>about</em> the bytes: <code>video_id</code>, owner, title, duration, upload state (uploaded → processing → ready / failed), the rendition list with per-rung bitrates and segment counts, view/like counters, moderation status. Sharded by <code>video_id</code>; millions of small rows — the easy part of this system.</li>
+    </ul>
+    <p>The naming convention does real work: <code>/videos/{id}/hls/720p/seg_0042.ts</code>. The CDN, the packager, and the purge tooling all derive URLs from the video ID and the ladder — no lookup needed to construct a segment URL.</p>
+
+    <h3>Tiers: the hits subsidize the archive</h3>
+    <p>Not all bytes deserve the same disk. The mezzanine master and recent uploads live on standard object storage. Renditions of videos nobody has watched in 90 days drop to <strong>cold/ archive tiers</strong> (cheaper, slower first-byte). The deep tail — videos with single-digit lifetime views — can be reduced to <em>just the mezzanine</em>: delete the renditions, and if someone ever watches, <strong>re-transcode on demand</strong> (a few minutes of "processing" for a video nobody has opened in two years is a fine trade). This is the long-tail economics from §2 made concrete: 14 PB/year is affordable only if the cold 80% costs a tenth per GB of the hot 20%.</p>
+
+    <h3>Durability and regions</h3>
+    <p>Object stores give ~11 nines durability via replication or <span class="term">erasure coding</span> (splitting data into data+parity fragments so any subset reconstructs it — more space-efficient than 3× copies). Cross-region copies exist for the popular set, not for everything: a viral goal clip is replicated near every viewer population; a fan's 2019 training-ground clip lives in one region until someone watches it. Popularity drives placement — the same skew that runs the CDN (§6) runs the storage tiers.</p>
+
+    <div class="green-box">
+      <p><strong>The storage mantra:</strong> bytes immutable, metadata relational, placement popularity-driven. Immutability removes invalidation; the metadata DB stays small because the bytes live elsewhere; and the tiering policy is just the view-count distribution wearing a costume.</p>
+    </div>
+  </section>
+
+  <section id="playback">
+    <div class="section-head"><span class="section-num">06</span><h2>Playback: adaptive streaming and the CDN</h2></div>
+    <p class="lede">The fourth verb — and the one the viewer actually sees. How one video plays smoothly on fibre and on 3G, and how 9 PB a day gets delivered without 9 PB a day of origin bandwidth.</p>
+
+    <h3>Adaptive bitrate: the player is the load balancer</h3>
+    <p><span class="term">Adaptive bitrate streaming (ABR)</span> is the core trick. The video exists as short <span class="term">segments</span> (2–10 s each) in every ladder rung, plus a <span class="term">manifest</span> — a playlist file listing the segments per rung. Two standards: <span class="term">HLS</span> (Apple's, <code>.m3u8</code>) and <span class="term">DASH</span> (the open standard, <code>.mpd</code>). Playback is a loop:</p>
+    <ol>
+      <li>Fetch the manifest (tiny, cacheable).</li>
+      <li>Measure the network: recent segment download throughput + current buffer level.</li>
+      <li>Request the next segment at the highest rung the measurement supports.</li>
+      <li>Repeat every segment — switching rungs up or down as the train enters the tunnel.</li>
+    </ol>
+    <p>The <strong>startup path</strong> is tuned separately: the player starts at a low rung (fast first frame — startup latency is the metric viewers feel) and steps up within seconds. <strong>Scrubbing</strong> the timeline issues HTTP <span class="term">range requests</span> for the byte range of the target segment; because segments start at keyframes (§4), the player can begin decoding immediately at the seek point.</p>
+
+    <div class="pitch">
+      <span class="tag">Soccer analogy</span>
+      <h4>The commentator's earpiece</h4>
+      <p>A TV commentator's earpiece feed adapts to the stadium: in the tunnel it drops to a low-bandwidth voice channel; back in the gantry it's full quality. Nobody renegotiates the broadcast — the receiver just picks the feed it can carry, moment to moment. ABR is the same idea: the server publishes every quality; the <em>player</em> chooses, per segment, with no server round-trip needed for the decision. The intelligence lives at the edge of the network, in the viewer's hands.</p>
+    </div>
+
+    <h3>The CDN: why video is affordable at all</h3>
+    <p>Without a CDN, 9 PB/day would flow from your origin — you'd be buying transit like a telecom. With one:</p>
+    <ul>
+      <li><strong>Edge PoPs</strong> (points of presence, often inside ISPs) cache segments. A viewer in Edmonton pulls the goal clip from an Edmonton edge, 10 ms away, not from your Virginia origin.</li>
+      <li><strong>Cache keys are URLs</strong> — <code>/videos/{id}/hls/720p/seg_0042.ts</code> — and content is immutable, so a cached segment is <em>correct forever</em>. No invalidation logic, no stale reads: the caching lesson's hardest problem simply doesn't exist here. (New uploads get new IDs; re-processed videos get new version prefixes.)</li>
+      <li><strong>Popularity skew does the work.</strong> View counts follow a brutal power law: a tiny fraction of videos gets most views. Cache the hot head at the edge and a few percent of the catalog serves the large majority of views — the <span class="term">hit rate</span> (share of requests served from cache) climbs steeply with almost no catalog coverage. Lab Part B makes you feel this curve: it is the single relationship the whole business rests on.</li>
+      <li><strong>Origin shield.</strong> A mid-tier cache layer sits between edges and origin: when a new viral video misses at 50 edges simultaneously, the shield collapses 50 origin fetches into 1. Without it, every virality spike is a self-inflicted DDoS on your own storage. Edge + shield combined is what pushes effective origin offload to 90–99%.</li>
+      <li><strong>Tiered fill for the tail.</strong> A video nobody has watched in months isn't on any edge; the first viewer in a region triggers a miss → shield → origin fetch, and the edge then holds it for a while in case friends follow. The tail costs origin bandwidth only when actually watched — exactly the right incidence.</li>
+    </ul>
+
+    <div class="callout">
+      <h4>The CDN economics, stated plainly</h4>
+      <p>Origin egress might cost ~$0.05–0.09/GB; CDN egress ~$0.005–0.02/GB at scale — and with ~95% combined offload you pay origin prices on ~5% of traffic. The design goal is not "use a CDN" (everyone does); it's <strong>protecting the offload</strong>: immutable cache keys, long TTLs, a shield tier, pre-warming known events (cup final at 3 PM → push the manifest and first segments to edges at 2:55), and never letting a cache-busting query parameter into a segment URL.</p>
+    </div>
+  </section>
+
+  <section id="hard">
+    <div class="section-head"><span class="section-num">07</span><h2>The hard parts</h2></div>
+    <p class="lede">One idea at a time. Each of these is a question that comes up in the room — and each has a crisp, defensible answer.</p>
+
+    <h3>Virality: the goal clip at 89 minutes</h3>
+    <p>Riverside scores the winner; the clip goes from 0 to 2M views in 20 minutes. What actually happens: the first viewers miss at the edge, the shield fetches from origin once per region, and within minutes the clip is hot-cached at every PoP — the CDN <em>wants</em> this workload; popularity is its favorite shape. What you watch on the dashboard: <strong>origin request rate</strong> (should stay flat-ish thanks to the shield), <strong>edge hit rate</strong> (should climb toward 99% for that video), and the <strong>metadata DB</strong> — 2M view-count increments in 20 minutes is a write hotspot on one row. So view counts are <strong>buffered and flushed</strong> (in-memory counters per edge/region, periodic batch writes; exact counts are eventually consistent — nobody's revenue depends on the 2,000,001st view landing synchronously). For known events (cup final), <strong>pre-warm</strong>: push manifests and opening segments to edges before kickoff.</p>
+
+    <h3>Upload surge and backpressure</h3>
+    <p>Full time: 40,000 fans hit "upload" within the hour. The transcode queue depth explodes. The response is the backpressure menu from the message-queues lesson, in order: <strong>absorb</strong> (autoscale the worker fleet — the queue depth is the scaling signal), <strong>prioritize</strong> (fast lane for short clips; the 4-hour full-match dump waits), <strong>degrade gracefully</strong> (publish 480p/720p rungs first so everything is watchable; 4K fills in overnight), and only then <strong>push back</strong> (tell the uploader "high demand — your video is #412 in the queue" with an honest ETA from queue depth ÷ drain rate, rather than a spinner that lies). The queue depth and per-lane wait time are the two graphs on the wall.</p>
+
+    <h3>Live vs VOD: two different animals</h3>
+    <p>Everything so far is <span class="term">VOD</span> (video on demand): upload once, process at leisure, serve forever. <span class="term">Live</span> — streaming the match as it happens — inverts the constraints: segments are produced every 2–6 seconds and must be encoded within that window (no "process for an hour then publish"), there is no seeking into the future, and the ingest is a continuous stream (RTMP/SRT/WebRTC) not a file. The pipeline becomes: ingest → real-time encode the ladder (fast presets only — no AV1 slow burns) → live packager → CDN, with a <strong>DVR window</strong> (last N hours kept as VOD-able segments). Latency budget: broadcast-style HLS runs 20–30 s behind live; low-latency modes (LL-HLS, WebRTC) trade robustness for ~3–5 s. After the final whistle, the live recording <em>becomes</em> a VOD asset and gets the full §4 treatment (better codecs, full ladder, thumbnails).</p>
+
+    <h3>Moderation: the publish gate</h3>
+    <p>Uploads enter <strong>quarantine</strong>: not listed, not served, until the moderation pipeline clears them. The pipeline is staged by cost: <strong>hash matching</strong> first (perceptual hash vs a database of known-bad content — microseconds), then <strong>ML classifiers</strong> (violence, nudity, copyright audio fingerprints — seconds), then <strong>human review</strong> for the uncertain middle (minutes to hours). Copyright works the same way (Content-ID style audio/video fingerprinting → rights-holder policy: block, monetize, or track). The design point: moderation is async and parallel to transcoding, and the "ready" state requires <em>both</em> gates — processed <em>and</em> cleared.</p>
+
+    <h3>The long tail: videos nobody watches</h3>
+    <p>Most uploads get double-digit views, ever. Storing 6 renditions of each at hot-tier prices is burning money to insure against a viewer who never comes. The policy (§5): after N days unwatched, renditions drop to cold storage; after M months, keep only the mezzanine and <strong>re-transcode on demand</strong> if a viewer appears. The honest framing for the room: you are trading a rare viewer's wait (minutes of "processing") for not storing petabytes of unwatched ladder rungs. The analytics that drive it: a simple per-video last-viewed timestamp — the cheapest signal in the system.</p>
+
+    <h3>Captions, chapters, and DRM — the "also" list</h3>
+    <ul>
+      <li><strong>Captions:</strong> speech-to-text over the audio track produces timed text (WebVTT); machine-translate for other languages; human-correct the popular ones. It's a batch job stapled onto the DAG (§4, step 5).</li>
+      <li><strong>Chapters:</strong> scene-change detection + title metadata → chapter markers; the scrub-bar dots.</li>
+      <li><strong>DRM</strong> (for premium content): the segments are encrypted; the player fetches a per-user decryption key from a <span class="term">license server</span> after authentication (Widevine / FairPlay / PlayReady). Key rotation per asset; the CDN still caches the <em>encrypted</em> bytes fine — encryption doesn't break caching, it just moves trust to the license server.</li>
+      <li><strong>Thumbnails:</strong> scene detection picks candidate frames, a CTR model ranks them, and the winner is A/B tested — the thumbnail is the highest-ROI pixel on the platform.</li>
+    </ul>
+
+    <div class="callout">
+      <h4>Senior-depth traps (know these cold)</h4>
+      <ul>
+        <li><strong>"Why not serve the uploaded file directly and transcode lazily?"</strong> — Q1's answer: compatibility, bandwidth, and the fact that the ladder must exist <em>aligned</em> before ABR works. Lazy transcoding is legitimate only for the deep tail (§7's re-transcode-on-demand), never for the head.</li>
+        <li><strong>"Put the transcoders and the web tier on the same boxes."</strong> Transcoding is CPU-saturating batch work; serving is latency-sensitive. Colocating them means a transcode burst steals cycles from playback API latency. Separate fleets, separate scaling signals (queue depth vs request latency).</li>
+        <li><strong>"Cache the manifest the same as segments."</strong> The manifest for a <em>processing</em> video grows as rungs complete; for live it changes every few seconds. Short TTL (or versioned URLs) for manifests, immutable-forever for segments. One caching policy does not fit both.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="lab">
+    <div class="section-head"><span class="section-num">08</span><h2>Interactive lab: price the transcode fleet, feel the CDN skew</h2></div>
+    <p class="lede">Two simulators. The first prices the transcoding fleet — the codec choice is a compute bill you sign per video. The second shows why the CDN works: popularity skew turns a petabyte catalog into a cacheable head.</p>
+
+    <div class="lab">
+      <h3>Part A — Price the transcode fleet</h3>
+      <p class="howto">A day of uploads hits the pipeline. <strong>Videos/day</strong> and <strong>avg minutes</strong> set the workload. <strong>Rungs</strong> is the ladder size. <strong>Codec mix</strong> chooses the encode-cost multiplier (illustrative: H.264 1×, H.265 3×, AV1 10× per minute of video per rung). <strong>Workers</strong> is the fleet size. Cost assumes $0.06 per CPU-minute (spot-ish pricing, illustrative).</p>
+      <div class="slider-row">
+        <label for="tc-vids">Videos / day (thousands)</label>
+        <input type="range" id="tc-vids" min="5" max="200" step="5" value="50" />
+        <output id="tc-vids-out">50K</output>
+      </div>
+      <div class="slider-row">
+        <label for="tc-mins">Avg video length (min)</label>
+        <input type="range" id="tc-mins" min="2" max="60" step="2" value="10" />
+        <output id="tc-mins-out">10</output>
+      </div>
+      <div class="slider-row">
+        <label for="tc-rungs">Ladder rungs</label>
+        <input type="range" id="tc-rungs" min="2" max="8" step="1" value="6" />
+        <output id="tc-rungs-out">6</output>
+      </div>
+      <div class="slider-row">
+        <label for="tc-mix">Codec mix (encode cost)</label>
+        <input type="range" id="tc-mix" min="0" max="2" step="1" value="0" />
+        <output id="tc-mix-out">H.264 everywhere</output>
+      </div>
+      <div class="slider-row">
+        <label for="tc-workers">Transcode workers</label>
+        <input type="range" id="tc-workers" min="100" max="5000" step="100" value="2000" />
+        <output id="tc-workers-out">2,000</output>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">CPU-hours / day</div><div class="score" id="tc-cpu" style="font-size:1.15rem">—</div></div>
+        <div class="stat"><div class="node-name">Fleet busy %</div><div class="score" id="tc-busy">—</div><span class="badge ok" id="tc-badge">keeping up</span></div>
+        <div class="stat"><div class="node-name">Daily compute cost</div><div class="score" id="tc-cost" style="font-size:1.15rem">—</div></div>
+        <div class="stat"><div class="node-name">10-min clip → playable</div><div class="score" id="tc-ttp" style="font-size:1.1rem">—</div></div>
+      </div>
+      <p class="howto" id="tc-verdict"></p>
+      <div class="log" id="tc-log" aria-live="polite"></div>
+    </div>
+
+    <div class="lab">
+      <h3>Part B — The CDN skew: why caching works</h3>
+      <p class="howto">Views follow a power law (Zipf): the #1 video gets far more views than #1000. <strong>Skew</strong> sets how steep (higher = more concentrated). The edge caches the <strong>top %</strong> of the catalog. This models one edge tier — the origin shield (§6) sits behind it and collapses misses further, which is how combined offload reaches 90%+. Watch the leverage: a small slice of catalog covering a large slice of views.</p>
+      <div class="slider-row">
+        <label for="cd-cat">Catalog (millions of videos)</label>
+        <input type="range" id="cd-cat" min="1" max="100" step="1" value="10" />
+        <output id="cd-cat-out">10M</output>
+      </div>
+      <div class="slider-row">
+        <label for="cd-views">Daily views (millions)</label>
+        <input type="range" id="cd-views" min="10" max="1000" step="10" value="300" />
+        <output id="cd-views-out">300M</output>
+      </div>
+      <div class="slider-row">
+        <label for="cd-skew">Skew (Zipf α)</label>
+        <input type="range" id="cd-skew" min="60" max="120" step="5" value="90" />
+        <output id="cd-skew-out">0.90</output>
+      </div>
+      <div class="slider-row">
+        <label for="cd-top">Edge caches top … of catalog</label>
+        <input type="range" id="cd-top" min="1" max="200" step="1" value="10" />
+        <output id="cd-top-out">1.0%</output>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Edge hit rate</div><div class="score" id="cd-hit">—</div><span class="badge ok" id="cd-badge">healthy</span></div>
+        <div class="stat"><div class="node-name">Views from cache / day</div><div class="score" id="cd-cached" style="font-size:1.15rem">—</div></div>
+        <div class="stat"><div class="node-name">Origin serves / day</div><div class="score" id="cd-origin" style="font-size:1.15rem">—</div></div>
+        <div class="stat"><div class="node-name">Videos cached</div><div class="score" id="cd-ncached" style="font-size:1.15rem">—</div></div>
+      </div>
+      <p class="howto" id="cd-verdict"></p>
+      <div class="log" id="cd-log" aria-live="polite"></div>
+    </div>
+
+    <script>
+    (function () {
+      function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+      function fmtShort(n) {
+        if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+        if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+        if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+        return fmt(n);
+      }
+      function fmtMoney(n) {
+        if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+        if (n >= 1e3) return '$' + (n / 1e3).toFixed(1) + 'K';
+        return '$' + fmt(n);
+      }
+      function log(el, msg) {
+        var line = document.createElement('div');
+        line.textContent = msg;
+        el.prepend(line);
+        while (el.children.length > 6) el.removeChild(el.lastChild);
+      }
+
+      // ---------- Part A: transcode fleet ----------
+      var MIXES = [
+        { name: 'H.264 everywhere', mult: 1.0 },
+        { name: 'H.264 + HEVC top rungs', mult: 1.8 },
+        { name: 'AV1 top rungs', mult: 3.2 }
+      ];
+      var tcVids = document.getElementById('tc-vids'),
+          tcVidsOut = document.getElementById('tc-vids-out'),
+          tcMins = document.getElementById('tc-mins'),
+          tcMinsOut = document.getElementById('tc-mins-out'),
+          tcRungs = document.getElementById('tc-rungs'),
+          tcRungsOut = document.getElementById('tc-rungs-out'),
+          tcMix = document.getElementById('tc-mix'),
+          tcMixOut = document.getElementById('tc-mix-out'),
+          tcWorkers = document.getElementById('tc-workers'),
+          tcWorkersOut = document.getElementById('tc-workers-out'),
+          tcCpu = document.getElementById('tc-cpu'),
+          tcBusy = document.getElementById('tc-busy'),
+          tcBadge = document.getElementById('tc-badge'),
+          tcCost = document.getElementById('tc-cost'),
+          tcTtp = document.getElementById('tc-ttp'),
+          tcVerdict = document.getElementById('tc-verdict'),
+          tcLog = document.getElementById('tc-log');
+
+      function tcUpdate(narrate) {
+        var vids = tcVids.value * 1000,
+            mins = +tcMins.value,
+            rungs = +tcRungs.value,
+            mix = MIXES[+tcMix.value],
+            workers = +tcWorkers.value;
+        tcVidsOut.textContent = tcVids.value + 'K';
+        tcMinsOut.textContent = mins;
+        tcRungsOut.textContent = rungs;
+        tcMixOut.textContent = mix.name;
+        tcWorkersOut.textContent = fmt(workers);
+        // 0.6 CPU-min per video-minute per rung at 1x, scaled by codec mix
+        var cpuMin = vids * mins * 0.6 * rungs * mix.mult,
+            cpuHr = cpuMin / 60,
+            capacityMin = workers * 24 * 60,
+            busy = cpuMin / capacityMin,
+            cost = cpuMin * 0.06;
+        tcCpu.textContent = fmtShort(cpuHr);
+        tcBusy.textContent = Math.round(busy * 100) + '%';
+        tcCost.textContent = fmtMoney(cost);
+        var backlog = busy > 1;
+        tcBadge.textContent = backlog ? 'backlog!' : (busy > 0.8 ? 'hot' : 'keeping up');
+        tcBadge.className = 'badge ' + (backlog ? 'bad' : (busy > 0.8 ? 'warn' : 'ok'));
+        // time-to-playable: one 10-min clip's own encode work, drained across up to
+        // 32 parallel segment workers (segment-parallelism cap), plus queue wait.
+        var clipCpuMin = 10 * 0.6 * rungs * mix.mult,
+            ttp = clipCpuMin / 32 + (busy > 0.85 && !backlog ? (busy / (1 - busy)) * 5 : 0);
+        tcTtp.textContent = backlog ? 'growing…' : ('~' + Math.max(1, Math.round(ttp)) + ' min');
+        tcVerdict.textContent = backlog
+          ? 'The fleet cannot drain the day\'s work: every day adds ' + fmtShort(cpuHr - workers * 24) + ' CPU-hours of backlog. Add workers, cut rungs, or accept that "processing" stretches into tomorrow.'
+          : 'The fleet drains the day with ' + Math.round((1 - busy) * 100) + '% headroom. Note what moves the bill most: the codec mix (' + mix.mult.toFixed(1) + '×) and the rung count — not the worker count, which only buys speed.';
+        if (narrate) {
+          if (backlog) log(tcLog, 'Backlog: ' + Math.round(busy * 100) + '% utilization means the queue grows all day. This is the match-night surge shape.');
+          else log(tcLog, fmtShort(cpuHr) + ' CPU-hr/day at ' + fmtMoney(cost) + '/day; a 10-min clip is playable in ~' + Math.max(1, Math.round(ttp)) + ' min. The codec mix is the bill.');
+        }
+      }
+      [tcVids, tcMins, tcRungs, tcMix, tcWorkers].forEach(function (el) {
+        el.addEventListener('input', function () { tcUpdate(true); });
+      });
+      tcUpdate(false);
+      log(tcLog, 'Baseline: 50K uploads/day, 10-min average, 6 rungs, H.264, 2,000 workers. Move the codec mix to AV1 and watch the bill.');
+
+      // ---------- Part B: CDN skew ----------
+      var cdCat = document.getElementById('cd-cat'),
+          cdCatOut = document.getElementById('cd-cat-out'),
+          cdViews = document.getElementById('cd-views'),
+          cdViewsOut = document.getElementById('cd-views-out'),
+          cdSkew = document.getElementById('cd-skew'),
+          cdSkewOut = document.getElementById('cd-skew-out'),
+          cdTop = document.getElementById('cd-top'),
+          cdTopOut = document.getElementById('cd-top-out'),
+          cdHit = document.getElementById('cd-hit'),
+          cdBadge = document.getElementById('cd-badge'),
+          cdCached = document.getElementById('cd-cached'),
+          cdOrigin = document.getElementById('cd-origin'),
+          cdNcached = document.getElementById('cd-ncached'),
+          cdVerdict = document.getElementById('cd-verdict'),
+          cdLog = document.getElementById('cd-log');
+
+      function zipfHit(n, alpha, topFrac) {
+        // hit rate = sum_{k=1..C} k^-a / sum_{k=1..N} k^-a, C = topFrac*N
+        var c = Math.max(1, Math.floor(n * topFrac)), s = 0, t = 0, k;
+        // sum in log-space-safe chunks; N up to 1e8 so approximate tail by integral
+        var CHUNK = 200000;
+        for (k = 1; k <= Math.min(n, CHUNK); k++) {
+          var v = Math.pow(k, -alpha);
+          s += v;
+          if (k <= c) t += v;
+        }
+        if (n > CHUNK) {
+          // integral approximation of sum_{CHUNK+1..N} k^-a
+          var tail = (Math.pow(n, 1 - alpha) - Math.pow(CHUNK, 1 - alpha)) / (1 - alpha);
+          s += tail;
+          if (c > CHUNK) t += (Math.pow(c, 1 - alpha) - Math.pow(CHUNK, 1 - alpha)) / (1 - alpha);
+        }
+        return t / s;
+      }
+
+      function cdUpdate(narrate) {
+        var n = cdCat.value * 1e6,
+            views = cdViews.value * 1e6,
+            alpha = cdSkew.value / 100,
+            topFrac = (cdTop.value / 10) / 100;
+        cdCatOut.textContent = cdCat.value + 'M';
+        cdViewsOut.textContent = cdViews.value + 'M';
+        cdSkewOut.textContent = alpha.toFixed(2);
+        cdTopOut.textContent = (topFrac * 100).toFixed(1) + '%';
+        var hit = zipfHit(n, alpha, topFrac),
+            cachedViews = views * hit,
+            originViews = views - cachedViews,
+            ncached = n * topFrac;
+        cdHit.textContent = (hit * 100).toFixed(1) + '%';
+        cdCached.textContent = fmtShort(cachedViews);
+        cdOrigin.textContent = fmtShort(originViews);
+        cdNcached.textContent = fmtShort(ncached);
+        var healthy = hit >= 0.75, thin = hit >= 0.5;
+        cdBadge.textContent = healthy ? 'strong' : (thin ? 'working' : 'tail-heavy');
+        cdBadge.className = 'badge ' + (healthy ? 'ok' : (thin ? 'warn' : 'bad'));
+        cdVerdict.textContent = 'Caching ' + fmtShort(ncached) + ' videos (' + (topFrac * 100).toFixed(1) + '% of the catalog) serves ' +
+          (hit * 100).toFixed(1) + '% of all views — that leverage is the whole CDN business. The remaining ' + fmtShort(originViews) + ' daily views reach this edge tier; the shield collapses them further before the origin. Steepen the skew (viral hits) and the same cache covers more; flatten it and the tail eats you.';
+        if (narrate) {
+          log(cdLog, (hit * 100).toFixed(1) + '% hit rate from the top ' + (topFrac * 100).toFixed(1) + '% — ' + fmtShort(originViews) + ' views/day still reach the origin.');
+        }
+      }
+      [cdCat, cdViews, cdSkew, cdTop].forEach(function (el) {
+        el.addEventListener('input', function () { cdUpdate(true); });
+      });
+      cdUpdate(false);
+      log(cdLog, 'Start: 10M-video catalog, 300M views/day, α=0.90, edge holds the top 1%. Drag the skew and watch the hit rate move.');
+    })();
+    </script>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">09</span><h2>Q&amp;A with full model answers</h2></div>
+    <p class="lede">Four questions that come up in the room, answered the way a senior engineer would answer them — verdict first, reasoning after.</p>
+
+    <div class="qa">
+      <div class="question">
+        <div class="qnum">Q1</div>
+        <div class="qtext">Why transcode at all? A fan uploads a perfectly good 4K H.264 file — why not just serve that file and skip the whole pipeline?</div>
+        <div class="context">The "justify the system's existence" question. They want the three reasons named with numbers, not "quality".</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "Three reasons, each decisive on its own. One: bandwidth. That 4K phone file is ~40 Mbps — a one-minute clip is 300 MB. On 3G it never plays; on a capped mobile plan it's hostile. The 480p rung at 1 Mbps delivers the same goal for 7.5 MB — a 40× saving the viewer's wallet feels. Two: compatibility. Phones record HEVC, odd containers, variable frame rates; the ladder is normalized H.264 in MP4 because every device built in the last 15 years plays it — one 'weird file' bug report per thousand uploads is a support nightmare we just don't have. Three: adaptivity is structural. Smooth playback needs the player switching quality per segment as the network changes, which needs every rung to exist <em>aligned to the same 2-second keyframe grid</em> before the first viewer arrives — you can't align rungs lazily. The honest concession: for the deep tail — videos with single-digit lifetime views — I <em>would</em> skip the full ladder and re-transcode on demand if anyone ever watches. Transcode-everything is the policy for the head; the tail gets transcode-on-first-view. The pipeline earns its keep on the videos people actually watch."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2</div>
+        <div class="qtext">A fan uploads the winning-goal clip on stadium Wi-Fi. It dies at 92%, twice. Walk me through exactly what happens on the third attempt — what is re-sent, what isn't, and how the server knows.</div>
+        <div class="context">A resumability question wearing a UX costume. They're checking chunking, manifests, and idempotency — not networking trivia.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "Nothing is re-sent except the missing tail — by construction. Walk it through. Before any bytes moved, the client created an upload session — POST /uploads with a client-generated upload ID, which is the idempotency key, so all three attempts are the <em>same</em> session, not three uploads. The file was split into ~200 chunks of 10 MB, each PUT directly to blob storage via its own signed URL, each with a SHA-256 checksum. The server keeps a parts manifest: which chunks landed and verified. Attempt one died at 92% — chunks 1–184 verified in the manifest, the rest absent. Attempt two asked 'which parts are missing?', got the same answer, resumed at 185, died at 195. Attempt three asks again, sends only 196–200, each checksum-verified on arrival. Then POST /uploads/{id}/complete: the server verifies the assembled checksum against the session's declared checksum, and only then enqueues the transcode DAG. Two details worth naming: per-chunk checksums mean a corrupted chunk is retried alone, never the file; and parallel chunk uploads — 4 to 8 at a time — mean attempt three also saturates the connection. The failure mode I'd actually watch is a client that never calls complete — orphaned partial uploads — so sessions expire after 24 hours and a sweeper deletes orphaned chunks."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3</div>
+        <div class="qtext">The 89th-minute winner goes viral: 2M views in 20 minutes, all for one 3-minute clip. What breaks first, and what specifically absorbs it?</div>
+        <div class="context">A virality question. They want the absorbing layers named in order — and the one thing that <em>doesn't</em> absorb itself.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "Nothing breaks — if the layers are in place — because virality is the CDN's favorite workload shape. Order of absorption: first, the edge PoPs. The first viewers in each region miss, the origin shield collapses those misses into one origin fetch per region, and within minutes the clip's segments are hot-cached at every edge — after that it's 10-ms local serving, and the origin barely notices. The dashboard should show edge hit rate for that asset climbing toward 99% and origin request rate staying flat. What <em>doesn't</em> absorb itself: the metadata database. Two million view-count increments in 20 minutes is a write hotspot on one row — so view counts are buffered at the edge and flushed in batches; exact counts are eventually consistent, and I say that out loud because nobody's money depends on the 2,000,001st view landing synchronously. Second thing to watch: the transcode pipeline is irrelevant here — the clip was processed hours ago — but if the viral moment happens <em>during</em> processing, the priority lane (§4) jumps it ahead of the bulk queue. And for known events — cup final at 3 PM — we pre-warm: push the manifest and opening segments to edges at 2:55. Virality you predict is just a cache-fill schedule."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4</div>
+        <div class="qtext">Your transcode fleet and your API tier share the same machines "to save money." Defend or redesign.</div>
+        <div class="context">A separation-of-concerns question. The wrong answer is a cost spreadsheet; the right one is about conflicting scaling signals.</div>
+        <div class="answer">
+          <p><strong>Model answer:</strong> "Redesign — the savings are real and the coupling is fatal. Transcoding is CPU-saturating batch work: it wants every core at 100% for minutes at a time, scales on queue depth, and tolerates preemption — it's the ideal spot-instance workload. The API tier is latency-sensitive: it scales on request latency and p99, and a transcode burst stealing cycles shows up as slow manifest responses and failed uploads — the exact moments viewers and uploaders feel. One scaling signal per fleet, always: queue depth drives transcoders, latency drives API boxes. Sharing machines also breaks the failure story: a runaway encode job OOMing a box takes down the API with it, and autoscaling gets confused — is CPU high because of legitimate batch work or because the API is melting? The honest cost math: transcoders on spot instances are ~70% cheaper than on-demand, which dwarfs whatever you saved by sharing boxes. Separate fleets, separate autoscalers, separate dashboards — the transcode fleet is allowed to be 100% busy; the API fleet is never allowed near it."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">10</span><h2>Practice drills (untimed)</h2></div>
+    <p class="lede">Untimed, rubric-graded. Do them on paper or out loud — the point is the reasoning, not the clock.</p>
+
+    <div class="reveal">
+      <summary>Drill 1 — Size it: cup-final upload surge</summary>
+      <div class="body">
+        <p>Full time at the cup final: 200K fan clips land in one hour (average 3 min each, 6-rung H.264 ladder at 0.6 CPU-min per video-minute per rung). Your fleet is 1,300 workers. Compute the total CPU work, how far behind the fleet falls in that hour, and the queue wait a clip uploaded at the end of the hour faces. Then name your first three mitigations in order.</p>
+        <p><strong>Rubric:</strong> work = 200K × 3 × 0.6 × 6 = 2.16M CPU-min; fleet drains 1,300 × 60 = 78K CPU-min in the hour → backlog ≈ 2.08M CPU-min ≈ 26 hours of fleet time · last clip waits on the order of a day at current capacity — states the number plainly · mitigation 1: autoscale the worker fleet on queue depth (spot instances — the workload is preemptible by design) · mitigation 2: degrade the ladder — publish 480p/720p first so everything is watchable in minutes, backfill 1080p/4K overnight · mitigation 3: priority lane — short fan clips jump the 4-hour full-match dumps · bonus: honest queue ETA in the upload UX ("#3,104 in queue, ~40 min") instead of a lying spinner; notes the DLQ/poison-task watch during a surge.</p>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <summary>Drill 2 — Defend the choice: transcode-everything vs transcode-on-first-view</summary>
+      <div class="body">
+        <p>Your interviewer says: "Transcoding every upload is wasteful — most videos get ten views. Store the original, transcode when someone actually watches." Give the two-minute rebuttal — and the concession.</p>
+        <p><strong>Rubric:</strong> concedes the premise is true for the tail (most uploads are barely watched) · rebuttal 1 — first-viewer latency: on-demand transcode makes the first viewer wait minutes for a video they clicked <em>now</em>; pre-transcode makes every view instant · rebuttal 2 — thundering herd: a clip that goes viral would trigger thousands of concurrent transcode jobs for the same asset without dedupe coordination · rebuttal 3 — ABR needs the aligned ladder to exist before playback starts; you can't adapt what you haven't built · lands the synthesis: transcode-everything for the head (predictable hits: club uploads, trending), transcode-on-first-view for the deep tail (last-viewed &gt; M months → keep only the mezzanine) · bonus: names the signal that switches policy — per-video last-viewed timestamp, the cheapest analytics in the system.</p>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <summary>Drill 3 — Design the "processing" state machine</summary>
+      <div class="body">
+        <p>FC Replay shows uploaders a progress bar and a final state: ready, or failed with a reason. Design the state machine behind it — the states, what moves between them, where progress % comes from, what "failed" means when 16,199 of 16,200 tasks succeeded, and what the uploader can do about it.</p>
+        <p><strong>Rubric:</strong> states: uploaded → queued → processing → (ready | degraded | failed), plus quarantined → cleared/ rejected from the moderation gate running in parallel · progress % = completed DAG tasks ÷ total tasks — honest because the DAG is the truth · partial failure: per-task retries with visibility timeouts; N failures → DLQ + alert; video is 'ready' when the <em>watchable subset</em> (low rungs) completes, 'degraded' if top rungs failed with a retry button, 'failed' only if the watchable subset can't complete · the uploader's actions: wait (with honest queue ETA), retry-failed-rungs, re-upload (new upload ID — never mutate the failed session), contact support with the video ID which maps to the DLQ entries · explicitly names what is <em>not</em> retried blindly (poison segments) and where a human looks (DLQ dashboard) · bonus: idempotent task design so retries are safe, and the moderation gate as a parallel prerequisite for 'ready'.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">11</span><h2>Cheat sheet &amp; 60-second framing</h2></div>
+
+    <div class="cheatsheet">
+      <h3>Video platform — six decisions</h3>
+      <ol>
+        <li><strong>Upload:</strong> chunked, checksummed, resumable; bytes go direct to blob storage via signed URLs — the API server never touches video bytes; the parts manifest makes "failed upload" a paused one.</li>
+        <li><strong>Transcode:</strong> one upload → a DAG of segment × rung encode tasks; keyframes every 2 s align the whole system; idempotent tasks + visibility timeouts + DLQ because failures are the steady state; priority lanes and rung-ordering make "processing" honest.</li>
+        <li><strong>Codec strategy:</strong> H.264 everywhere for reach; HEVC/AV1 on top rungs for efficiency — the codec mix is the compute bill, and the ladder is the product.</li>
+        <li><strong>Storage:</strong> immutable bytes in blob storage, facts in a sharded metadata DB; tiers by popularity — hot head on fast storage, cold tail as mezzanine-only with re-transcode on demand.</li>
+        <li><strong>Delivery:</strong> ABR (HLS/DASH) — the player picks a rung per segment; CDN edge caches immutable segment URLs; the hit rate is the business; origin shield collapses viral misses; pre-warm known events.</li>
+        <li><strong>Failure shapes:</strong> virality is absorbed by the CDN (watch the DB write hotspot, not the bytes); upload surges are absorbed by autoscale + degrade-the-ladder + honest ETAs; live and VOD are different pipelines sharing only the CDN.</li>
+      </ol>
+    </div>
+
+    <div class="framing">
+      <p><strong>60-second framing — how to open in the room:</strong></p>
+      <p>"A video platform does four things: accept uploads, convert them into playable versions, store them durably, and stream the right version to every viewer. Scope: user uploads up to 4K, watchable within minutes, smooth playback from fibre to 3G, virality-proof. Sizing: 50K uploads a day at 300 MB is 15 TB of ingest; transcoding that into six renditions is about 30K CPU-hours a day — roughly 1,250 cores just to keep up — and 10M viewers watching 40 minutes a day is 9 PB of daily egress, so this is a bandwidth-and-compute problem, not a database problem. The design: uploads are chunked and checksummed, bytes go straight to blob storage via signed URLs, and a parts manifest makes a 92%-failed upload resumable instead of restarted. One completed upload fans out into a DAG of segment-times-rung encode tasks — a 90-minute match becomes 16,000 small idempotent tasks that drain across a preemptible worker fleet, with priority lanes and low-rungs-first so clips are watchable in minutes. Codecs: H.264 everywhere for compatibility, HEVC or AV1 on the top rungs where the bandwidth saving pays for the CPU. Storage is immutable bytes in object storage plus a sharded metadata DB, tiered by popularity — the unwatched tail keeps only its master copy. Delivery is adaptive bitrate: HLS or DASH manifests, 2-second segments aligned to keyframes, the player choosing a rung per segment as the network changes. A CDN caches the immutable segment URLs at the edge — popularity skew means the top 1% of videos serve the vast majority of views, so the origin sees a few percent of traffic, and an origin shield collapses viral misses. Virality is absorbed by the cache; the thing to watch is the metadata write hotspot, so view counts flush in batches. Upload surges are absorbed by autoscaling the worker fleet and degrading the ladder gracefully. Live is a separate real-time pipeline that becomes a VOD asset after the final whistle."</p>
+    </div>
+
+    <footer>
+      <p>Lesson 18 · Part of the daily system design series. <a href="../index.html">← All lessons</a></p>
+    </footer>
+  </section>
+</div>
+</body>
+</html>
