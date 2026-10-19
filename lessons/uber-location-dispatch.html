@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Design a Ride-Hailing Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 260px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .log .good { color: #7fd8a8; }
+    .log .bad { color: #ff8f7d; }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .cheatsheet {
+      background: var(--surface); border: 2px solid var(--ink);
+      border-radius: var(--radius); padding: 22px 24px; margin: 24px 0; max-width: 46rem;
+    }
+    .cheatsheet h3 { margin: 0 0 10px; }
+    .cheatsheet ol { max-width: none; }
+    .framing {
+      border-left: 4px solid var(--purple); background: var(--purple-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .framing p { margin: 8px 0; max-width: none; }
+    footer { margin-top: 60px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 20px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <p class="crumbs"><a href="../index.html">All lessons</a> · Lesson 19</p>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 19 · Classic design problem</span>
+    <h1>Design a Ride-Hailing Platform</h1>
+    <p class="whyline">It's 9:50 PM. The final whistle just blew at Riverside FC's stadium and 25,000 fans are opening their phones at the same time asking for a car. Your system has seconds to know where every driver is, find the right ones, price the trip fairly, and keep every phone's map moving smoothly — all while drivers vanish into tunnels and riders cancel mid-dispatch. This is the Uber-style design problem.</p>
+    <div class="meta">
+      <span>Classic design problem</span>
+      <span>Geospatial indexing · Real-time streaming</span>
+      <span>~40 min read + labs</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#what">What is a ride-hailing platform? — the definition from zero</a></li>
+      <li><a href="#requirements">Requirements and back-of-the-envelope sizing</a></li>
+      <li><a href="#nearby">The heart: finding nearby drivers</a></li>
+      <li><a href="#ingest">Ingesting 30,000 location pings a second</a></li>
+      <li><a href="#dispatch">Dispatch: turning candidates into a driver</a></li>
+      <li><a href="#surge">Surge pricing: when demand eats supply</a></li>
+      <li><a href="#data">Trip lifecycle and data model</a></li>
+      <li><a href="#hard">The hard parts: full-time surges, tunnels, cancellations</a></li>
+      <li><a href="#lab">Interactive labs: dispatch ring search + surge simulator</a></li>
+      <li><a href="#qa">Q&amp;A with full model answers</a></li>
+      <li><a href="#drills">Practice drills (untimed)</a></li>
+      <li><a href="#cheatsheet">Cheat sheet &amp; 60-second framing</a></li>
+    </ol>
+  </nav>
+
+  <section id="what">
+    <div class="section-head"><span class="section-num">01</span><h2>What is a ride-hailing platform?</h2></div>
+    <p class="lede">Before any architecture: what the thing actually is, defined from zero, with one running example carried through the whole lesson.</p>
+
+    <div class="definition">
+      <strong class="term">Definition</strong>
+      <p>A <span class="term">ride-hailing platform</span> is a two-sided, real-time marketplace. On one side, <span class="term">riders</span> (phones asking "take me from A to B"); on the other, <span class="term">drivers</span> (phones moving around the city streaming their GPS position every few seconds). The platform's job is four verbs: <strong>track</strong> every driver's live position, <strong>match</strong> each rider request to a good driver, <strong>price</strong> the trip so supply shows up when demand spikes, and <strong>follow</strong> the trip until the car arrives — all in seconds, for millions of trips a day.</p>
+    </div>
+
+    <p>Our running example: <strong>Riverside Rides</strong>, the ride-hailing service for the metro around Riverside FC's stadium. Normal Tuesday: a few thousand trips an hour spread across the city. Matchday: 25,000 fans pour out of the stadium at 9:50 PM and all want a car within ten minutes. Everything in this lesson is engineered for that second scenario without wasting money on the first.</p>
+
+    <div class="pitch">
+      <span class="tag">Soccer analogy</span>
+      <h4>The matchmaker's job</h4>
+      <p>Think of a transfer-window scout network. Every agent (driver) reports where they are every few minutes. When a club (rider) calls "I need a striker in Manchester," the scout doesn't phone every agent in Europe — she narrows to agents in the North West, then to the ones whose striker is available and close, then picks the best fit and quotes a fee that rises when ten clubs are bidding. Tracking, narrowing, matching, pricing. A ride-hailing platform does exactly that, ~30 times a second, for cars.</p>
+    </div>
+
+    <h3>The vocabulary, fixed now</h3>
+    <ul>
+      <li><span class="term">Geospatial query</span> — a query about positions: "find all drivers within 2 km of this point," or "how far is this driver by road?" Everything in this lesson flows through these.</li>
+      <li><span class="term">ETA</span> (estimated time of arrival) — how long until a driver reaches the rider, and later how long the trip takes. Computed from <span class="term">road-network distance</span> (driving along streets), not straight-line distance — 1 km across a river with no bridge can be 20 minutes.</li>
+      <li><span class="term">Dispatch</span> — the act of choosing a driver for a rider and sending them the trip. A <span class="term">dispatch loop</span> is the repeated, expanding search for candidates.</li>
+      <li><span class="term">Surge pricing</span> — temporarily raising prices in an area where demand outruns supply, to pull drivers toward it and ask riders "is this trip worth it right now?"</li>
+      <li><span class="term">Geohash</span> — a way of turning a (latitude, longitude) pair into a short text string whose shared prefix means "the same area." It becomes the index key that makes "nearby" fast. Fully built from zero in §3.</li>
+      <li><span class="term">Map matching</span> — snapping noisy GPS points onto actual roads. GPS says the driver is in the middle of the river; map matching knows they're on the bridge.</li>
+    </ul>
+  </section>
+
+  <section id="requirements">
+    <div class="section-head"><span class="section-num">02</span><h2>Requirements and back-of-the-envelope sizing</h2></div>
+    <p class="lede">A senior-room design starts here: what must be true, what can be slow, and how big the numbers are — before drawing a single box.</p>
+
+    <h3>Functional requirements</h3>
+    <ul>
+      <li>Riders: request a ride (pickup + destination), see nearby cars and a quoted price + ETA, track the arriving car live on a map, pay at the end.</li>
+      <li>Drivers: go online/offline, receive trip offers, navigate to pickup, run the meter, get paid.</li>
+      <li>Platform: match riders to drivers in seconds, price dynamically, keep driver locations fresh enough to be trustworthy.</li>
+    </ul>
+
+    <h3>Non-functional requirements</h3>
+    <ul>
+      <li><strong>Low latency on match:</strong> dispatch should complete in a few seconds — a rider staring at "finding your driver…" for 60 seconds is a lost rider.</li>
+      <li><strong>High availability, but not every corner is equal:</strong> ride request and dispatch must never be down; history and receipts can tolerate a blip (a CAP-flavored call you'll make explicitly, like Lesson 7).</li>
+      <li><strong>Consistency where money moves:</strong> a trip must have exactly one driver (no double-dispatch), and exactly one charge (idempotent payments).</li>
+    </ul>
+
+    <h3>Back-of-the-envelope (our metro)</h3>
+    <div class="callout">
+      <h4>The sizing assumptions — write these down first, argue with them later</h4>
+      <ul>
+        <li>Trips: <strong>1M trips/day</strong> in the metro (avg 40K/hr daytime, <strong>5× peaks</strong> around events = 200K/hr)</li>
+        <li>Drivers online at peak: <strong>120,000</strong>; average: 60,000</li>
+        <li>Location ping: every <strong>4 seconds</strong> per active driver (the industry-typical heartbeat)</li>
+        <li>Avg trip: 6 km, 18 minutes; avg fare: $14</li>
+        <li>Location data kept hot for 7 days, then cold storage</li>
+      </ul>
+    </div>
+    <ul>
+      <li><strong>Location write rate (the dominant load):</strong> 120,000 drivers ÷ 4 s = <strong>30,000 pings/sec</strong>. Each ping is ~100 bytes (driver id, lat, lng, timestamp, heading, speed) → <strong>3 MB/s</strong>, ~260 GB/day. This dwarfs trip writes — the system is really a <em>location ingestion machine with a matching service attached</em>.</li>
+      <li><strong>Trip writes:</strong> 1M/day ≈ 12/sec average, ~150/sec at matchday peak. Trivial next to the pings — the database design bends around the writes you <em>don't</em> notice.</li>
+      <li><strong>Match queries:</strong> peak 200K trip requests/hr ≈ 55/sec, each triggering an expanding ring search (§5). Cheap individually; the heat is in the location writes.</li>
+      <li><strong>Read fan-out per rider app:</strong> the map refresh pulls ~10–20 nearby car markers every few seconds per active rider app. At 300K concurrent rider apps, that's ~1M small reads/sec — which is why "nearby cars" is served from a cache (§3), never from the database.</li>
+    </ul>
+
+    <div class="green-box">
+      <p><strong>The one-line sizing verdict:</strong> the hot path is <strong>30K location writes/sec + ~1M cached nearby-car reads/sec</strong>; trips themselves are a rounding error. If your architecture optimizes for anything other than the location pipeline first, you've designed the wrong system.</p>
+    </div>
+  </section>
+  <section id="nearby">
+    <div class="section-head"><span class="section-num">03</span><h2>The heart: finding nearby drivers</h2></div>
+    <p class="lede">Every dispatch starts with one question — "who's close?" — and the naive answer collapses at city scale. This section is the algorithmic core of the lesson.</p>
+
+    <h3>Why you can't just query the database</h3>
+    <p>The naive design: a <code>drivers</code> table with <code>lat</code>, <code>lng</code>, <code>available</code>, and a query like <code>SELECT * FROM drivers WHERE distance(lat, lng, rider) &lt; 2km</code>. That query must compute the distance to <em>every</em> driver — 120,000 distance calculations per request, at 55 requests/sec during the matchday rush. It never uses an index because "distance from a moving point" isn't indexable by a B-tree (Lesson 8). The database melts.</p>
+    <p>The fix is an <span class="term">index on space itself</span>: organize drivers by <em>where they are</em> so "nearby" becomes a handful of key lookups instead of a full scan.</p>
+
+    <h3>Geohash, from zero</h3>
+    <p>A <span class="term">geohash</span> turns a (latitude, longitude) pair into a short string like <code>u4pruy</code>. The construction is what matters:</p>
+    <ol>
+      <li>Take the longitude range (−180…180) and the latitude range (−90…90). Repeatedly halve each range; at each halving, write 1 if the point is in the upper half, 0 if lower.</li>
+      <li>Interleave the longitude bits and latitude bits into one bit string: <code>1101001110…</code></li>
+      <li>Group into 5-bit chunks and encode each with base32 (<code>0–9, b–z</code> minus <code>a, i, l, o</code> to avoid confusion with digits). Six chunks → a 6-character geohash.</li>
+    </ol>
+    <p>The magic property: <strong>each extra character zooms one level in, and points that share a prefix are in the same area</strong>. It's a spatial index you can store in any key-value store — drivers keyed by geohash, and "drivers near me" = "look up the handful of geohash keys around me." Stadium-seating analogy: the geohash is the stand/row/seat code — everyone whose ticket starts with <code>U4PRUY</code> is in the same section of the ground, so finding nearby fans is a prefix lookup, not a search of the whole stadium.</p>
+
+    <div class="callout">
+      <h4>Geohash precision table — the one to memorize</h4>
+      <table class="cmp">
+        <tr><th>Chars</th><th>Cell size (at equator, roughly)</th><th>Use it for</th></tr>
+        <tr><td>4</td><td>~39 km × 20 km</td><td>Too coarse for dispatch; fine for analytics regions</td></tr>
+        <tr><td><strong>5</strong></td><td><strong>~4.9 km × 4.9 km</strong></td><td><strong>City-zone dispatch: a 5-char cell holds dozens of drivers</strong></td></tr>
+        <tr><td>6</td><td>~1.2 km × 0.6 km</td><td>Pickup-point precision, dense downtowns</td></tr>
+        <tr><td>7</td><td>~150 m × 150 m</td><td>Curbside: which side of the street the car is on</td></tr>
+      </table>
+      <p>Cell size shrinks toward the poles (meridians converge) — longitude degrees get shorter. Never quote a cell size without the latitude caveat; it comes up in senior rooms.</p>
+    </div>
+
+    <h3>The boundary trap every candidate should name</h3>
+    <p>Two points 10 meters apart can have <em>completely different</em> geohash prefixes if they sit on opposite sides of a cell boundary — like fans in adjacent rows whose seat codes start with different stand letters. The fix is mechanical: when searching, query the rider's own cell <strong>plus its 8 neighbors</strong> (a 3×3 block). A 9-cell lookup instead of 1 is the cost of the geohash's simplicity — and it motivates the ring expansion below.</p>
+
+    <h3>Dispatch via expanding ring search</h3>
+    <p>The standard dispatch algorithm doesn't search one fixed radius. It searches in <span class="term">expanding rings</span>:</p>
+    <ol>
+      <li>Ring 0: the rider's own geohash-5 cell (~25 km²).</li>
+      <li>No available drivers? Ring 1: the 8 surrounding cells (9 cells total).</li>
+      <li>Still none? Ring 2: the next layer (25 cells), and so on — up to a max radius (say 15 km or 4 rings), each step wider and each candidate's ETA checked before offering.</li>
+    </ol>
+    <p>Why rings instead of one big radius? Because <strong>density varies</strong>: downtown, ring 0 holds 40 drivers and you're done in one lookup; at 2 AM in the suburbs, ring 0 holds zero and you widen automatically. One radius either misses drivers or scans half the city. The ring adapts to the map.</p>
+    <p>The math that makes this cheap: 120,000 drivers spread over a 3,000 km² metro ≈ 40 drivers/km². A 25 km² cell holds ~1,000 drivers (in practice drivers cluster on roads and hotspots, so expect skew — but even 10× skew leaves hundreds per cell). Ring 0 + 8 neighbors = 9 lookups for ~9,000 candidate records. Compared to scanning all 120,000 drivers per request, that's a <strong>10,000× reduction in work</strong>. That's the whole reason this section exists.</p>
+
+    <h3>Quadtree and H3 — the two upgrades to name</h3>
+    <div class="callout">
+      <h4>Where the alternatives fit</h4>
+      <table class="cmp">
+        <tr><th>Index</th><th>Idea</th><th>Strength</th><th>Weakness</th></tr>
+        <tr><td><strong>Geohash</strong></td><td>One string prefix per cell; uniform grid</td><td>Trivial to store in Redis/any KV; prefix = containment</td><td>Boundary discontinuity (needs 9-cell search); rectangles distort near poles</td></tr>
+        <tr><td><strong>Quadtree</strong></td><td>Recursively split squares only where data is dense — a tree, not a flat grid</td><td>Adapts resolution to density: dense downtown gets fine cells, empty suburbs stay coarse</td><td>Variable-depth tree is harder to shard and replicate; splits/merges cost writes</td></tr>
+        <tr><td><strong>H3 (Uber's)</strong></td><td>Hexagonal grid at fixed resolutions; neighbor distance is uniform in all 6 directions</td><td>No corner-neighbor weirdness of rectangles; Uber uses it for surge zones and visualization</td><td>Not a prefix hierarchy — you need an explicit parent/child index to zoom levels</td></tr>
+      </table>
+      <p>In the room, the safe answer: <strong>geohash (or H3) cells as Redis keys for the live driver index; quadtree as the thing you'd reach for if density skew were the stated problem</strong>. Uber historically used quadtrees for dispatch storage and H3 for pricing/visualization — naming that split scores senior points.</p>
+    </div>
+
+    <h3>What the live index actually looks like</h3>
+    <pre>Key:   geohash:u4pruy:available      (Redis SET)
+Value: driver_id:88412, driver_id:88431, …   (only ONLINE + EMPTY drivers)
+
+On driver ping:  SREM geohash:&lt;old_cell&gt;:available &lt;id&gt;
+                 SADD geohash:&lt;new_cell&gt;:available &lt;id&gt;
+                 SET  driver:88412:loc  "53.55,-113.49,ts,heading,speed"  EX 30
+
+On rider request: members = SUNION geohash:&lt;cell&gt;:available,
+                               geohash:&lt;8 neighbors&gt;:available
+                 → fetch each candidate's loc → filter by road-ETA → pick</pre>
+    <p>Notes: a driver's full location is a separate short-TTL key (so a vanished phone stops being dispatched within ~30 s); the SET of "available drivers per cell" is rebuilt purely from the ping stream — <strong>the index is a materialized view of the pings</strong>, not a second source of truth. Stale reads mean a dispatched driver moved one cell over — acceptable, because the offer round-trip (§5) re-verifies before committing.</p>
+  </section>
+
+  <section id="ingest">
+    <div class="section-head"><span class="section-num">04</span><h2>Ingesting 30,000 location pings a second</h2></div>
+    <p class="lede">The matching algorithm is elegant; the location pipeline is what decides whether the map lies to the rider.</p>
+
+    <h3>Why not HTTP polling</h3>
+    <p>Each driver's phone holds a long-lived connection to a <span class="term">connection server</span> — the same WebSocket fleet pattern from the chat-system lesson, sized at 500K–1M sockets per box. Every 4 seconds the phone pushes <code>{lat, lng, heading, speed, ts}</code> up the socket. The connection server doesn't touch a database: it fires the ping into a partitioned message stream (Kafka-style topic, partitioned by driver id) and returns. Ingest is a <strong>fire-and-forget pipeline</strong>: connection → stream → stream processor → Redis index.</p>
+    <p>Why the stream in the middle, instead of writing Redis directly from the connection server? Two reasons: <strong>burst absorption</strong> (the final whistle is a 5× write spike; the stream's buffer is the shock absorber — backpressure from the queues lesson) and <strong>fan-out</strong> (the same ping feeds the dispatch index, the rider-facing map, fraud detection, and the analytics warehouse — pub/sub semantics from Lesson 12).</p>
+
+    <h3>The stream processor's real job: cleaning GPS</h3>
+    <p>Raw GPS is a liar in cities. Between towers the points jitter ±20 m; in a tunnel there are none for 90 seconds. The processor applies three corrections before the point hits the index:</p>
+    <ul>
+      <li><strong>Map matching</strong> — snap the point to the road network (hidden-Markov-model matchers weigh "near a road" against "consistent with the last snapped position"). Without it, a car on the ring road shows up in the river and dispatch computes river-crossing ETAs.</li>
+      <li><strong>Staleness policy</strong> — a ping older than ~30 s is <em>removed</em> from the available set, not kept. A parked car in a tunnel that hasn't pinged in 2 minutes is not "available 200 m away" — it's a ghost. The index TTL enforces this mechanically.</li>
+      <li><strong>Outlier rejection</strong> — a point implying 400 km/h (GPS jump) is dropped; trust the previous heading and speed instead.</li>
+    </ul>
+
+    <h3>How the rider's map stays live</h3>
+    <p>The rider's app doesn't poll the database for nearby cars. It subscribes (websocket) to a <strong>per-cell update channel</strong>: "give me the available-driver set for my geohash-5 cell every 2 seconds." The publisher is a small service that diffs the Redis set per cell and pushes deltas. Fan-out math: 300K rider apps × one cell subscription each = 300K lightweight subscriptions, and the publisher only recomputes cells whose driver set actually changed between ticks. This is the Twitter-feed fan-out problem in miniature — push wins because the <em>updates</em> are sparse relative to the subscribers.</p>
+
+    <div class="warn-box">
+      <p><strong>The tunnel problem (name it before the interviewer does):</strong> GPS doesn't work underground, and riverside metros are full of tunnels and parkades. The system must treat "no data" as a first-class state — ghost-bust with TTLs, never interpolate a position <em>into</em> the dispatch index, and show the rider "updating…" rather than a confident lie. Every location system has a tunnel chapter; yours should too.</p>
+    </div>
+  </section>
+  <section id="dispatch">
+    <div class="section-head"><span class="section-num">05</span><h2>Dispatch: turning candidates into a driver</h2></div>
+    <p class="lede">Finding nearby drivers is a lookup; <em>choosing</em> one is a decision. Dispatch is the decision engine, and it must never assign one trip to two drivers.</p>
+
+    <h3>The six-step dispatch</h3>
+    <ol>
+      <li><strong>Candidate pull.</strong> Expanding ring search (§3) returns driver ids, each with a fresh (≤30 s) location.</li>
+      <li><strong>ETA scoring.</strong> For each candidate, estimate pickup ETA from <em>road-network</em> distance. Calling the routing engine per candidate is too slow at rush scale, so the standard trick is a cached <strong>zone-to-zone travel-time matrix</strong>: precompute drive times between geohash-6 cell pairs nightly/continuously, and look up <code>matrix[pickup_cell][driver_cell]</code> in microseconds. Fall back to live routing only for the top 3 candidates.</li>
+      <li><strong>Filter.</strong> Drop drivers who accepted another offer seconds ago, who are below the rating floor, or whose vehicle class doesn't match the request (UberX vs XL).</li>
+      <li><strong>Rank.</strong> Score = α·ETA + β·(driver idle time) − γ·(detour if driver is en route to nothing)… In practice a small weighted formula plus business rules. The one-line version: <strong>minimize pickup ETA subject to fairness (don't starve any driver) and the vehicle-class constraint</strong>.</li>
+      <li><strong>Offer.</strong> Send the top driver a trip offer with a <strong>15-second accept window</strong>. While the offer is open, that driver is <em>soft-reserved</em>: invisible to other dispatches but still shown as available on rider maps (maps show approximate cars, not commitments).</li>
+      <li><strong>Commit or cascade.</strong> Accept → trip commits, other candidates release. Decline/timeout → release the soft reservation and offer the next-ranked driver (the <span class="term">cascade</span>). After 3–4 failed offers, widen the ring and try again — or tell the rider "no cars, try soon."</li>
+    </ol>
+
+    <h3>Exactly one driver per trip: the concurrency story</h3>
+    <p>Two riders 50 m apart can both pull the same driver from the index in the same second. The soft-reservation must be atomic: a Lua script on Redis does <code>if available: move driver → offered(driver, trip, expiry=15s)</code> as one indivisible step — the exact SET NX PX + Lua pattern from the distributed-locks lesson. The offer key expires on its own, so a crashed dispatcher can never strand a driver in limbo. <strong>Exactly-once assignment = atomic soft-reserve + TTL + idempotent commit</strong> (the trip row is created once, with the rider's idempotency key from §7).</p>
+
+    <div class="callout">
+      <h4>Upfront pricing: quote before you dispatch</h4>
+      <p>Riders see a price <em>before</em> a driver is assigned. The quote = base fare + per-km × route distance + per-min × route duration, multiplied by the current surge factor for the pickup cell (§6). The route comes from the routing engine's cached cell-pair distance — the same matrix as ETA scoring. Quotes are <strong>honored even if traffic worsens</strong> (the platform eats the difference; that's a business decision, not an engineering one), which is why the quote is computed once and stored on the trip row.</p>
+    </div>
+  </section>
+
+  <section id="surge">
+    <div class="section-head"><span class="section-num">06</span><h2>Surge pricing: when demand eats supply</h2></div>
+    <p class="lede">Full time at the stadium: 25,000 fans, 400 nearby drivers. No price signal and the outcome is a lottery — random lucky fans get cars, drivers have no reason to drive <em>toward</em> the stadium. Surge is the feedback loop that balances the market.</p>
+
+    <div class="definition">
+      <strong class="term">Definition</strong>
+      <p><span class="term">Surge pricing</span> multiplies fares in a small area (a geohash/H3 cell cluster) when rider demand exceeds driver supply there. It does two things at once: <strong>rations demand</strong> ("is this trip worth 2.4×? some fans will wait or walk to the tram") and <strong>attracts supply</strong> (drivers see the heat map and head toward the stadium). The price is a control signal, not a punishment.</p>
+    </div>
+
+    <h3>The formula, honestly</h3>
+    <p>Per surge cell, every minute the pricing service computes:</p>
+    <pre>demand  = rider requests in the last 5 min  (requests/min, smoothed)
+supply  = online empty drivers in the cell  (drivers)
+ratio   = demand / max(supply, 1)
+surge   = clamp(ratio, 1.0, MAX)   with MAX ~ 3.0–5.0 depending on market</pre>
+    <p>Three production details separate the textbook from the real thing:</p>
+    <ul>
+      <li><strong>Discrete tiers, not a continuum.</strong> Multipliers move in steps (1.2×, 1.5×, 1.8×…) — continuous multipliers confuse riders ("why is mine 2.37× and hers 2.41×?") and make the heat map unreadable.</li>
+      <li><strong>Hysteresis.</strong> The multiplier doesn't fall the instant one driver arrives; it must stay below the threshold for a few minutes. Without this the price flaps 1.5× → 1.0× → 1.5× and riders game the refresh button — the same anti-flapping instinct as autoscaling cooldowns (Lesson 2).</li>
+      <li><strong>Geographic smoothing.</strong> A 4.9× cell next to a 1.0× cell creates a cliff: drivers park just outside the zone and riders walk 200 m to the cheap side. Surge zones are blurred across neighbors so the gradient is drivable.</li>
+    </ul>
+
+    <div class="pitch">
+      <span class="tag">Soccer analogy</span>
+      <h4>Dynamic ticket pricing for the derby</h4>
+      <p>A derby sells out in an hour at face value while a midweek cup tie has empty seats. Stadiums learned this decades ago: price the derby higher (rationing — only fans who value it most buy) and use the revenue signal to open more turnstiles and add trains (supply). Surge pricing is dynamic ticket pricing running every minute, per neighborhood, except the "seats" (drivers) can physically move toward the high price.</p>
+    </div>
+
+    <h3>Where surge lives in the architecture</h3>
+    <p>A pricing service consumes the demand/supply streams and writes <code>surge:{cell} = 1.5</code> into a low-latency store every minute. The quote path (§5) reads it as one key lookup; the driver app reads it to paint the heat map. If the pricing service dies, quotes <strong>fail closed to 1.0×</strong> (no surge) — degraded revenue is better than absurd 5× quotes from stale data. Never let a stale surge multiplier charge a rider: every multiplier carries a timestamp, and quotes reject anything older than ~5 minutes.</p>
+  </section>
+
+  <section id="data">
+    <div class="section-head"><span class="section-num">07</span><h2>Trip lifecycle and data model</h2></div>
+    <p class="lede">Locations are ephemeral; money is forever. The trip record is where ephemerality ends.</p>
+
+    <h3>The state machine</h3>
+    <pre>Rider taps "request"
+  → REQUESTED   (trip row created, idempotency key = client_req_id)
+  → MATCHED     (driver accepted the offer; soft-reserve becomes a commitment)
+  → ARRIVING    (driver en route to pickup; live tracking on the rider's map)
+  → IN_TRIP     (driver confirmed pickup — meter running)
+  → COMPLETED   (drop-off confirmed; fare finalized; payment charged)
+  → CANCELLED   (from REQUESTED/MATCHED/ARRIVING; cancellation fee rules apply)</pre>
+    <p>Guardrails: only one transition is legal at a time (a row-level state column + <code>UPDATE … WHERE state = 'MATCHED'</code> — the conditional-update idempotency pattern from the queues lesson), and <strong>payment is charged exactly once</strong>, after COMPLETED, through an idempotent charge keyed by trip id.</p>
+
+    <h3>Sharding the trip table</h3>
+    <p>1M trips/day × 365 × 5 years ≈ 1.8B rows — this table must be sharded (Lesson: database sharding). The natural shard key is <code>trip_id</code> (random UUID): trip lookups are point queries ("show me trip X"), and no hot-shard risk since ids are uniform. Rider history and driver history are secondary queries served by <strong>indexes on (rider_id, created_at)</strong> — which means cross-shard fan-out for "my last 20 trips" (scatter-gather, acceptable at that rate) or a separate history store. <strong>Do not shard by geohash:</strong> the stadium at full time would be a thermonuclear hot shard.</p>
+
+    <h3>What stays out of the hot path</h3>
+    <ul>
+      <li><strong>Payments</strong> — charged asynchronously after completion via a queue (money movement tolerates seconds of delay; the queues lesson's persist-before-route applies).</li>
+      <li><strong>Receipts, ratings, analytics</strong> — all downstream consumers of a <code>trip.completed</code> event on the stream. The trip service publishes once; pub/sub fans it out (Lesson 12).</li>
+      <li><strong>Driver location history</strong> — written to cheap object storage in batches for dispute resolution ("the driver never came to my pin"), never to the trip database.</li>
+    </ul>
+  </section>
+
+  <section id="hard">
+    <div class="section-head"><span class="section-num">08</span><h2>The hard parts: full-time surges, tunnels, cancellations</h2></div>
+    <p class="lede">The design above works on a Tuesday. Here's what breaks on matchday — and the specific defense for each.</p>
+
+    <h3>1. The full-time flash crowd</h3>
+    <p>25,000 ride requests in 10 minutes: the ring search is fine (it's just lookups), but the <em>offer cascade</em> isn't — 400 drivers getting pinged, declining, re-offered, in a thundering herd. Defenses: <strong>staged rollout of the map</strong> (riders see "high demand" and a queue position instead of hammering request), <strong>batch matching windows</strong> (collect requests for 10 seconds, match the batch optimally instead of first-come-first-served — this is how the cascade cost collapses), and surge doing its rationing job (§6). This is backpressure with a user-facing face.</p>
+
+    <h3>2. Driver vanishes mid-trip (tunnel, dead battery, app killed)</h3>
+    <p>The TTL ghost-bust (§4) removes them from dispatch, but a trip already IN_TRIP with a silent driver is worse. Defense: the trip service watches the heartbeat stream per active trip — <strong>no ping for 60 s on an active trip → mark trip DEGRADED</strong>, ping the rider ("your driver's signal dropped — still on the way?"), and if silence persists, offer re-dispatch without double-charging. Exactly-once billing (the idempotent charge key) is what makes re-dispatch safe.</p>
+
+    <h3>3. The cancellation race</h3>
+    <p>Rider cancels at the same instant the driver accepts. Both events hit the trip service; the state machine (§7) admits only one: whichever transition commits first wins, the other gets "trip already CANCELLED / already MATCHED" and the UI reflects the truth. Cancellation <em>fees</em> are computed from the state at cancel time (cancel during ARRIVING after 5 min → fee; cancel during REQUESTED → free) — the fee rule reads the state machine, not wall-clock arguments.</p>
+
+    <h3>4. Phantom availability on the map</h3>
+    <p>Riders see 8 cars on the map but get "no drivers." Cause: the map shows <em>approximate</em> cars (jittered positions, sampled set — showing exact driver locations is a privacy and gaming problem), while dispatch needs <em>committable</em> cars. Defense: the map is explicitly a vibe ("cars around you"), the quote screen carries the honest signal, and soft-reserved drivers are excluded from the map count the moment they're offered elsewhere. Never let the map promise what dispatch can't deliver.</p>
+
+    <h3>5. Fraud: the fake-GPS driver</h3>
+    <p>A driver spoofs GPS to sit "at" the stadium collecting surge fares without driving. Defenses, layered: outlier rejection on impossible speeds (§4), cross-checking pinged position against the <em>rider's</em> phone GPS at pickup ("both phones must agree they're together"), and trip-path plausibility (the driven polyline must roughly match the road route). Fraud is a data-consistency problem wearing a trench coat — and the rider's phone is your second source of truth.</p>
+
+    <div class="green-box">
+      <p><strong>Senior-room summary of §8:</strong> every hard part is a <em>consistency or staleness</em> problem in disguise — ghost drivers (stale index), cancel races (concurrent state), phantom maps (approximate reads), fake GPS (untrusted writers). The architecture's answer is always the same shape: TTLs, atomic transitions, idempotency keys, and a second source of truth.</p>
+    </div>
+  </section>
+  <section id="lab">
+    <div class="section-head"><span class="section-num">09</span><h2>Interactive labs: dispatch ring search + surge simulator</h2></div>
+    <p class="lede">Two simulators. The first shows <em>why</em> ring expansion beats a fixed radius; the second shows what full time does to prices. Everything below runs in this page — no setup.</p>
+
+    <div class="lab">
+      <h3>Lab A — The dispatch ring search</h3>
+      <p class="howto">A 15×15 grid of geohash-5 cells (~25 km² each). You're the rider at the <strong>★</strong> in the center. Dots are available drivers, scattered by the density slider. Press <strong>Run dispatch</strong>: the search expands ring by ring (ring 0 = your cell, ring 1 = +8 neighbors, …) and stops when it has <strong>≥ 5 candidate drivers</strong> or hits the max radius. Compare a quiet Tuesday with full time at the stadium.</p>
+      <div class="slider-row">
+        <label for="density">Driver density (drivers per km²)</label>
+        <input type="range" id="density" min="1" max="120" value="40" step="1">
+        <output id="densityOut">40 /km²</output>
+      </div>
+      <div class="slider-row">
+        <label for="scenario">Scenario preset</label>
+        <select id="scenario">
+          <option value="40">Quiet Tuesday — 40/km²</option>
+          <option value="8">Late night suburbs — 8/km²</option>
+          <option value="100">Full time at the stadium — 100/km²</option>
+        </select>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="runDispatch">Run dispatch</button>
+        <button class="btn" id="reshuffle">Reshuffle drivers</button>
+      </div>
+      <canvas id="ringCanvas" width="640" height="640" style="width:100%;max-width:560px;border:1px solid var(--line);border-radius:12px;background:var(--paper);display:block;margin:0 auto;"></canvas>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Rings searched</div><div class="score" id="statRings">–</div></div>
+        <div class="stat"><div class="node-name">Cells scanned</div><div class="score" id="statCells">–</div></div>
+        <div class="stat"><div class="node-name">Drivers found</div><div class="score" id="statDrivers">–</div></div>
+        <div class="stat"><div class="node-name">vs full scan</div><div class="score" id="statSpeedup">–</div><span class="badge ok" id="statBadge">–</span></div>
+      </div>
+      <div class="log" id="ringLog"><div><span class="t">[dispatch]</span> Set a density and press <em>Run dispatch</em>.</div></div>
+    </div>
+
+    <div class="lab">
+      <h3>Lab B — Surge pricing at full time</h3>
+      <p class="howto">One surge cell around the stadium. Drag <strong>demand</strong> (ride requests/min in the last 5 min) and <strong>supply</strong> (online empty drivers in the cell). The multiplier moves in <strong>discrete tiers</strong> with hysteresis — watch how sticky it is on the way down.</p>
+      <div class="slider-row">
+        <label for="demand">Demand (requests/min)</label>
+        <input type="range" id="demand" min="2" max="300" value="40" step="2">
+        <output id="demandOut">40</output>
+      </div>
+      <div class="slider-row">
+        <label for="supply">Supply (available drivers)</label>
+        <input type="range" id="supply" min="1" max="200" value="60" step="1">
+        <output id="supplyOut">60</output>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Demand ÷ supply</div><div class="score" id="statRatio">–</div></div>
+        <div class="stat"><div class="node-name">Surge multiplier</div><div class="score" id="statSurge">1.0×</div></div>
+        <div class="stat"><div class="node-name">Rider pays (base $14)</div><div class="score" id="statFare">$14.00</div></div>
+        <div class="stat"><div class="node-name">Driver earns (75%)</div><div class="score" id="statDriver">$10.50</div></div>
+      </div>
+      <p style="color:var(--muted);font-size:.92rem;max-width:none;">Try it: push demand to 300 with 40 drivers (the final whistle) — then drag supply up slowly and watch the multiplier refuse to drop immediately. That's hysteresis doing its anti-flap job from §6.</p>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">10</span><h2>Q&amp;A with full model answers</h2></div>
+    <p class="lede">Four questions this design reliably produces in senior rooms — each with the complete answer you'd give, not a hint.</p>
+
+    <div class="qa">
+      <div class="question">
+        <div class="qnum">Q1 · Core</div>
+        <div class="qtext">Why can't you just store driver locations in Postgres and query "drivers within 2 km"?</div>
+        <div class="context">They're testing whether you feel the write/read shape before reaching for tools.</div>
+        <div class="answer">
+          <p>Three reasons, in order of importance:</p>
+          <ol>
+            <li><strong>The query isn't indexable.</strong> "Distance from a moving point" is a function of two columns evaluated per row — a B-tree on <code>(lat, lng)</code> can't prune it, so every request scans every driver: 120K distance computations per request, 55 requests/sec at peak. PostGIS (R-tree/GiST) fixes the <em>read</em> shape, but…</li>
+            <li><strong>The write rate kills it.</strong> 30K location updates/sec is an OLTP write load that buries a relational row store in WAL, index maintenance, and lock contention. Locations are ephemeral — last write wins, no transactions, no joins. That's a key-value workload (Redis), not a relational one.</li>
+            <li><strong>The read pattern is "nearby set," not "row by id."</strong> We need "all members of these 9 cells" thousands of times a second — a <code>SUNION</code> over Redis sets keyed by geohash, each an O(1)-ish key lookup. The database still exists in this architecture — it owns <em>trips</em> (durable, relational, exactly-once money), just not <em>positions</em>.</li>
+          </ol>
+          <p>The one-liner: <strong>positions are an ephemeral spatial stream — index them in memory by cell; trips are durable relational facts — store those in the database.</strong></p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2 · Core</div>
+        <div class="qtext">Walk me through what happens, end to end, when a rider taps "request" at full time.</div>
+        <div class="context">The classic "follow the request" question — they're grading the sequence, not the boxes.</div>
+        <div class="answer">
+          <ol>
+            <li>The app sends <code>POST /trips</code> with pickup, destination, and a <strong>client-generated idempotency key</strong> (double-tap protection).</li>
+            <li>The trip service creates the trip row in state <code>REQUESTED</code>, computes the upfront quote (route distance from the cached zone matrix × base rates × current surge for the pickup cell), and returns the quote.</li>
+            <li>Dispatch runs the <strong>expanding ring search</strong> over the Redis geohash index: ring 0, then +8 neighbors, widening until ≥5 candidates or max radius.</li>
+            <li>Candidates are scored by road-network ETA (cached cell-pair matrix, live routing only for the top 3), filtered by vehicle class and rating, and ranked.</li>
+            <li>The top driver gets a 15-second offer; a Lua script <strong>atomically soft-reserves</strong> them (invisible to other dispatches, TTL'd at 15 s so a crash can't strand them).</li>
+            <li>Accept → trip commits to <code>MATCHED</code> (conditional update on expected state — concurrent cancel loses cleanly); the rider's map subscribes to the driver's live pings. Decline/timeout → cascade to the next candidate.</li>
+            <li>Driver arrives (<code>ARRIVING</code>), confirms pickup (<code>IN_TRIP</code>, meter runs on the ping stream), drop-off (<code>COMPLETED</code>) → an idempotent charge fires once, and a <code>trip.completed</code> event fans out to receipts, ratings, and analytics.</li>
+          </ol>
+          <p>Close with the failure you handle: <em>"If the rider's phone retries the POST, the idempotency key returns the existing trip instead of creating a second one — no double dispatch, no double charge."</em></p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3 · Senior depth</div>
+        <div class="qtext">Two riders request at the same time and your index returns the same driver for both. How do you guarantee exactly one assignment?</div>
+        <div class="context">They want the concurrency mechanism named, not hand-waved.</div>
+        <div class="answer">
+          <p>The guarantee comes from making the <strong>reservation atomic and expiring</strong>, in three layers:</p>
+          <ol>
+            <li><strong>Atomic soft-reserve via Lua:</strong> moving a driver from <code>geohash:{cell}:available</code> to <code>offer:{driver_id}</code> happens in one Redis Lua script — check-and-set, indivisible. Two dispatchers racing both run the script; exactly one sees "still available" and wins. This is the SET NX PX + Lua compare pattern from distributed locks, applied to drivers instead of critical sections.</li>
+            <li><strong>TTL on the offer (15 s):</strong> if the dispatcher crashes mid-offer, the key expires and the driver silently returns to the available set. No stuck drivers, no manual cleanup, no lease-renewal protocol needed for a 15-second window.</li>
+            <li><strong>Idempotent commit:</strong> the winning dispatch commits with <code>UPDATE trips SET state='MATCHED' WHERE id=? AND state='REQUESTED'</code>. Even if two commits somehow raced, the conditional update admits exactly one; the loser's trip row stays <code>REQUESTED</code> and cascades to its next candidate.</li>
+          </ol>
+          <p>The trap to dodge: <em>don't</em> lock the driver row in the database for the offer window — a 15-second DB lock at 55 dispatches/sec is a contention cliff. The lock lives in Redis (ephemeral, TTL'd); the database only sees the final commit.</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4 · Senior depth</div>
+        <div class="qtext">It's full time, 25,000 fans request at once, and you have 400 drivers nearby. Your system doesn't melt — how?</div>
+        <div class="context">The "what breaks at 100×" question. They want the specific defenses, in priority order.</div>
+        <div class="answer">
+          <ol>
+            <li><strong>Surge rations first.</strong> The pricing loop sees demand/supply explode and raises the multiplier within a minute — a large fraction of fans decide to wait, walk, or take the tram. The cheapest scaling is demand you never have to serve.</li>
+            <li><strong>Batch the matching window.</strong> Instead of dispatching each request the instant it arrives (first-come-first-served cascade storms), collect requests for ~10 seconds and match the batch — one optimization pass instead of 5,000 racing offer cascades.</li>
+            <li><strong>The location pipeline is already decoupled.</strong> 30K pings/sec spike to ~50K; the Kafka-style stream buffers it (backpressure by design) while the Redis index keeps serving reads. Writes and reads scale independently because a stream sits between them.</li>
+            <li><strong>Degrade the map honestly.</strong> Rider apps get "high demand — you're #N in the queue" instead of a spinning "finding driver." The queue position is a cheap counter; the alternative is 25,000 phones retrying and DDoS-ing your own dispatch.</li>
+            <li><strong>Fail closed on pricing.</strong> If the surge service lags, quotes fall back to 1.0× with fresh timestamps — a lost margin beats a viral screenshot of a 9× fare from stale data.</li>
+          </ol>
+          <p>The framing line: <em>"I don't scale the match — I shrink the problem: price rations demand, batching collapses the cascade, the stream absorbs the write spike, and the UI tells the truth."</em></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">11</span><h2>Practice drills (untimed)</h2></div>
+    <p class="lede">Three drills. Work them on paper or in your head, then check the rubric — the rubric is the lesson.</p>
+
+    <div class="question">
+      <div class="qnum">Drill 1</div>
+      <div class="qtext">Size the ping pipeline for a 5× matchday spike.</div>
+      <div class="context">Given: 120K drivers online, 4-second ping interval, 100 bytes per ping. The spike: driver count holds, but every rider app also starts polling the nearby-cars endpoint every 2 s (300K apps). Compute (a) ping writes/sec and MB/s, (b) nearby-car reads/sec, (c) where the first bottleneck appears and your one fix.</div>
+      <details class="reveal"><summary>Rubric — what a good answer contains</summary><div class="body">
+        <ul>
+          <li>(a) 120,000 ÷ 4 = <strong>30,000 writes/sec</strong>; × 100 B = <strong>3 MB/s</strong> (~260 GB/day).</li>
+          <li>(b) 300,000 apps ÷ 2 s = <strong>150,000 reads/sec</strong> on the nearby-cars path.</li>
+          <li>(c) The reads are the bottleneck if they hit the database — 150K QPS of spatial queries melts Postgres. The fix: <strong>serve nearby-cars from the Redis cell sets</strong> (SUNION of 9 keys, sub-millisecond), with the rider app subscribing to per-cell deltas instead of polling. The ping writes are already absorbed by the stream buffer — name that explicitly.</li>
+          <li>Senior bonus: note the <em>asymmetry</em> — reads outnumber writes 5:1 here, which is why the index (not the ingest) gets the caching budget.</li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Drill 2</div>
+      <div class="qtext">Design the geohash boundary fix.</div>
+      <div class="context">A rider stands 10 m from a cell boundary; the nearest driver is 15 m away but across the boundary in the neighboring cell. Your ring-0 lookup (rider's own cell only) misses them. Explain the failure precisely and give the minimal fix, with its cost.</div>
+      <details class="reveal"><summary>Rubric — what a good answer contains</summary><div class="body">
+        <ul>
+          <li>The failure: geohash prefixes are discontinuous at boundaries — adjacent points can share <em>no</em> prefix, so a single-cell prefix lookup is blind across the edge. (Stadium analogy: the fan is in row A, the driver in row B — different stand codes, same wall.)</li>
+          <li>The fix: <strong>query the rider's cell + its 8 neighbors</strong> (3×3 block) at every ring step; ring expansion then proceeds outward from that block.</li>
+          <li>The cost: 9 key lookups instead of 1 per ring — constant factor, negligible against the 10,000× win over a full scan. Name that it's a <em>constant</em> cost, not a scaling one.</li>
+          <li>Senior bonus: mention H3 as the alternative that makes all 6 neighbors equidistant (no corner-neighbor special case), and why you'd still start with geohash (simpler to operate, prefix containment is free).</li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Drill 3</div>
+      <div class="qtext">Write the surge hysteresis rule.</div>
+      <div class="context">Without hysteresis, the multiplier flaps 1.5× → 1.0× → 1.5× as single drivers enter and leave the cell, and riders learn to game the refresh button. Specify the exact rule you'd implement (thresholds, timers), and argue why each part exists.</div>
+      <details class="reveal"><summary>Rubric — what a good answer contains</summary><div class="body">
+        <ul>
+          <li><strong>Step up fast, step down slow:</strong> raise the tier the moment the smoothed ratio crosses the upward threshold (supply must arrive <em>now</em>); lower it only after the ratio stays below the downward threshold for <strong>N consecutive minutes</strong> (e.g., 3–5).</li>
+          <li><strong>Gap between thresholds:</strong> upward trigger at ratio ≥ 1.5, downward only at ratio ≤ 1.2 — the dead band absorbs single-driver noise without a timer alone.</li>
+          <li><strong>Discrete tiers</strong> (1.0 / 1.2 / 1.5 / 1.8 / 2.2 …): no continuous multipliers, so small ratio wiggles never change the price riders see.</li>
+          <li>Why: flapping destroys trust (riders feel cheated) and creates perverse incentives (drivers hover at zone edges waiting for the re-surge). The rule trades a few minutes of slight overpricing for a stable, legible market.</li>
+          <li>Senior bonus: geographic smoothing — blur the multiplier across neighboring cells so drivers can't arbitrage a 200-meter cliff.</li>
+        </ul>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">12</span><h2>Cheat sheet &amp; 60-second framing</h2></div>
+    <p class="lede">If the lesson evaporates under pressure, keep this page.</p>
+
+    <div class="cheatsheet">
+      <h3>The six decisions</h3>
+      <ol>
+        <li><strong>Index space, not rows:</strong> geohash-5 cells as Redis set keys; "nearby" = SUNION of the cell + 8 neighbors. ~10,000× cheaper than scanning drivers.</li>
+        <li><strong>Ingest via stream, not direct writes:</strong> phone → websocket → partitioned stream → processor → Redis. The stream absorbs the full-time spike and fans out to map, dispatch, fraud, warehouse.</li>
+        <li><strong>Clean GPS before indexing:</strong> map-match to roads, TTL ghosts at ~30 s, reject impossible speeds. Never interpolate into the dispatch index.</li>
+        <li><strong>Dispatch = rings + atomic reserve:</strong> expanding ring search, ETA scoring from a cached zone matrix, Lua-script soft-reserve with 15 s TTL, cascade on decline.</li>
+        <li><strong>Surge = rationing + attraction:</strong> per-cell demand/supply ratio, discrete tiers, hysteresis (down slow), geographic smoothing, fail closed to 1.0×.</li>
+        <li><strong>Trips are relational, money is idempotent:</strong> shard trips by trip_id (never by geohash — hot shard at the stadium), state machine with conditional updates, exactly-once charge keyed by trip id.</li>
+      </ol>
+    </div>
+
+    <div class="framing">
+      <p><strong>The 60-second framing (say this first, then take questions):</strong></p>
+      <p>"A ride-hailing platform is a location-ingestion machine with a matching service attached: 120K drivers pinging every 4 seconds is 30K writes a second, and that dominates the design. I'd index drivers by geohash cell in Redis so 'nearby' is nine key lookups, not a 120K-row scan. Dispatch expands rings outward, scores by road-network ETA from a cached zone matrix, and soft-reserves the winner with an atomic Lua script and a 15-second TTL — exactly one driver per trip, no stuck reservations. Surge is a per-cell demand-over-supply ratio in discrete tiers with hysteresis, fail-closed to 1×. Trips themselves are boring relational rows sharded by trip id, with a state machine and idempotent charges — because the money path is where 'exactly once' actually matters. For the full-time flash crowd, I'd rather shrink the problem than scale the match: surge rations demand, batch the matching window, and tell riders their queue position honestly."</p>
+    </div>
+
+    <div class="green-box">
+      <p><strong>Bug bar check — would you reach for Google after this lesson?</strong> If "geohash" still feels like magic, re-read §3's three-step construction (halve, interleave, base32) — the prefix property falls out of the halving. If "why rings" is fuzzy, run Lab A at 8/km² vs 100/km² and watch ring 0 suffice in one world and starve in the other. If surge hysteresis feels arbitrary, drag Lab B's supply slider and feel the flap it prevents.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Lesson 19 · Part of the daily system design series. <a href="../index.html">← All lessons</a></p>
+  </footer>
+</div>
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- Pure logic (testable) ---------- */
+  function ringCells(ring) {
+    // Number of cells in the search block at a given ring:
+    // ring 0 = 1 cell, ring 1 = 3x3 = 9, ring 2 = 5x5 = 25, ...
+    var side = 2 * ring + 1;
+    return side * side;
+  }
+  function ringRadiusKm(ring) {
+    // geohash-5 cell ~4.9km side; ring r covers (2r+1) cells across.
+    return (2 * ring + 1) * 4.9;
+  }
+  function dispatchSearch(densityPerKm2, target, maxRing) {
+    // Simulate: drivers uniform at densityPerKm2; each ring's NEW cells add area.
+    // Returns array of {ring, cellsScanned, driversFound} per step, stopping at target.
+    var CELL_KM2 = 4.9 * 4.9, steps = [], found = 0, scanned = 0, ring = 0;
+    var rng = dispatchSearch._rand || Math.random;
+    while (ring <= maxRing) {
+      var newCells = ring === 0 ? 1 : ringCells(ring) - ringCells(ring - 1);
+      scanned += newCells;
+      var expected = newCells * CELL_KM2 * densityPerKm2;
+      // Poisson-ish draw via normal approximation, floored at 0
+      var draw = Math.max(0, Math.round(expected + (rng() - 0.5) * 2 * Math.sqrt(expected + 1)));
+      found += draw;
+      steps.push({ ring: ring, cellsScanned: scanned, driversFound: found, newDrivers: draw });
+      if (found >= target) break;
+      ring++;
+    }
+    return { steps: steps, found: found, cellsScanned: scanned, ringsUsed: steps.length, exhausted: found < target };
+  }
+  function surgeTier(ratio) {
+    var tiers = [1.0, 1.2, 1.5, 1.8, 2.2, 2.8, 3.5];
+    var picked = 1.0;
+    for (var i = 0; i < tiers.length; i++) {
+      if (ratio >= [1.0, 1.2, 1.5, 1.8, 2.2, 2.8, 3.5][i]) picked = tiers[i];
+      else break;
+    }
+    return picked;
+  }
+
+  /* ---------- Lab A: ring search canvas ---------- */
+  var GRID = 15, CX = 7, CY = 7; // rider at center cell
+  var canvas = document.getElementById('ringCanvas');
+  var ctx = canvas.getContext('2d');
+  var drivers = []; // {gx, gy, px, py}
+  var lastRings = 0;
+
+  function cellXY(gx, gy) {
+    var w = canvas.width / GRID, h = canvas.height / GRID;
+    return { x: gx * w, y: gy * h, w: w, h: h };
+  }
+  function placeDrivers(density) {
+    drivers = [];
+    var w = canvas.width / GRID, h = canvas.height / GRID;
+    // density per km2; each cell is ~24 km2 -> expected drivers per cell
+    var perCell = density * 24.01;
+    for (var gx = 0; gx < GRID; gx++) {
+      for (var gy = 0; gy < GRID; gy++) {
+        var n = Math.max(0, Math.round(perCell + (Math.random() - 0.5) * 2 * Math.sqrt(perCell + 1)));
+        for (var i = 0; i < n && drivers.length < 4000; i++) {
+          drivers.push({ gx: gx, gy: gy, px: (gx + Math.random()) * w, py: (gy + Math.random()) * h });
+        }
+      }
+    }
+  }
+  function drawBoard(hlRing) {
+    var w = canvas.width / GRID, h = canvas.height / GRID;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // grid
+    ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--line') || '#cbd4da';
+    ctx.lineWidth = 1;
+    for (var i = 0; i <= GRID; i++) {
+      ctx.beginPath(); ctx.moveTo(i * w, 0); ctx.lineTo(i * w, canvas.height); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i * h); ctx.lineTo(canvas.width, i * h); ctx.stroke();
+    }
+    // searched rings highlight (rings <= hlRing, only when a search ran)
+    if (hlRing >= 0) {
+      ctx.fillStyle = 'rgba(23,105,170,0.16)';
+      for (var gx = CX - hlRing; gx <= CX + hlRing; gx++) {
+        for (var gy = CY - hlRing; gy <= CY + hlRing; gy++) {
+          if (gx >= 0 && gx < GRID && gy >= 0 && gy < GRID) {
+            ctx.fillRect(gx * w, gy * h, w, h);
+          }
+        }
+      }
+    }
+    // drivers
+    ctx.fillStyle = '#167454';
+    drivers.forEach(function (d) {
+      ctx.beginPath(); ctx.arc(d.px, d.py, 2.2, 0, 6.2832); ctx.fill();
+    });
+    // rider star
+    var c = cellXY(CX, CY);
+    ctx.fillStyle = '#d84a2f';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('★', c.x + c.w / 2, c.y + c.h / 2);
+  }
+  function logLine(html) {
+    var log = document.getElementById('ringLog');
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+  function runDispatch() {
+    var density = parseFloat(document.getElementById('density').value);
+    // deterministic-ish seeded run for the log, using the placed drivers:
+    // count actual drivers per ring from the board (ground truth of the sim)
+    var ring = 0, found = 0, scanned = 0, maxRing = 7;
+    document.getElementById('ringLog').innerHTML = '';
+    logLine('<span class="t">[dispatch]</span> rider at center cell · density ' + density + '/km² · need ≥ 5 drivers');
+    var stepDelay = 0;
+    while (ring <= maxRing) {
+      var newCells = ring === 0 ? 1 : ringCells(ring) - ringCells(ring - 1);
+      scanned += newCells;
+      var cnt = 0;
+      drivers.forEach(function (d) {
+        var dx = Math.abs(d.gx - CX), dy = Math.abs(d.gy - CY);
+        if (Math.max(dx, dy) === ring) cnt++;
+      });
+      found += cnt;
+      var rKm = ringRadiusKm(ring).toFixed(1);
+      var cls = found >= 5 ? 'good' : '';
+      logLine('<span class="t">[ring ' + ring + ']</span> +' + newCells + ' cells (' + scanned + ' total, ~' + rKm +
+        ' km across) → <span class="' + cls + '">+' + cnt + ' drivers (' + found + ' total)</span>');
+      drawBoard(ring);
+      if (found >= 5) break;
+      ring++;
+    }
+    var totalDrivers = drivers.length;
+    var speedup = totalDrivers > 0 ? (totalDrivers / Math.max(scanned, 1)) : 0;
+    document.getElementById('statRings').textContent = (ring + 1);
+    document.getElementById('statCells').textContent = scanned;
+    document.getElementById('statDrivers').textContent = found;
+    document.getElementById('statSpeedup').textContent = '≈' + Math.round(totalDrivers / Math.max(found, 1)) + '× fewer';
+    var badge = document.getElementById('statBadge');
+    if (found >= 5) {
+      badge.textContent = ring === 0 ? 'ring 0 hit' : 'dispatch ok';
+      badge.className = 'badge ok';
+      logLine('<span class="good">[done]</span> dispatched after ' + (ring + 1) + ' ring(s) — ' + scanned +
+        ' cell lookups instead of scanning ' + totalDrivers + ' drivers.');
+    } else {
+      badge.textContent = 'no drivers';
+      badge.className = 'badge bad';
+      logLine('<span class="bad">[done]</span> max radius hit with only ' + found + ' drivers — tell the rider "no cars, try soon."');
+    }
+    lastRings = ring;
+  }
+
+  /* ---------- Lab B: surge ---------- */
+  var lastTier = 1.0, coolDown = 0;
+  function updateSurge() {
+    var demand = parseFloat(document.getElementById('demand').value);
+    var supply = Math.max(1, parseFloat(document.getElementById('supply').value));
+    document.getElementById('demandOut').textContent = demand;
+    document.getElementById('supplyOut').textContent = supply;
+    var ratio = demand / supply;
+    var target = surgeTier(ratio);
+    // hysteresis: step up instantly, step down only after ratio stays low
+    if (target > lastTier) { lastTier = target; coolDown = 0; }
+    else if (target < lastTier) {
+      coolDown++;
+      if (coolDown >= 3 && ratio <= 1.2) { lastTier = target; coolDown = 0; }
+    } else { coolDown = 0; }
+    var fare = 14 * lastTier, driverCut = fare * 0.75;
+    document.getElementById('statRatio').textContent = ratio.toFixed(2);
+    document.getElementById('statSurge').textContent = lastTier.toFixed(1) + '×';
+    document.getElementById('statFare').textContent = '$' + fare.toFixed(2);
+    document.getElementById('statDriver').textContent = '$' + driverCut.toFixed(2);
+  }
+
+  /* ---------- wire up ---------- */
+  var densityEl = document.getElementById('density');
+  var scenarioEl = document.getElementById('scenario');
+  densityEl.addEventListener('input', function () {
+    document.getElementById('densityOut').textContent = densityEl.value + ' /km²';
+    scenarioEl.value = densityEl.value;
+  });
+  scenarioEl.addEventListener('change', function () {
+    densityEl.value = scenarioEl.value;
+    document.getElementById('densityOut').textContent = scenarioEl.value + ' /km²';
+    placeDrivers(parseFloat(scenarioEl.value));
+    drawBoard(-1);
+  });
+  document.getElementById('runDispatch').addEventListener('click', runDispatch);
+  document.getElementById('reshuffle').addEventListener('click', function () {
+    placeDrivers(parseFloat(densityEl.value));
+    drawBoard(-1);
+    document.getElementById('ringLog').innerHTML = '<div><span class="t">[dispatch]</span> drivers reshuffled — press <em>Run dispatch</em>.</div>';
+  });
+  document.getElementById('demand').addEventListener('input', updateSurge);
+  document.getElementById('supply').addEventListener('input', updateSurge);
+
+  // init
+  placeDrivers(40);
+  drawBoard(-1);
+  updateSurge();
+
+  // expose for smoke tests
+  window.__lesson = { ringCells: ringCells, ringRadiusKm: ringRadiusKm, dispatchSearch: dispatchSearch, surgeTier: surgeTier };
+})();
+</script>
+</body>
+</html>
