@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Design a Web Crawler</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 260px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .log .good { color: #7fd8a8; }
+    .log .bad { color: #ff8f7d; }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .bars { margin: 16px 0; }
+    .bar-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+    .bar-row .bar-label { min-width: 130px; font-weight: 600; font-size: .92rem; }
+    .bar-track { flex: 1; height: 22px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 11px; background: var(--blue); }
+    .bar-fill.impolite { background: var(--accent); }
+    .bar-row .bar-val { min-width: 110px; font-family: "IBM Plex Mono", monospace; font-size: .85rem; }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .cheatsheet {
+      background: var(--surface); border: 2px solid var(--ink);
+      border-radius: var(--radius); padding: 22px 24px; margin: 24px 0; max-width: 46rem;
+    }
+    .cheatsheet h3 { margin: 0 0 10px; }
+    .cheatsheet ol { max-width: none; }
+    .framing {
+      border-left: 4px solid var(--purple); background: var(--purple-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .framing p { margin: 8px 0; max-width: none; }
+    footer { margin-top: 60px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 20px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <p class="crumbs"><a href="../index.html">All lessons</a> · Lesson 20</p>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 20 · Classic design problem</span>
+    <h1>Design a Web Crawler</h1>
+    <p class="whyline">Every search engine starts here: a fleet of machines that fans out across the web, downloads a billion pages a day, never fetches the same page twice, and — the part everyone underestimates — does it without getting banned by the very sites it needs. This is the web crawler design problem.</p>
+    <div class="meta">
+      <span>Classic design problem</span>
+      <span>Politeness · Dedup · Frontier scheduling</span>
+      <span>~45 min read + labs</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#what">What is a web crawler? — the definition from zero</a></li>
+      <li><a href="#requirements">Requirements and back-of-the-envelope sizing</a></li>
+      <li><a href="#architecture">High-level architecture: the crawl loop</a></li>
+      <li><a href="#frontier">The heart #1: the URL Frontier</a></li>
+      <li><a href="#dedup">The heart #2: never fetch the same page twice</a></li>
+      <li><a href="#politeness">Politeness done right</a></li>
+      <li><a href="#fetcher">Fetcher details: DNS, connections, conditional GET</a></li>
+      <li><a href="#traps">Failure modes: traps, staleness, hot domains</a></li>
+      <li><a href="#lab">Interactive labs: politeness throttle + Bloom filter sizing</a></li>
+      <li><a href="#qa">Q&amp;A with full model answers</a></li>
+      <li><a href="#drills">Practice drills (untimed)</a></li>
+      <li><a href="#cheatsheet">Cheat sheet &amp; 60-second framing</a></li>
+    </ol>
+  </nav>
+
+  <section id="what">
+    <div class="section-head"><span class="section-num">01</span><h2>What is a web crawler?</h2></div>
+    <p class="lede">Before any architecture: what the thing actually is, defined from zero, with one running example carried through the whole lesson.</p>
+
+    <div class="definition">
+      <strong class="term">Definition</strong>
+      <p>A <span class="term">web crawler</span> (also called a <span class="term">spider</span>) is a program that systematically browses the web. It starts from a hand-picked list of pages called <span class="term">seeds</span>, downloads each one, extracts every link on it, and then downloads those linked pages too — repeating the loop until it has covered the part of the web it cares about. Its two jobs are <strong>discovery</strong> (find pages nobody told it about) and <strong>freshness</strong> (re-visit pages that change). A search engine's <span class="term">indexer</span> — the separate system that turns page content into the searchable index — eats whatever the crawler brings back.</p>
+    </div>
+
+    <div class="pitch">
+      <span class="tag">Soccer analogy — the running example</span>
+      <h4>Atlas Scouting, Riverside FC's scouting network</h4>
+      <p>Imagine Riverside FC runs <strong>Atlas Scouting</strong>, a network that tracks every promising player in world football. It starts from the <strong>fixture list</strong> (the seeds): scouts drive to those matches, watch the games (fetch the page), write down every club and player mentioned (extract the links), and drive to those clubs next. One day a scout visits a tiny club's website and finds a link to a youth tournament — five more clubs nobody knew about (discovery). The next week they revisit the big clubs' sites because transfer news changes daily (freshness). Every club posts <strong>"no visits during training hours"</strong> at the gate — scouts who ignore the sign get banned from the ground (politeness). That scouting network <em>is</em> a web crawler, and every design decision in this lesson maps to a scout's rulebook.</p>
+    </div>
+
+    <h3>Crawler vs scraper — the distinction every room probes</h3>
+    <p>A <span class="term">scraper</span> extracts <em>structured data from pages it already knows about</em>: "get the price of these 10 boots from these 10 shops." A <span class="term">crawler</span> <em>discovers pages it didn't know existed</em>: "find every page on the web about football boots." The relationship is layered: <strong>crawling discovers, scraping extracts</strong>. Googlebot is a crawler; the price-comparison bot that reads 10 shop sites every hour is a scraper, possibly riding on top of a crawler's discovery. In this lesson we design the crawler — the discovery engine — and treat scraping as a downstream consumer.</p>
+
+    <h3>The vocabulary, fixed now</h3>
+    <ul>
+      <li><span class="term">Seed</span> — a starting URL, hand-picked. The crawl's initial to-do list: homepages of major sites, sitemaps, directories.</li>
+      <li><span class="term">Frontier</span> — the crawler's to-do list of URLs not yet fetched. The single most important data structure in the design (§4).</li>
+      <li><span class="term">Politeness</span> — the set of rules that keeps the crawler from overloading any one website: rate limits per host, honoring <span class="term">robots.txt</span>, backing off on errors. Violate it and sites ban you; the crawl silently rots.</li>
+      <li><span class="term">robots.txt</span> — a small file every well-behaved site hosts at <code>/robots.txt</code> that declares which paths crawlers may fetch and how fast. It's a request, not a law — but ignoring it gets you blocked.</li>
+      <li><span class="term">Dedup</span> (deduplication) — making sure the same page isn't fetched, stored, or indexed twice. The web is full of duplicates; without dedup you crawl 1B pages and keep 300M unique ones (§5).</li>
+      <li><span class="term">Crawl budget</span> — how many fetches you're willing to spend on a given site. Wasting it on junk pages means missing the pages that matter.</li>
+      <li><span class="term">Freshness</span> — how recently the stored copy matches the live page. News sites need hourly revisits; a 2014 blog post needs almost none.</li>
+    </ul>
+  </section>
+
+  <section id="requirements">
+    <div class="section-head"><span class="section-num">02</span><h2>Requirements and back-of-the-envelope sizing</h2></div>
+    <p class="lede">A senior-room design starts here: what must be true, what can be slow, and how big the numbers are — before drawing a single box.</p>
+
+    <h3>Functional requirements</h3>
+    <ul>
+      <li>Crawl <strong>1 billion pages per day</strong>: fetch, parse, extract links, repeat.</li>
+      <li>Store fetched content and discovered URLs for the indexing pipeline.</li>
+      <li>Respect <strong>robots.txt</strong> on every host, every time.</li>
+      <li>Re-crawl pages on a freshness schedule (news fast, archives slow).</li>
+      <li>Never fetch the same content twice; never hammer any single site.</li>
+    </ul>
+
+    <h3>Non-functional requirements</h3>
+    <ul>
+      <li><strong>Politeness is a hard constraint, not a nice-to-have:</strong> a crawler that gets IP-banned by major sites has failed, however fast it is.</li>
+      <li><strong>Horizontal scalability:</strong> fetcher workers are stateless and addable; the frontier and dedup stores must scale with them.</li>
+      <li><strong>Fault tolerance:</strong> a crashed fetcher loses nothing — its in-flight URLs return to the frontier.</li>
+      <li><strong>Freshness SLOs</strong> differ by page class: breaking news in hours, reference pages in weeks.</li>
+    </ul>
+
+    <h3>Back-of-the-envelope — the math, step by step</h3>
+    <div class="callout">
+      <h4>The sizing assumptions — write these down first, argue with them later</h4>
+      <ul>
+        <li><strong>1,000,000,000 pages/day</strong> (the design target)</li>
+        <li>Average page: <strong>500 KB</strong> (HTML + the images/CSS/JS a real fetch pulls — generous, but crawlers fetch more than text)</li>
+        <li>Average outlinks per page: <strong>50</strong></li>
+        <li>Unique domains touched per day: <strong>10M</strong> (≈100 pages per domain on average)</li>
+        <li>Retention: keep fetched content <strong>180 days</strong> for reprocessing and the index pipeline</li>
+      </ul>
+    </div>
+    <ul>
+      <li><strong>Fetch rate:</strong> 1,000,000,000 ÷ 86,400 s/day = <strong>11,574 ≈ 12,000 fetches/sec average</strong>. Peaks run 2–3× that, so the fleet is sized for ~25–35K/sec headroom.</li>
+      <li><strong>Download bandwidth:</strong> 12,000 fetches/s × 500 KB = 6,000,000 KB/s = <strong>~6 GB/s sustained</strong> — spread across fetcher regions so no single datacenter egress melts. (Failed fetches, redirects, and headers add ~10–20% overhead on top.)</li>
+      <li><strong>Storage:</strong> 1B pages/day × 500 KB = 500 TB/day. × 180 days = <strong>90 PB raw</strong>. HTML compresses ~3×, so <strong>~25–30 PB compressed</strong> in the blob store. Either way: petabyte scale, and the storage format must be append-friendly (write-once, read-sequentially).</li>
+      <li><strong>DNS lookups:</strong> 10M unique domains/day ÷ 86,400 = <strong>~115 lookups/sec before caching</strong> — small-looking, but each uncached lookup can stall a fetch for 100+ ms, which is why §7 treats DNS as a first-class subsystem.</li>
+      <li><strong>URL discoveries:</strong> 50 outlinks × 1B pages = <strong>50B URL candidates/day ≈ 580,000 dedup checks/sec</strong>. The dedup layer (§5) must answer "seen this URL?" half a million times a second — from RAM, not disk.</li>
+      <li><strong>Crawl DB:</strong> URL → state (discovered, fetched, last-fetched, next-due, status) for tens of billions of URLs. This is a sharded key-value workload, not a relational one.</li>
+    </ul>
+
+    <div class="green-box">
+      <p><strong>The one-line sizing verdict:</strong> the crawl is a <strong>12K-fetch/sec, 6 GB/s download pipeline with a 580K/sec dedup filter in front of the to-do list</strong>. The architecture bends around three things: politeness (the constraint), the frontier (the scheduling brain), and dedup (the scale filter). Everything else is plumbing.</p>
+    </div>
+  </section>
+
+  <section id="architecture">
+    <div class="section-head"><span class="section-num">03</span><h2>High-level architecture: the crawl loop</h2></div>
+    <p class="lede">One loop, six stages. Learn the loop cold — every deep question in this lesson is about one stage of it.</p>
+
+    <pre>Seeds ──► URL FRONTIER ──► FETCHER fleet ──► PAGE STORE (blob, WARC)
+(hand-picked)   (priority queues,        │  DNS resolver (cached)
+                 sharded by host)       │  robots.txt cache
+                                        │  "skip if disallowed"
+                                        ▼
+                                   PARSER ──► CONTENT DEDUP ──► INDEXER handoff
+                              (HTML → text +     │  (SHA-256 checksum;
+                               outlinks)        │   shingles/MinHash
+                                        │        │   for near-dups)
+                                        ▼        ▼ drop if seen
+                                   URL EXTRACTOR ──► canonicalize ──► Bloom-filter
+                                   (seen check)      (normalize)      "seen?" ──► FRONTIER
+                                                                          ▲
+                                                                          └── new URLs loop back
+
+Side stores:  CRAWL DB (URL → last fetched, next due, status, change frequency)
+              DNS CACHE · robots.txt CACHE · CHECKSUM STORE</pre>
+
+    <h3>What each stage does — one paragraph each</h3>
+    <ul>
+      <li><strong>Seeds.</strong> The crawl starts with a few million hand-picked URLs: major homepages, news sites, directories, sitemaps. Seeds are the only URLs that enter the system without being discovered — everything else is found by following links. Seed quality decides crawl quality: garbage seeds grow a garbage frontier.</li>
+      <li><strong>URL Frontier.</strong> The prioritized to-do list. It hands fetchers the next URL to download, choosing <em>which host</em> and <em>which page</em> so that politeness holds and important pages go first. The heart of the system (§4).</li>
+      <li><strong>Fetcher fleet.</strong> Stateless workers that download pages: resolve DNS, check robots.txt, issue the HTTP request, store the bytes. Hundreds to thousands of workers; a dead worker's URLs simply return to the frontier.</li>
+      <li><strong>Page store.</strong> Fetched bytes land in a blob store as <span class="term">WARC</span> records (<span class="term">Web ARChive</span> — the standard archival format for web crawls: request + response + metadata in one appendable record). Write-once, read sequentially — the 25–30 PB lives here.</li>
+      <li><strong>Parser.</strong> Turns HTML into clean text plus the list of outlinks. Also extracts metadata: title, language, canonical URL hints, sitemap references.</li>
+      <li><strong>Content dedup.</strong> Fingerprints the page text (SHA-256 checksum for exact dupes, shingles/MinHash for near-dupes) and drops pages already seen (§5). Only surviving pages feed the indexer and only their links continue the crawl.</li>
+      <li><strong>URL extractor.</strong> Normalizes each outlink (<span class="term">canonicalization</span>: one true form per page) and asks the seen-URL filter; genuinely new URLs are scored and enqueued on the frontier. The loop closes.</li>
+    </ul>
+
+    <div class="pitch">
+      <span class="tag">Soccer analogy</span>
+      <h4>The scouting loop</h4>
+      <p>Atlas Scouting's week runs exactly this loop. Monday: the <strong>assignment board</strong> (frontier) lists clubs to visit, ordered by priority — Champions League clubs first. Scouts (<strong>fetchers</strong>) drive out, check the gate sign (<strong>robots.txt</strong>), watch the match (fetch), and file the <strong>match report</strong> (page store). Back at HQ, analysts strip each report to facts + names mentioned (<strong>parser</strong>), throw away reports that are word-for-word copies of yesterday's (<strong>content dedup</strong>), and pin the newly discovered clubs onto the assignment board (<strong>URL extractor → frontier</strong>). The board never empties — it grows faster than the scouts can drive.</p>
+    </div>
+  </section>
+
+  <section id="frontier">
+    <div class="section-head"><span class="section-num">04</span><h2>The heart #1: the URL Frontier</h2></div>
+    <p class="lede">If you remember one section from this lesson, make it this one. The frontier is where politeness, priority, and scale collide — and where naive designs die.</p>
+
+    <h3>Why a single FIFO queue is wrong</h3>
+    <p>The beginner's design: one big queue, URLs in, fetchers pop from the front (<span class="term">FIFO</span> — first in, first out). It fails twice, and both failures are fatal:</p>
+    <ul>
+      <li><strong>It hammers hosts.</strong> Parse one big site and 2 million of its URLs land back-to-back in the queue. The fetcher then hits that one site 2 million times in a row — the site sees a DDoS, bans your IP range, and your crawl of their pages is over. Politeness can't be bolted on afterward; it has to be <em>structural</em>.</li>
+      <li><strong>It has no priorities.</strong> Breaking transfer news and a 2014 photo gallery sit in the same line. The crawl spends its budget on junk while the pages that matter wait.</li>
+    </ul>
+
+    <h3>Host-based partitioning: politeness as structure</h3>
+    <p>The fix: <strong>partition the frontier by host</strong>. Every URL is routed by <code>hash(domain) → frontier shard</code>, and within a shard, URLs are grouped into <strong>per-host queues</strong>. Fetchers pull from host queues <strong>round-robin</strong>: one URL from club A, one from club B, one from club C — never two in a row from the same host unless no other host has work.</p>
+    <p>Now politeness is a property of the data structure, not of anyone's good intentions: with one in-flight fetch per host per worker and a mandatory gap between visits to the same host, <em>no scheduling decision can accidentally hammer a site</em>. The partition also parallelizes cleanly — add more frontier shards by re-hashing domains, and each shard is independent.</p>
+    <p>Why hash by <em>domain</em> and not by full URL? Because politeness is owed to the <em>server</em>, and the server is the domain. Two URLs on the same domain hit the same machine; URLs on different domains (usually) don't. <strong>The unit of politeness is the host; the unit of work is the URL.</strong></p>
+
+    <div class="pitch">
+      <span class="tag">Soccer analogy</span>
+      <h4>One clipboard per club</h4>
+      <p>Atlas Scouting doesn't keep one giant list of "matches to watch." Each club gets its own <strong>clipboard</strong> on the assignment wall — one per club, hung in club-name order. Scouts take the top card from the next clipboard, round-robin. No club ever gets three scouts in one day, no matter how many interesting players it has — the wall's <em>shape</em> enforces fairness. A star club's clipboard can be an inch thick (priority, below) while a village club's holds one card, but the rotation rule treats them identically. Hash-the-domain is the wall; per-host queues are the clipboards; round-robin is the rotation rule.</p>
+    </div>
+
+    <h3>Per-host politeness delay</h3>
+    <p>Each host queue remembers the <strong>last-fetch timestamp</strong> for its host. A host is eligible for another fetch only after the <span class="term">politeness delay</span> has elapsed — typically 1 second by default, or the <code>Crawl-delay</code> value from that host's robots.txt if it names one. The fetcher's loop is therefore: <em>pick the next eligible host (round-robin), pop its highest-priority URL, fetch, stamp the time, move on.</em> A host with a 10-second crawl-delay simply sits out 10 seconds between visits — no timers, no special cases, just eligibility.</p>
+
+    <h3>Priority inside each host queue</h3>
+    <p>Within a host's queue, URLs aren't FIFO either — each carries a <strong>priority score</strong>, and the queue is a heap (a <span class="term">priority queue</span>: always pop the highest score). The score blends three signals:</p>
+    <ul>
+      <li><strong>Importance</strong> — pages many other pages link to get crawled first. The cheap proxy is <strong>in-link count</strong> (how many discovered links point at this URL); the expensive truth is PageRank-style propagation. A famous club's homepage (linked from 10,000 pages) outranks a youth-team gallery (linked from 3).</li>
+      <li><strong>Freshness debt</strong> — how overdue the page is for a revisit: <code>now − next_due</code>. A news homepage due for its hourly refresh outranks a static "history of the club" page due next month.</li>
+      <li><strong>Depth</strong> — distance from a seed in link hops. Shallow pages (depth 1–2) go before depth-15 rabbit holes; breadth-first beats depth-first because shallow pages are, on average, the important ones.</li>
+    </ul>
+
+    <h3>Crawl budget: the per-host spending cap</h3>
+    <p><span class="term">Crawl budget</span> is the number of fetches you'll spend on one host in a time window. It has two parents: the <strong>crawl rate limit</strong> (how fast you may hit the host without hurting it — your politeness delay and its crawl-delay) and <strong>crawl demand</strong> (how much you <em>want</em> from it — a news site with 10K fresh pages/day deserves more budget than a static brochure site). In practice: a per-host cap on fetches/day plus a max depth, tuned up for high-demand hosts and down for low-value ones. <strong>Spending budget on junk pages is the crawl's silent killer</strong> — every fetch wasted on a duplicate is a fetch stolen from a page that changed.</p>
+
+    <div class="callout">
+      <h4>Frontier design, in one breath</h4>
+      <p><code>hash(domain)</code> routes each URL to a frontier shard → per-host priority queues inside the shard → fetchers pull round-robin across hosts, respecting per-host delays → priority = importance + freshness debt − depth → per-host crawl budget caps the spend. Politeness is structural; priority is scored; scale is a re-hash away.</p>
+    </div>
+  </section>
+
+  <section id="dedup">
+    <div class="section-head"><span class="section-num">05</span><h2>The heart #2: never fetch the same page twice</h2></div>
+    <p class="lede">The web is drowning in duplicates: the same article on HTTP and HTTPS, with and without <code>www</code>, with tracking parameters, syndicated across 200 sites. Dedup runs at three levels — URL, exact content, near content — each cheaper than the one before it fails.</p>
+
+    <h3>Level 1 — URL dedup: canonicalize, then ask the Bloom filter</h3>
+    <p>Two URLs can name the same page: <code>HTTP://Example.COM:80/a?utm_source=x#top</code> and <code>https://example.com/a</code> (well — nearly; the scheme differs, but you get the idea). <span class="term">Canonicalization</span> rewrites every URL into one true form before anything else: lowercase the scheme and host, drop the default port (<code>:80</code>, <code>:443</code>), remove the fragment (<code>#top</code> — never sent to servers anyway), sort query parameters, decode percent-encoding, strip known tracking/session parameters (<code>utm_*</code>, <code>sessionid</code>), and collapse trailing slashes and <code>/../</code>. After canonicalization, string equality <em>means</em> same URL.</p>
+    <p>Then the seen-check must answer <strong>580,000 times a second</strong> (§2) — far too fast for disk. The answer is a <span class="term">Bloom filter</span>: a bit array plus <em>k</em> hash functions. To add a URL, hash it <em>k</em> times and set those <em>k</em> bits. To test, hash <em>k</em> times and check all <em>k</em> bits are set. It can say "definitely not seen" or "probably seen" — <strong>false positives are possible</strong> (a URL wrongly flagged as seen gets skipped — a missed page), <strong>false negatives are impossible</strong> (a genuinely new URL is never wrongly passed).</p>
+
+    <div class="callout">
+      <h4>Bloom filter sizing — the formula, worked</h4>
+      <p>For <em>n</em> items at false-positive rate <em>p</em>:</p>
+      <pre>bits  m = -(n · ln p) / (ln 2)²        hash functions  k = (m/n) · ln 2</pre>
+      <p>Plug in <strong>n = 1 billion URLs, p = 1%</strong>:</p>
+      <pre>m = -(1e9 × ln 0.01) / (ln 2)²
+  = -(1e9 × -4.6052) / 0.48045
+  = 9.585 × 10⁹ bits
+  = 1.198 × 10⁹ bytes  ≈  <strong>1.2 GB</strong>
+
+k = (9.585) × 0.6931 ≈ 6.64  →  <strong>7 hash functions</strong></pre>
+      <p>1.2 GB fits in RAM on <em>every fetcher box</em> — each worker checks the filter locally, no network round-trip, 580K checks/sec is trivial for memory-speed bit tests. A hash set of 1B URLs would need ~40 GB and a network hop; the Bloom filter's price is a 1% chance of skipping a new URL, which the next crawl's seed rediscovery mostly heals. (Lab B lets you size this yourself.)</p>
+    </div>
+
+    <h3>Level 2 — exact content dedup: the SHA-256 checksum</h3>
+    <p>Different URLs, identical content: mirrors (<code>example.com</code> vs <code>example.net</code>), print versions, HTTP/HTTPS twins that survived canonicalization. After parsing, hash the normalized page text with <span class="term">SHA-256</span> — a <span class="term">cryptographic hash function</span> that turns any input into a 256-bit fingerprint; identical inputs always give identical fingerprints, and different inputs essentially never collide. Keep a store of seen checksums (sharded key-value, this one can be disk-backed — it's checked once per <em>fetched</em> page, ~12K/sec, not per discovered URL). Fingerprint seen → drop the page, but <strong>still harvest its outlinks</strong> — a duplicate page can link to new pages.</p>
+
+    <h3>Level 3 — near-dup detection: shingles and MinHash</h3>
+    <p>The hard case: the same article syndicated across 200 news sites with a rewritten headline and a different ad footer — not byte-identical, but not worth storing 200 times. The classic approach, at high level:</p>
+    <ul>
+      <li><span class="term">Shingles</span>: slide a window of <em>k</em> consecutive words (say 5) across the document. Each window is a shingle — the document becomes a <em>set</em> of shingles. Two documents sharing most shingles are near-duplicates (<span class="term">Jaccard similarity</span> = size of intersection ÷ size of union).</li>
+      <li><span class="term">MinHash</span>: comparing full shingle sets is expensive, so compress each set into a short <span class="term">signature</span>: hash every shingle with <em>n</em> different hash functions, keep the <em>minimum</em> hash value from each — an <em>n</em>-number signature. Documents with similar signatures are probably near-duplicates, and signatures can be bucketed (<span class="term">locality-sensitive hashing</span>) so you only compare candidates in the same bucket instead of all pairs.</li>
+    </ul>
+    <p>You don't need the proofs — the senior-room line is: <em>"exact dupes die on the SHA-256 checksum; near-dupes die on MinHash signatures over 5-word shingles, so we store one canonical copy and record the rest as duplicates of it."</em></p>
+
+    <div class="pitch">
+      <span class="tag">Soccer analogy</span>
+      <h4>Thirty journalists, one match</h4>
+      <p>After a cup final, thirty journalists file match reports. Five copy-pasted the press release (byte-identical — the <strong>SHA-256</strong> catches them). Twenty rewrote the lede but kept the same quotes and facts (<strong>near-dupes</strong> — the shingle sets overlap ~90%, MinHash flags them). Five actually wrote something new. Atlas Scouting keeps the press release once, the five originals, and a note saying "the other 25 say the same thing" — and still reads every report's <em>mentioned names</em>, because even a copied report can name a new youth player (harvest outlinks from duplicates).</p>
+    </div>
+
+    <div class="green-box">
+      <p><strong>The three-level dedup mantra:</strong> canonicalize the URL → Bloom filter (1.2 GB, 7 hashes, 1% FP) says "seen?" → fetch → SHA-256 of the text says "exact dupe?" → MinHash says "near dupe?" → only survivors reach the indexer, but every page's outlinks feed the frontier. Dedup is a <em>funnel</em>, cheapest test first.</p>
+    </div>
+  </section>
+
+  <section id="politeness">
+    <div class="section-head"><span class="section-num">06</span><h2>Politeness done right</h2></div>
+    <p class="lede">This section is the difference between a crawler that works for a week and one that works for a decade. Every rule here exists because someone learned it from a ban.</p>
+
+    <h3>robots.txt: parse it, cache it, obey it</h3>
+    <p>Before fetching from a host (and cached for ~24 hours after), the fetcher downloads <code>https://host/robots.txt</code> and parses its directives: <code>User-agent</code> (which rules apply to your bot), <code>Disallow</code>/<code>Allow</code> (path prefixes you may not/may fetch), <code>Crawl-delay</code> (seconds between your requests — the host's chosen politeness delay), and <code>Sitemap</code> (a gift: the host's own list of URLs, which seeds the frontier directly). A URL whose path matches <code>Disallow</code> never reaches the fetcher — it's filtered at the frontier. Note the recursion: robots.txt is itself a fetch, so it's fetched politely too, and a host with no robots.txt (or an unreachable one) is treated as "everything allowed at the default delay," not as an excuse to hammer.</p>
+
+    <h3>Crawl-delay and the default pace</h3>
+    <p>When robots.txt names a <span class="term">crawl-delay</span> (say 5 seconds), that becomes the host's politeness delay (§4) — the host's queue simply isn't eligible more often. When it doesn't, the crawler's own default applies (commonly ~1 second). Either way the mechanism is identical: per-host eligibility timestamps, no special cases.</p>
+
+    <h3>Backoff on 429 and 5xx: read the room</h3>
+    <p><span class="term">HTTP 429</span> ("Too Many Requests") is a server saying <em>slow down</em>; <span class="term">5xx</span> errors often mean <em>I'm struggling</em>. The response is <span class="term">exponential backoff with jitter</span>: wait 2 s, then 4 s, then 8 s… doubling each time, plus a random <span class="term">jitter</span> so a fleet of fetchers doesn't retry in lockstep (the <span class="term">thundering herd</span> — synchronized retries that re-crash the server). Repeated 5xx escalates to backing off the <em>whole host</em>: its queue goes dormant for minutes, then hours. A host that errors on everything is either down or begging you to leave — both mean the same thing to the scheduler.</p>
+
+    <h3>Identify yourself: the User-Agent</h3>
+    <p>Every request carries a <span class="term">User-Agent</span> header naming the crawler and giving a contact URL, e.g. <code>AtlasBot/1.0 (+https://atlas.example/bot-info)</code>. This is how site owners find you to complain, negotiate crawl-delay, or grant access — and how their robots.txt targets you by name. Anonymous or browser-impersonating user agents get blocked first and forgiven last; transparency is a politeness strategy, not just etiquette.</p>
+
+    <div class="warn-box">
+      <p><strong>The standing rule, stated bluntly:</strong> politeness is a <em>hard constraint</em> on the optimization, not a term in it. "Crawl 1B pages/day" is the goal; "never get banned, never hurt a site" is the constraint. A design that trades politeness for speed has failed the problem — say this out loud in the room, because interviewers promote candidates who name the constraint before the throughput.</p>
+    </div>
+
+    <div class="pitch">
+      <span class="tag">Soccer analogy</span>
+      <h4>The gate sign</h4>
+      <p>Every club Atlas Scouting visits posts its rules at the gate: <strong>"No scouts during training hours"</strong> (Disallow), <strong>"One visit per week, please"</strong> (Crawl-delay), <strong>"Talk to our press officer first"</strong> (the contact in the User-Agent). A scout who hops the fence during training gets banned from the ground — and worse, the club warns every other club in the league. One rude scout poisons the whole network's reputation. The polite scouts get something extra: the press officer hands them the <strong>fixture list</strong> (Sitemap) — cooperation beats extraction.</p>
+    </div>
+  </section>
+
+  <section id="fetcher">
+    <div class="section-head"><span class="section-num">07</span><h2>Fetcher details: DNS, connections, conditional GET</h2></div>
+    <p class="lede">The fetcher looks like the boring part — "just download the page" — until you measure where its time actually goes. Three hidden costs, three specific defenses.</p>
+
+    <h3>DNS is the hidden bottleneck</h3>
+    <p>~115 fresh domain lookups/sec (§2) sounds small, but each uncached lookup can stall 50–200 ms — at 12K fetches/sec, even a 1% uncached rate parks hundreds of fetcher threads waiting on DNS. Production crawlers run a <strong>custom DNS resolver fleet</strong>: a local cache honoring each record's <span class="term">TTL</span> (time-to-live — how long the answer may be reused), async resolution that never blocks the fetch loop, and prefetching of popular domains. The OS resolver is shared, uninstrumented, and slow under this load — you outgrow it on day one. <strong>DNS is the first thing to blame when fetch throughput mysteriously halves.</strong></p>
+
+    <h3>Connection reuse: skip the handshake</h3>
+    <p>A fresh HTTPS fetch pays TCP handshake + TLS handshake before a single byte of page — often <em>more</em> time than downloading a 500 KB page on a fast link. The fetcher keeps <strong>per-host connection pools</strong> with HTTP keep-alive: fetch ten pages from a host over one warm connection instead of ten handshakes. This is also politeness-adjacent — fewer handshakes means less load on the host's TLS terminator — and it's why the frontier's host grouping (§4) composes so well with the fetcher: hosts are fetched in bursts over warm connections, spaced by the politeness delay.</p>
+
+    <h3>Timeouts, retries, and the circuit breaker</h3>
+    <p>Every fetch carries two timeouts: <strong>connect timeout</strong> (give up if the TCP handshake doesn't complete, ~5 s) and <strong>read timeout</strong> (give up if the body stalls, ~10–30 s). GET is idempotent, so retries are safe — but retried with <strong>exponential backoff + jitter</strong> (§6), a small max-attempts budget, and a <span class="term">circuit breaker</span> per host: if a host fails nearly every fetch, stop trying it entirely for a while instead of burning fetcher threads on a dead server. Threads stuck on dead hosts are throughput stolen from live ones.</p>
+
+    <h3>Conditional GET: freshness without re-downloading</h3>
+    <p>The cheapest fetch is the one you don't do. When a page is due for revisit, the fetcher first asks <em>"has it changed?"</em> instead of downloading it: it sends the stored <span class="term">ETag</span> (an opaque version tag the server assigned to the resource) in an <code>If-None-Match</code> header, and the stored <span class="term">Last-Modified</span> date in <code>If-Modified-Since</code>. If nothing changed, the server replies <span class="term">HTTP 304 Not Modified</span> — headers only, no body — and the crawl DB's "last verified" timestamp advances for the cost of a round-trip. For the huge class of pages that rarely change, conditional GET converts a 500 KB download into a ~1 KB handshake. <strong>Bandwidth math from §2 quietly assumes this is working.</strong></p>
+
+    <div class="pitch">
+      <span class="tag">Soccer analogy</span>
+      <h4>The scout's phone book</h4>
+      <p>A veteran Atlas scout doesn't look up the club's address every morning — it's in the <strong>phone book</strong> (DNS cache), refreshed when clubs move grounds (TTL expiry). She doesn't reintroduce herself at the gate each visit; the guard waves her through the <strong>open gate</strong> (keep-alive connection). And before driving two hours to a club, she <strong>calls ahead</strong>: "anything new since Tuesday?" (conditional GET). "Nope, same squad" (304) — and she spends the afternoon somewhere the team sheet actually changed.</p>
+    </div>
+  </section>
+
+  <section id="traps">
+    <div class="section-head"><span class="section-num">08</span><h2>Failure modes: traps, staleness, hot domains</h2></div>
+    <p class="lede">The crawl loop is correct on paper. Here's what the real web does to it — and the specific defense for each.</p>
+
+    <h3>1. Crawler traps: the infinite URL space</h3>
+    <p>A <span class="term">crawler trap</span> (or <span class="term">spider trap</span>) is a site structure that generates <em>unbounded</em> distinct URLs: a calendar with <code>/fixtures?month=2050-01</code> and a "next month" link on every page, forever; faceted search where <code>?color=red&amp;size=m&amp;page=2</code> combines into millions of near-empty result pages; a "next photo" link that never ends. Each page is real, each link is real, and the frontier grows without bound while the fetcher burns budget on nothing.</p>
+    <p>Defenses, layered:</p>
+    <ul>
+      <li><strong>Canonicalization + content dedup as tripwire</strong> — trap pages are near-duplicates of each other (§5). When a host's pages start checksumming identical at a high rate, quarantine the subtree: stop expanding its outlinks.</li>
+      <li><strong>Max depth and max URLs per host</strong> — hard caps in the crawl budget (§4). Depth 15+ from a seed is almost never valuable; a host contributing its 10-millionth URL is a trap until proven otherwise.</li>
+      <li><strong>Query-parameter budget</strong> — drop URLs with more than a handful of parameters, or with parameter combinations never seen before on that host. Infinite spaces live in query strings.</li>
+      <li><strong>URL pattern blacklists</strong> — learned patterns (<code>/calendar?date=*</code>, <code>*?sessionid=*</code>) that operators or automated detection add to a denylist.</li>
+    </ul>
+
+    <h3>2. Session IDs and tracking parameters: the identity crisis</h3>
+    <p>Some sites mint a unique <code>?sessionid=abc123</code> per visitor — every fetch of the same page yields a "new" URL. Without canonicalization stripping these, the Bloom filter never matches and the same page is fetched thousands of times. This is why canonicalization (§5) strips known session/tracking parameters <em>before</em> the seen-check, and why unknown-parameter URLs get a probationary budget rather than a blank check.</p>
+
+    <h3>3. Staleness: the web moves under you</h3>
+    <p>A crawl is a snapshot that starts decaying the moment it's taken. The defense is <strong>adaptive revisit scheduling</strong>: track each page's observed change frequency and revisit proportionally — news homepages hourly, blogs daily, reference pages monthly. Signals that sharpen the schedule: <code>Last-Modified</code>/<code>ETag</code> revalidation (cheap, §7), sitemap <code>lastmod</code> timestamps (the host telling you what changed), and change-detection on fetch (pages that changed 10 times in a row get revisited sooner; pages unchanged for a year get revisited later). <strong>Freshness is a scheduling problem, not a speed problem</strong> — crawling everything twice as fast with a dumb schedule still serves stale news.</p>
+
+    <h3>4. Hot domains: one host eats the frontier</h3>
+    <p>A host with 100M pages (or an undetected trap) can flood its per-host queue while thousands of small hosts starve — the round-robin in §4 isolates <em>fetching</em>, but the frontier's <em>memory</em> is still finite. Defenses: per-host queue size caps (overflow URLs are dropped or spilled to cold storage), the per-host crawl budget (§4), and <strong>priority aging</strong> — hosts that haven't been served in a while get a scheduling boost so a giant can't silence everyone else indefinitely.</p>
+
+    <h3>5. The quiet killers: bans, robots changes, duplicate hosts</h3>
+    <ul>
+      <li><strong>IP bans</strong> — a misconfigured politeness delay gets your egress IPs blocked. Mitigation: egress IP pools per region, ban detection (sudden 403 spikes from a host), and treating a ban as a signal to back off, not to rotate IPs and retry harder.</li>
+      <li><strong>robots.txt changes</strong> — a site may newly disallow a path you're mid-crawl on. The 24-hour cache bounds the damage; the frontier re-checks eligibility before dispatch.</li>
+      <li><strong>Duplicate hosts</strong> — <code>example.com</code> vs <code>www.example.com</code> vs <code>m.example.com</code> serving the same content. Canonical host normalization plus content-dedup catches it; without it you crawl the same site three times.</li>
+    </ul>
+
+    <div class="green-box">
+      <p><strong>Senior-room summary of §8:</strong> every failure mode is the frontier's <em>budget</em> being stolen — by infinity (traps), by identity confusion (session IDs), by decay (staleness), or by a bully (hot domains). The architecture's answer is always the same shape: caps, canonicalization, adaptive scheduling, and treating anomalies as signals instead of noise.</p>
+    </div>
+  </section>
+
+  <section id="lab">
+    <div class="section-head"><span class="section-num">09</span><h2>Interactive labs: politeness throttle + Bloom filter sizing</h2></div>
+    <p class="lede">Two simulators. The first proves <em>why</em> the frontier is partitioned by host; the second sizes the dedup filter from §5 with your own numbers. Everything runs in this page.</p>
+
+    <div class="lab">
+      <h3>Lab A — The politeness throttle</h3>
+      <p class="howto">Crawl <strong>10,000 pages</strong> spread evenly across <strong>N domains</strong>. The <strong>polite</strong> crawler waits <em>delay</em> seconds between fetches to the <em>same</em> domain (per-host serialization — the §4 design); the <strong>impolite</strong> crawler ignores per-host limits and fetches with 50 parallel workers. Each fetch takes 0.25 s of network time either way. Watch what happens as you change the number of domains.</p>
+      <div class="slider-row">
+        <label for="numDomains">Number of domains</label>
+        <input type="range" id="numDomains" min="1" max="200" value="20" step="1">
+        <output id="numDomainsOut">20</output>
+      </div>
+      <div class="slider-row">
+        <label for="politeDelay">Per-host delay (seconds)</label>
+        <input type="range" id="politeDelay" min="0" max="3" value="1" step="0.1">
+        <output id="politeDelayOut">1.0 s</output>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="runPolite">Run simulation</button>
+      </div>
+      <div class="bars">
+        <div class="bar-row"><div class="bar-label">Polite</div><div class="bar-track"><div class="bar-fill" id="politeBar" style="width:0%"></div></div><div class="bar-val" id="politeBarVal">–</div></div>
+        <div class="bar-row"><div class="bar-label">Impolite</div><div class="bar-track"><div class="bar-fill impolite" id="impoliteBar" style="width:0%"></div></div><div class="bar-val" id="impoliteBarVal">–</div></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Polite wall time</div><div class="score" id="statPoliteTime">–</div></div>
+        <div class="stat"><div class="node-name">Polite throughput</div><div class="score" id="statPoliteRate">–</div></div>
+        <div class="stat"><div class="node-name">Impolite wall time</div><div class="score" id="statImpoliteTime">–</div></div>
+        <div class="stat"><div class="node-name">Politeness cost</div><div class="score" id="statPenalty">–</div><span class="badge warn" id="statPoliteBadge">–</span></div>
+      </div>
+      <div class="log" id="politeLog"><div><span class="t">[politeness]</span> Set domains and delay, then press <em>Run simulation</em>.</div></div>
+    </div>
+
+    <div class="lab">
+      <h3>Lab B — Bloom filter sizing</h3>
+      <p class="howto">Size the seen-URL Bloom filter from §5. Enter how many URLs to store and the false-positive rate you can tolerate. Formulas: <code>m = −(n · ln p) / (ln 2)²</code> bits, <code>k = (m/n) · ln 2</code> hash functions.</p>
+      <div class="slider-row">
+        <label for="bloomN">URLs to store (n)</label>
+        <input type="range" id="bloomN" min="6" max="9" value="9" step="1">
+        <output id="bloomNOut">1,000,000,000</output>
+      </div>
+      <div class="controls" id="bloomPresets">
+        <button class="btn" data-n="6">1M</button>
+        <button class="btn" data-n="7">10M</button>
+        <button class="btn" data-n="8">100M</button>
+        <button class="btn on" data-n="9">1B</button>
+      </div>
+      <div class="slider-row">
+        <label for="bloomP">Target false-positive rate</label>
+        <input type="range" id="bloomP" min="0" max="4" value="1" step="1">
+        <output id="bloomPOut">1%</output>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Bits required</div><div class="score" id="statBloomBits">–</div></div>
+        <div class="stat"><div class="node-name">Memory</div><div class="score" id="statBloomMem">–</div></div>
+        <div class="stat"><div class="node-name">Hash functions (k)</div><div class="score" id="statBloomK">–</div></div>
+        <div class="stat"><div class="node-name">vs hash set (~40 B/URL)</div><div class="score" id="statBloomVs">–</div><span class="badge ok" id="statBloomBadge">fits in RAM</span></div>
+      </div>
+      <p style="color:var(--muted);font-size:.92rem;max-width:none;">Try it: drop the FP rate to 0.001% and watch memory grow ~2× per extra 9 of precision — that's the log in the formula. Then compare against a plain hash set at ~40 bytes/URL to feel the 30×+ savings.</p>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">10</span><h2>Q&amp;A with full model answers</h2></div>
+    <p class="lede">Four questions this design reliably produces in senior rooms — each with the complete answer you'd give, not a hint.</p>
+
+    <div class="qa">
+      <div class="question">
+        <div class="qnum">Q1 · Core</div>
+        <div class="qtext">How do you avoid fetching the same page twice?</div>
+        <div class="context">They're testing whether you see dedup as a layered funnel, not a single trick.</div>
+        <div class="answer">
+          <p>Three levels, cheapest first:</p>
+          <ol>
+            <li><strong>URL dedup before the fetch.</strong> Canonicalize the URL (lowercase host, drop default port and fragment, sort query params, strip tracking/session params), then check a Bloom filter: 1B URLs at 1% false-positive = ~1.2 GB, 7 hash functions — small enough to live in RAM on every fetcher box and answer ~580K checks/sec with no network hop. The 1% false-positive cost is occasionally skipping a new URL, which seed rediscovery mostly heals.</li>
+            <li><strong>Exact content dedup after the fetch.</strong> SHA-256 the normalized page text; identical fingerprint = identical page, even across different URLs (mirrors, HTTP/HTTPS twins). Drop the page — but still harvest its outlinks, since duplicates can link to new pages.</li>
+            <li><strong>Near-dup detection.</strong> Shingle the text into 5-word windows, MinHash each document into a short signature, and bucket similar signatures together. Syndicated articles with rewritten headlines share ~90% of shingles — store one canonical copy, record the rest as duplicates.</li>
+          </ol>
+          <p>The one-liner: <strong>canonicalize → Bloom filter (seen URL?) → fetch → SHA-256 (exact dupe?) → MinHash (near dupe?) — a funnel where each stage is cheaper than the failure it prevents.</strong></p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2 · Core</div>
+        <div class="qtext">How do you stay polite to websites?</div>
+        <div class="context">The constraint question — they want the mechanisms named, in priority order.</div>
+        <div class="answer">
+          <ol>
+            <li><strong>Structure first:</strong> the frontier is partitioned by host (§4) — per-host queues drained round-robin — so hammering one site is impossible by construction, not by discipline.</li>
+            <li><strong>robots.txt:</strong> fetched and cached (~24 h) per host; <code>Disallow</code> paths are filtered at the frontier before a fetcher ever sees them; <code>Crawl-delay</code> becomes that host's politeness delay.</li>
+            <li><strong>Per-host delay:</strong> a mandatory gap (default ~1 s) between fetches to the same host, enforced via last-fetch timestamps — eligibility, not timers.</li>
+            <li><strong>Backoff:</strong> 429 or repeated 5xx triggers exponential backoff with jitter, escalating to whole-host dormancy. A struggling server gets fewer requests, not retries.</li>
+            <li><strong>Identification:</strong> a honest User-Agent with a contact URL, so site owners can reach you — anonymous bots get blocked first.</li>
+          </ol>
+          <p>Close with the framing line: <em>"Politeness is a hard constraint on the optimization, not a term in it. I'd rather crawl 900M pages and keep every site's trust than 1B pages and get banned by the sites that matter."</em></p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3 · Senior depth</div>
+        <div class="qtext">How would you scale from 12K to 100K fetches/sec?</div>
+        <div class="context">The "what breaks at 10×" question. They want the specific bottlenecks, not "add more servers."</div>
+        <div class="answer">
+          <ol>
+            <li><strong>Fetchers scale horizontally — they're stateless.</strong> At ~25 fetches/sec per worker (politeness-bound, not CPU-bound), 100K/sec needs ~4,000 workers. The question is what <em>doesn't</em> scale with them.</li>
+            <li><strong>Bandwidth: 100K × 500 KB = 50 GB/s.</strong> No single region egresses that; the fetcher fleet must spread across regions, and politeness now spans regions too — the per-host delay must be enforced <em>globally</em> (a shared per-host last-fetch timestamp in the frontier shard, not per-region memory), or three regions will triple-hit every host.</li>
+            <li><strong>DNS: ~1K fresh lookups/sec</strong> at this scale — the custom resolver fleet (§7) becomes a first-class service with its own capacity planning, not a library.</li>
+            <li><strong>The frontier's write rate:</strong> 100K fetches/sec × 50 outlinks = 5M URL discoveries/sec hitting the Bloom filter and frontier shards. The Bloom filter is still fine (RAM-speed); the frontier needs more shards — <code>hash(domain)</code> re-partitioning is the designed escape hatch.</li>
+            <li><strong>Crawl DB writes</strong> (URL → state at 100K/sec) need a sharded KV store with batched writes; per-URL synchronous writes would serialize the pipeline.</li>
+          </ol>
+          <p>The trap to dodge: <em>don't</em> shard politeness state per region — a per-host delay enforced in three places is a per-host delay enforced nowhere. The senior answer names exactly one new global coordination point (the frontier's per-host timestamps) and keeps everything else embarrassingly parallel.</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4 · Senior depth</div>
+        <div class="qtext">How do you keep the index fresh without re-crawling everything?</div>
+        <div class="context">They're checking that freshness is a scheduling problem in your head, not a speed problem.</div>
+        <div class="answer">
+          <ol>
+            <li><strong>Adaptive revisit scheduling:</strong> track each page's observed change frequency; revisit proportionally — news homepages hourly, blogs daily, reference pages monthly. Pages that changed 10 fetches running get revisited sooner; pages unchanged for a year get revisited later. The frontier's priority score already carries freshness debt (§4) — this is what feeds it.</li>
+            <li><strong>Conditional GET:</strong> on revisit, send <code>If-None-Match</code> (ETag) / <code>If-Modified-Since</code>. A <code>304 Not Modified</code> verifies freshness for ~1 KB instead of re-downloading 500 KB. Most of the web rarely changes — this is where the bandwidth budget is actually saved.</li>
+            <li><strong>Sitemap <code>lastmod</code>:</strong> hosts that publish sitemaps tell you exactly what changed — ingest them as high-priority frontier seeds instead of discovering changes by re-fetching.</li>
+            <li><strong>Change detection feedback loop:</strong> compare each fetch against the stored copy (the SHA-256 from §5 doubles as the change detector). The measured change rate tunes the next revisit — the schedule learns.</li>
+          </ol>
+          <p>The framing line: <em>"I don't crawl faster — I crawl smarter. Freshness per unit of crawl budget is the metric; conditional GET and adaptive scheduling are how you maximize it."</em></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">11</span><h2>Practice drills (untimed)</h2></div>
+    <p class="lede">Three drills. Work them on paper or in your head, then check the rubric — the rubric is the lesson.</p>
+
+    <div class="question">
+      <div class="qnum">Drill 1</div>
+      <div class="qtext">Size the fetcher fleet.</div>
+      <div class="context">Given: 12K fetches/sec sustained, each fetcher worker sustains 25 fetches/sec (politeness-bound), average page 500 KB. Compute (a) workers needed, (b) aggregate download bandwidth, (c) the first thing that breaks if traffic spikes 3× and your one fix.</div>
+      <details class="reveal"><summary>Rubric — what a good answer contains</summary><div class="body">
+        <ul>
+          <li>(a) 12,000 ÷ 25 = <strong>480 workers</strong> — plus headroom for peaks and failures, so provision ~700–1,000.</li>
+          <li>(b) 12,000 × 500 KB = <strong>6 GB/s</strong> sustained egress download, spread across regions.</li>
+          <li>(c) The <strong>DNS resolver fleet</strong> breaks first — or the per-host politeness state if it's kept in worker-local memory (3× traffic means 3× the chance two workers hit the same host simultaneously). The fix: global per-host last-fetch timestamps in the frontier shards (shared, not per-worker), and a resolver fleet sized for the spike with headroom — name both, since one is state and the other is capacity.</li>
+          <li>Senior bonus: note the workers are <em>politeness-bound, not CPU-bound</em> — adding workers past the politeness limit of your host mix buys nothing. Fleet size follows from the delay math, not from core counts.</li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Drill 2</div>
+      <div class="qtext">Design the trap guard.</div>
+      <div class="context">A club site has <code>/archive?page=N</code> with a "next" link on every page — N runs to 40 million. Your crawler is happily fetching page 3,000,000. Specify the exact layered defense that stops the bleeding, and where each layer lives.</div>
+      <details class="reveal"><summary>Rubric — what a good answer contains</summary><div class="body">
+        <ul>
+          <li><strong>Canonicalization + content dedup as tripwire (parser/dedup stage):</strong> archive pages are near-duplicates — when a host's checksum-repeat rate spikes, quarantine the subtree: stop expanding its outlinks into the frontier.</li>
+          <li><strong>Query-parameter budget (URL extractor):</strong> cap parameters per URL and reject unseen parameter combinations on that host — infinite spaces live in query strings.</li>
+          <li><strong>Max depth + max URLs per host (frontier / crawl budget):</strong> hard caps; the host's 10-millionth URL is a trap until proven otherwise.</li>
+          <li><strong>Pattern blacklist (operator tooling):</strong> learned pattern <code>/archive?page=*</code> goes on a denylist after the first incident.</li>
+          <li>Senior bonus: order matters — the tripwire <em>detects</em>, the budget <em>bounds the damage</em>, the blacklist <em>prevents recurrence</em>. A good answer names all three roles, not just three mechanisms.</li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Drill 3</div>
+      <div class="qtext">Price the false positives.</div>
+      <div class="context">Your seen-URL Bloom filter holds 1B URLs. Compare 1% vs 0.1% false-positive rates: compute the memory for each, then argue which you'd ship and why.</div>
+      <details class="reveal"><summary>Rubric — what a good answer contains</summary><div class="body">
+        <ul>
+          <li><strong>1%:</strong> m = −(1e9 × ln 0.01)/(ln 2)² ≈ 9.59e9 bits ≈ <strong>1.2 GB</strong>, k = 7.</li>
+          <li><strong>0.1%:</strong> m = −(1e9 × ln 0.001)/(ln 2)² ≈ 1.44e10 bits ≈ <strong>1.8 GB</strong>, k = 10. (Each extra 9 of precision costs ~50% more memory — the log in the formula.)</li>
+          <li><strong>Ship 1%:</strong> a false positive means skipping one genuinely new URL per hundred checks of unseen URLs — but most checks are <em>repeat</em> URLs (correctly filtered), so the real miss rate is far lower, and missed pages are rediscovered via seeds and sitemaps on later crawls. The 0.6 GB saved per box × thousands of boxes is real money for a mostly self-healing cost.</li>
+          <li>Senior bonus: mention the <em>asymmetric</em> cost — false negatives are impossible, so the filter can only ever <em>under</em>-crawl, never corrupt. That asymmetry is what makes an aggressive FP rate safe.</li>
+        </ul>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">12</span><h2>Cheat sheet &amp; 60-second framing</h2></div>
+    <p class="lede">If the lesson evaporates under pressure, keep this page.</p>
+
+    <div class="cheatsheet">
+      <h3>The six decisions</h3>
+      <ol>
+        <li><strong>Partition the frontier by host:</strong> <code>hash(domain)</code> → per-host priority queues, drained round-robin. Politeness becomes structural; FIFO is how you get banned.</li>
+        <li><strong>Score every URL:</strong> priority = importance (in-link count) + freshness debt − depth. Crawl budget caps per-host spend; junk pages steal budget from pages that changed.</li>
+        <li><strong>Dedup as a funnel:</strong> canonicalize → Bloom filter (1.2 GB, 7 hashes, 1% FP for 1B URLs) → SHA-256 exact → MinHash near-dup. Cheapest test first; harvest outlinks even from duplicates.</li>
+        <li><strong>Politeness is the constraint:</strong> robots.txt cached per host, per-host delay (crawl-delay or ~1 s default), exponential backoff with jitter on 429/5xx, honest User-Agent. Speed never trades against it.</li>
+        <li><strong>Fetchers are stateless; the hidden costs aren't:</strong> custom DNS fleet (the first bottleneck), per-host keep-alive connection pools, conditional GET (ETag/Last-Modified → 304) for cheap freshness.</li>
+        <li><strong>Budget thieves get layered defenses:</strong> crawler traps die on dedup tripwires + depth/URL caps + param budgets + pattern blacklists; staleness dies on adaptive revisit scheduling; hot domains die on queue caps + priority aging.</li>
+      </ol>
+    </div>
+
+    <div class="framing">
+      <p><strong>The 60-second framing (say this first, then take questions):</strong></p>
+      <p>"A web crawler is a discovery loop: seeds feed a URL frontier, stateless fetchers download pages, a parser extracts links, dedup drops the copies, and new URLs loop back. At a billion pages a day that's 12K fetches a second and 6 GB/s of download — but throughput is the easy part. The two hard parts are the frontier and politeness. The frontier is partitioned by host with per-host priority queues drained round-robin, so hammering a site is impossible by construction; URLs are scored by importance, freshness debt, and depth, and each host gets a crawl budget. Dedup is a funnel — canonicalize, then a 1.2 GB Bloom filter for 1B URLs at 1% false positives, then SHA-256 for exact dupes and MinHash for near-dupes. Politeness is a hard constraint: robots.txt, per-host delays, exponential backoff on 429s, and an honest User-Agent. For freshness I'd schedule revisits adaptively by observed change rate and use conditional GET, so a 304 replaces most re-downloads. And crawler traps — infinite calendar URLs — die on dedup tripwires plus depth and per-host caps."</p>
+    </div>
+
+    <div class="green-box">
+      <p><strong>Bug bar check — would you reach for Google after this lesson?</strong> If "why not FIFO" is fuzzy, re-read §4's two failures (hammering + no priority) — then run Lab A at 1 domain vs 200 and feel the per-host serialization. If the Bloom filter math feels like magic, re-derive it in Lab B: change n and p and watch the log in the formula move memory. If "politeness as structure" doesn't click, ask: with per-host queues and round-robin draining, what scheduling decision could possibly hit one host twice in a row? None — that's the point.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Lesson 20 · Part of the daily system design series. <a href="../index.html">← All lessons</a></p>
+  </footer>
+</div>
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- Pure logic (testable) ---------- */
+  var TOTAL_PAGES = 10000;
+  var FETCH_LATENCY_SEC = 0.25;   // network time per fetch, polite or not
+  var IMPOLITE_WORKERS = 50;
+
+  function politeModel(totalPages, numDomains, delaySec, latencySec) {
+    // Per-host serialization: each domain's pages fetched one at a time,
+    // spaced by delaySec + latencySec; domains run in parallel.
+    var pagesPerHost = totalPages / numDomains;
+    var perFetch = delaySec + latencySec;
+    var wallSec = pagesPerHost * perFetch;
+    return { wallSec: wallSec, rate: totalPages / wallSec, pagesPerHost: pagesPerHost };
+  }
+  function impoliteModel(totalPages, workers, latencySec) {
+    // No per-host limit: workers × latency-bounded throughput.
+    var wallSec = totalPages * latencySec / workers;
+    return { wallSec: wallSec, rate: totalPages / wallSec };
+  }
+  function bloomParams(n, p) {
+    var ln2 = Math.log(2);
+    var m = -n * Math.log(p) / (ln2 * ln2);   // bits
+    var k = Math.round((m / n) * ln2);        // hash functions
+    return { bits: m, bytes: m / 8, k: k };
+  }
+  function fmtDuration(sec) {
+    if (sec < 60) return sec.toFixed(1) + 's';
+    var m = Math.floor(sec / 60), s = sec - m * 60;
+    if (m < 60) return m + 'm ' + s.toFixed(0) + 's';
+    var h = Math.floor(m / 60);
+    return h + 'h ' + (m - h * 60) + 'm ' + s.toFixed(0) + 's';
+  }
+  function fmtMem(bytes) {
+    if (bytes >= 1e9) return (bytes / 1e9).toFixed(2) + ' GB';
+    if (bytes >= 1e6) return (bytes / 1e6).toFixed(2) + ' MB';
+    if (bytes >= 1e3) return (bytes / 1e3).toFixed(1) + ' KB';
+    return bytes.toFixed(0) + ' B';
+  }
+  function fmtNum(n) {
+    return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  /* ---------- Lab A: politeness throttle ---------- */
+  function runPoliteSim() {
+    var domains = parseInt(document.getElementById('numDomains').value, 10);
+    var delay = parseFloat(document.getElementById('politeDelay').value);
+    var polite = politeModel(TOTAL_PAGES, domains, delay, FETCH_LATENCY_SEC);
+    var rude = impoliteModel(TOTAL_PAGES, IMPOLITE_WORKERS, FETCH_LATENCY_SEC);
+    var penalty = polite.wallSec / rude.wallSec;
+
+    document.getElementById('statPoliteTime').textContent = fmtDuration(polite.wallSec);
+    document.getElementById('statPoliteRate').textContent = polite.rate.toFixed(1) + '/s';
+    document.getElementById('statImpoliteTime').textContent = fmtDuration(rude.wallSec);
+    document.getElementById('statPenalty').textContent = penalty.toFixed(1) + '×';
+
+    var maxT = Math.max(polite.wallSec, rude.wallSec);
+    document.getElementById('politeBar').style.width = (100 * polite.wallSec / maxT).toFixed(1) + '%';
+    document.getElementById('impoliteBar').style.width = Math.max(1, 100 * rude.wallSec / maxT).toFixed(1) + '%';
+    document.getElementById('politeBarVal').textContent = fmtDuration(polite.wallSec);
+    document.getElementById('impoliteBarVal').textContent = fmtDuration(rude.wallSec);
+
+    var badge = document.getElementById('statPoliteBadge');
+    if (penalty < 2) { badge.textContent = 'cheap politeness'; badge.className = 'badge ok'; }
+    else if (penalty < 10) { badge.textContent = 'politeness costs'; badge.className = 'badge warn'; }
+    else { badge.textContent = 'host-starved'; badge.className = 'badge bad'; }
+
+    var log = document.getElementById('politeLog');
+    log.innerHTML = '';
+    function line(html) {
+      var div = document.createElement('div');
+      div.innerHTML = html;
+      log.appendChild(div);
+    }
+    line('<span class="t">[setup]</span> 10,000 pages ÷ ' + domains + ' domains = ' +
+      polite.pagesPerHost.toFixed(1) + ' pages/host · delay ' + delay.toFixed(1) + 's · fetch 0.25s');
+    line('<span class="t">[polite]</span> each host serial: ' + polite.pagesPerHost.toFixed(0) +
+      ' × ' + (delay + FETCH_LATENCY_SEC).toFixed(2) + 's = <span class="good">' +
+      fmtDuration(polite.wallSec) + '</span> wall · ' + polite.rate.toFixed(1) + ' fetches/s');
+    line('<span class="t">[rude]</span> 50 workers × 0.25s, no per-host limit: <span class="bad">' +
+      fmtDuration(rude.wallSec) + '</span> wall · ' + rude.rate.toFixed(0) + ' fetches/s');
+    line('<span class="t">[verdict]</span> politeness costs ' + penalty.toFixed(1) +
+      '× here — but the rude crawler hammers each host with ' +
+      (rude.rate / domains).toFixed(1) + ' fetches/s/host. At ' + domains +
+      ' domains that is a ban, not a crawl.');
+    log.scrollTop = log.scrollHeight;
+
+    // breadth table: same delay, varying domain counts
+    [1, 5, 20, 50, 200].forEach(function (d) {
+      var m = politeModel(TOTAL_PAGES, d, delay, FETCH_LATENCY_SEC);
+      line('<span class="t">[breadth]</span> ' + d + ' domains → ' + fmtDuration(m.wallSec) +
+        ' (' + m.rate.toFixed(1) + '/s)');
+    });
+    log.scrollTop = log.scrollHeight;
+  }
+
+  /* ---------- Lab B: Bloom filter sizing ---------- */
+  var FP_STEPS = [0.1, 0.01, 0.001, 0.0001, 0.00001];
+  var FP_LABELS = ['10%', '1%', '0.1%', '0.01%', '0.001%'];
+  function updateBloom() {
+    var n = Math.pow(10, parseInt(document.getElementById('bloomN').value, 10));
+    var pIdx = parseInt(document.getElementById('bloomP').value, 10);
+    var p = FP_STEPS[pIdx];
+    document.getElementById('bloomNOut').textContent = fmtNum(n);
+    document.getElementById('bloomPOut').textContent = FP_LABELS[pIdx];
+    var r = bloomParams(n, p);
+    document.getElementById('statBloomBits').textContent = r.bits.toExponential(2);
+    document.getElementById('statBloomMem').textContent = fmtMem(r.bytes);
+    document.getElementById('statBloomK').textContent = r.k;
+    var hashsetBytes = n * 40;
+    document.getElementById('statBloomVs').textContent = (hashsetBytes / r.bytes).toFixed(0) + '× smaller';
+    var badge = document.getElementById('statBloomBadge');
+    if (r.bytes < 4e9) { badge.textContent = 'fits in RAM'; badge.className = 'badge ok'; }
+    else { badge.textContent = 'too big per box'; badge.className = 'badge bad'; }
+  }
+
+  /* ---------- wire up ---------- */
+  var domainsEl = document.getElementById('numDomains');
+  var delayEl = document.getElementById('politeDelay');
+  domainsEl.addEventListener('input', function () {
+    document.getElementById('numDomainsOut').textContent = domainsEl.value;
+  });
+  delayEl.addEventListener('input', function () {
+    document.getElementById('politeDelayOut').textContent = parseFloat(delayEl.value).toFixed(1) + ' s';
+  });
+  document.getElementById('runPolite').addEventListener('click', runPoliteSim);
+
+  var bloomNEl = document.getElementById('bloomN');
+  var bloomPEl = document.getElementById('bloomP');
+  bloomNEl.addEventListener('input', function () {
+    document.getElementById('bloomNOut').textContent = fmtNum(Math.pow(10, parseInt(bloomNEl.value, 10)));
+    syncBloomPresets();
+    updateBloom();
+  });
+  bloomPEl.addEventListener('input', updateBloom);
+  function syncBloomPresets() {
+    var btns = document.getElementById('bloomPresets').querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      if (btns[i].getAttribute('data-n') === bloomNEl.value) btns[i].classList.add('on');
+      else btns[i].classList.remove('on');
+    }
+  }
+  (function () {
+    var btns = document.getElementById('bloomPresets').querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      (function (b) {
+        b.addEventListener('click', function () {
+          bloomNEl.value = b.getAttribute('data-n');
+          syncBloomPresets();
+          updateBloom();
+        });
+      })(btns[i]);
+    }
+  })();
+
+  // init
+  runPoliteSim();
+  updateBloom();
+
+  // expose for smoke tests
+  window.__lesson = {
+    politeModel: politeModel, impoliteModel: impoliteModel, bloomParams: bloomParams,
+    fmtDuration: fmtDuration, fmtMem: fmtMem, fmtNum: fmtNum,
+    TOTAL_PAGES: TOTAL_PAGES, FETCH_LATENCY_SEC: FETCH_LATENCY_SEC, IMPOLITE_WORKERS: IMPOLITE_WORKERS
+  };
+})();
+</script>
+</body>
+</html>
