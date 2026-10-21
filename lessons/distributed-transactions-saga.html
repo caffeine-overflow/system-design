@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Distributed Transactions &amp; the Saga Pattern</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 260px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .log .good { color: #7fd8a8; }
+    .log .bad { color: #ff8f7d; }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .bars { margin: 16px 0; }
+    .bar-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+    .bar-row .bar-label { min-width: 130px; font-weight: 600; font-size: .92rem; }
+    .bar-track { flex: 1; height: 22px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 11px; background: var(--blue); }
+    .bar-fill.impolite { background: var(--accent); }
+    .bar-row .bar-val { min-width: 110px; font-family: "IBM Plex Mono", monospace; font-size: .85rem; }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .cheatsheet {
+      background: var(--surface); border: 2px solid var(--ink);
+      border-radius: var(--radius); padding: 22px 24px; margin: 24px 0; max-width: 46rem;
+    }
+    .cheatsheet h3 { margin: 0 0 10px; }
+    .cheatsheet ol { max-width: none; }
+    .framing {
+      border-left: 4px solid var(--purple); background: var(--purple-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .framing p { margin: 8px 0; max-width: none; }
+    footer { margin-top: 60px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 20px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <p class="crumbs"><a href="../index.html">All lessons</a> · Lesson 21</p>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 21 · Advanced trade-off</span>
+    <h1>Distributed Transactions &amp; the Saga Pattern</h1>
+    <p class="whyline">One checkout, three databases: the seat gets reserved in one service, the card is charged in another, the confirmation goes out from a third. If the charge fails after the seat is reserved, you can't leave the books half-written — but there is no shared transaction to roll back. Two-phase commit is the textbook answer and the production trap; the saga pattern is what the industry actually runs.</p>
+    <div class="meta">
+      <span>Advanced trade-off</span>
+      <span>2PC · Saga · Compensations · Outbox</span>
+      <span>~45 min read + labs</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#what">What is a distributed transaction? — the definition from zero</a></li>
+      <li><a href="#two-phase-commit">The textbook answer: two-phase commit (2PC)</a></li>
+      <li><a href="#saga">The saga pattern — from zero</a></li>
+      <li><a href="#compensations">Compensating transactions are not rollbacks</a></li>
+      <li><a href="#outbox">Making sagas survivable: the transactional outbox</a></li>
+      <li><a href="#lab-saga">Interactive lab A: the saga orchestrator simulator</a></li>
+      <li><a href="#lab-2pc">Interactive lab B: the 2PC blocking demo</a></li>
+      <li><a href="#spectrum">The industry spectrum: how people actually avoid the problem</a></li>
+      <li><a href="#qa">Q&amp;A with full model answers</a></li>
+      <li><a href="#drills">Practice drills (untimed)</a></li>
+      <li><a href="#cheatsheet">Cheat sheet &amp; 60-second framing</a></li>
+    </ol>
+  </nav>
+
+  <section id="what">
+    <div class="section-head"><span class="section-num">01</span><h2>What is a distributed transaction?</h2></div>
+    <p class="lede">The whole lesson in one scene: a fan buys a season ticket on the Riverside FC app. One tap must do three things — reserve seat 14B in the <span class="term">Seats</span> service, charge $240 in the <span class="term">Payments</span> service, and send the confirmation from the <span class="term">Notifications</span> service. Each service owns its own database. What does "all or nothing" mean when there is no single database to roll back?</p>
+
+    <div class="definition">
+      <strong class="term">Distributed transaction</strong>
+      <p>A business transaction that writes to <strong>two or more independent data stores</strong>, and must either commit in all of them or in none of them. "Independent" is doing all the work in that sentence: each store has its own storage engine, its own failure modes, and no shared undo log with the others.</p>
+    </div>
+
+    <h3>ACID, from zero</h3>
+    <p>Inside one database you get four guarantees so cheaply you forget they're there — the acronym is <span class="term">ACID</span>:</p>
+    <ul>
+      <li><strong>Atomicity</strong> — all or nothing. <code>BEGIN; UPDATE seats …; UPDATE payments …; COMMIT;</code> Either both writes land or neither does. A crash halfway is not a half-written ticket.</li>
+      <li><strong>Consistency</strong> — the data's rules hold. Foreign keys, check constraints, "a seat can't be reserved twice" — the database refuses to commit a state that breaks them.</li>
+      <li><strong>Isolation</strong> — no peeking mid-flight. While your transaction runs, other readers see either the before-state or the after-state, never the half-written middle.</li>
+      <li><strong>Durability</strong> — once committed, it survives a crash. The write is on disk (write-ahead log) before the database says "done".</li>
+    </ul>
+    <p>One database, one transaction, ACID for free. That's the baseline every alternative in this lesson is compared against.</p>
+
+    <h3>What microservices break</h3>
+    <p>Microservices exist precisely to give each team its own database — independent deploys, independent scaling, no shared schema to coordinate. But that ownership draws a hard line around each transaction: <strong>a transaction cannot cross a database boundary</strong>. When the season-ticket checkout needs seats + payments + notifications to agree, you're outside ACID's jurisdiction.</p>
+    <p>The failure you're defending against is the <span class="term">partial write</span>: seat 14B reserved, card charged, confirmation email lost to a crash — or worse, card charged, seat <em>not</em> reserved, and a very angry fan. Every pattern in this lesson is a different answer to the same question: <strong>who restores "all or nothing" when the database can't?</strong></p>
+
+    <div class="callout">
+      <h4>⚽ The soccer picture to keep</h4>
+      <p>Think of the three services as three match officials, each with their own notebook. The referee can't erase the linesman's notes — there's no shared eraser. If the fourth official's notebook blows away in the wind mid-decision, the other three have to agree on how to fix the record <em>using only their own notebooks</em>. Every distributed-transaction pattern is a rulebook for that agreement.</p>
+    </div>
+  </section>
+
+  <section id="two-phase-commit">
+    <div class="section-head"><span class="section-num">02</span><h2>The textbook answer: two-phase commit (2PC)</h2></div>
+    <p class="lede">The oldest answer is also the most literal: if you can't roll back together, at least <em>promise</em> together. Two-phase commit adds a referee — the <span class="term">transaction coordinator</span> (also called the transaction manager) — and splits every transaction into a promise phase and a commit phase.</p>
+
+    <h3>How it works, step by step</h3>
+    <p>Season-ticket checkout under 2PC, with the coordinator talking to three <span class="term">participants</span> (Seats, Payments, Notifications):</p>
+    <ol>
+      <li><strong>Phase 1 — prepare.</strong> The coordinator asks each participant: "Can you commit this?" Each one runs its checks (seat still free? card valid?), writes its intended change to a <em>durable prepare log</em> on its own disk, <strong>acquires the locks</strong> on the affected rows — and only then replies <code>YES</code>. A <code>NO</code> (or a timeout) from anyone kills the transaction.</li>
+      <li><strong>Phase 2 — commit or abort.</strong> If every participant voted yes, the coordinator durably records the decision, then tells everyone <code>COMMIT</code>. Each participant commits its prepared change and releases its locks. If anyone voted no, the coordinator sends <code>ABORT</code> and everyone discards its prepared change.</li>
+    </ol>
+    <p>The protocol's single honest idea: <strong>nobody commits until everybody has promised they can.</strong> The promise is durable (it's in the prepare log), so a participant crash after voting yes doesn't break anything — it replays its prepared state on recovery and waits for the coordinator's decision.</p>
+
+    <h3>The two fatal problems</h3>
+    <div class="warn-box">
+      <p><strong>Problem 1 — blocking.</strong> Between voting <code>YES</code> and hearing the decision, a participant holds its locks and <em>cannot decide on its own</em>. It promised. If the coordinator crashes in that window, every participant sits there — locks held, seat 14B frozen, other checkouts queuing behind it — until the coordinator comes back. Recovery can't be unilateral: the only safe fix is for participants to <em>agree</em> on what the coordinator would have decided, and agreeing after a crash is exactly the consensus problem from <a href="consensus-raft.html">Lesson 14</a>. 2PC buys atomicity and pays in availability.</p>
+      <p><strong>Problem 2 — the coordinator is a single point of failure, and the protocol is slow.</strong> Every transaction costs at least two cross-network round trips <em>plus</em> durable log writes before anything commits. At microservice scale, that's latency on the critical path and a component whose death freezes everyone mid-transaction.</p>
+    </div>
+    <p>This is why 2PC survives in exactly one habitat: <strong>inside a single vendor's cluster</strong> — a database's own replication, or the old <span class="term">XA</span> standard where one bank's mainframe coordinated one bank's databases, all under one operator's control. Across independently-operated services on the open network, the industry walked away from it decades ago. Try it in <a href="#lab-2pc">Lab B</a> — the blocking is not subtle.</p>
+
+    <div class="definition">
+      <strong class="term">Blocking protocol, defined</strong>
+      <p>A protocol is <em>blocking</em> if the failure of one component can leave the others unable to make progress, waiting indefinitely for it to recover. 2PC is the canonical example; the saga pattern in section 03 is explicitly designed to be <em>non-blocking</em>: every participant can always move forward — either to the next step or to a compensation.</p>
+    </div>
+  </section>
+
+  <section id="saga">
+    <div class="section-head"><span class="section-num">03</span><h2>The saga pattern — from zero</h2></div>
+    <p class="lede">The saga flips the problem. Instead of preventing partial failure with promises and locks, it <strong>accepts partial failure and designs the repair</strong>. A saga breaks one business transaction into a sequence of <span class="term">local transactions</span> — T1, T2, T3 — each atomic inside its own service's database. If T2 fails, the saga runs <span class="term">compensating transactions</span> — C1 — that semantically undo T1. Forward progress, never blocking.</p>
+
+    <div class="definition">
+      <strong class="term">Saga</strong>
+      <p>A sequence of local transactions (each with its own ACID guarantees) that together form one business transaction. Each step has a defined <em>compensating transaction</em> — a new write that semantically reverses the step's effect. On failure, compensations run in <strong>reverse order</strong> (C3, C2, C1), like unwinding a stack.</p>
+    </div>
+
+    <h3>The season ticket as a saga</h3>
+    <ul>
+      <li><strong>T1 — Reserve seat.</strong> Seats service marks 14B <code>reserved</code>. Compensation C1: release the seat.</li>
+      <li><strong>T2 — Charge card.</strong> Payments service charges $240. Compensation C2: refund $240.</li>
+      <li><strong>T3 — Confirm.</strong> Notifications service sends the email, order marked complete. Compensation C3: n/a — but see section 04 for why this step is last.</li>
+    </ul>
+    <p>If T2 fails (card declined), the saga runs C1 — releases the seat — and the order dies cleanly. No locks held across services, no coordinator to block on: each service only ever touches its own database.</p>
+
+    <h3>Two flavors: choreography vs orchestration</h3>
+    <p>The steps are the same; who <em>drives</em> differs.</p>
+    <ul>
+      <li><strong>Choreography — no boss, just events.</strong> Each service does its local transaction and publishes an event: <code>SeatReserved</code> → Payments hears it, charges, publishes <code>CardCharged</code> → Notifications hears it, sends the email. Nobody owns the whole flow; the business transaction <em>emerges</em> from services reacting to each other. Decoupled and simple for 2–3 steps — but try to answer "where is order #4821 right now?" and you're chasing events across logs. The compensation logic is also scattered: who decides a refund is owed lives in whoever heard the failure event.</li>
+      <li><strong>Orchestration — one conductor.</strong> A dedicated <span class="term">saga orchestrator</span> (a service, or a durable-workflow engine) issues commands — <em>ReserveSeat, then ChargeCard, then ConfirmOrder</em> — tracks the saga's state machine, and decides compensations when a step fails. The flow is explicit, inspectable, and debuggable: order #4821's state lives in one place. The price is a new service you must build, scale, and keep available — though note it can always make progress (retry, compensate), so its failure degrades rather than blocks.</li>
+    </ul>
+
+    <div class="callout">
+      <h4>Which one, in the room?</h4>
+      <p><strong>Few steps, stable flow, simple compensations → choreography.</strong> The coupling cost is low and there's no conductor to operate. <strong>Many steps, conditional branches, complex or conditional compensations, or any need for a dashboard/audit of "where is this order" → orchestration.</strong> At 5+ steps with branching, choreography's emergent flow becomes genuinely undebuggable — this is the single most common senior-level opinion to state plainly.</p>
+    </div>
+  </section>
+
+  <section id="compensations">
+    <div class="section-head"><span class="section-num">04</span><h2>Compensating transactions are not rollbacks</h2></div>
+    <p class="lede">This is the section that separates a junior answer ("then you roll back") from a senior one. A compensation is a <em>new write that semantically reverses the effect</em> — it never erases history the way a database rollback does.</p>
+
+    <h3>Four things that make compensations different</h3>
+    <ol>
+      <li><strong>They're semantic inverses, not bitwise inverses.</strong> <em>Reserve seat → release seat. Charge $240 → refund $240.</em> The ledger shows both movements; the audit trail sees a charge <em>and</em> a refund. A rollback pretends T1 never happened; a compensation admits it happened and repairs the world. (This is exactly what your bank statement shows you in real life — refunds are new lines, never deletions.)</li>
+      <li><strong>Some steps can't be compensated — so order them last.</strong> You cannot unsend an email, un-fire a webhook, or un-ship a package. The ordering rule: <strong>put irreversible or expensive-to-reverse steps last, cheap reversible steps first.</strong> In the ticket saga, the email goes last because its "compensation" is an embarrassing follow-up email. More generally: validate everything compensable before you touch anything irreversible.</li>
+      <li><strong>There is no isolation — design for the visible middle.</strong> Between T1 and T3, other readers see the intermediate state: the seat shows as reserved-but-unpaid. Unlike a database transaction, you cannot hide the middle. So model it explicitly: seat states like <code>reserving → reserved → confirmed</code>, order states like <code>pending_payment</code>, and make every UI/API treat them as first-class. The half-written state is not a bug you can lock away; it's a state your system must render correctly.</li>
+      <li><strong>Prefer forward recovery over backward compensation.</strong> If T3 (send email) fails with a transient SMTP error, the correct move is <em>retry T3</em> — not refund the fan and release their seat. Compensate only when the business outcome is actually dead (card declined, seat gone). This is a judgment call per step: <em>retryable infrastructure failure → retry; business-rule failure → compensate.</em></li>
+    </ol>
+
+    <div class="warn-box">
+      <p><strong>The compensation that fails.</strong> Compensations are writes, and writes can fail — the refund API is down while you're trying to refund. The rule: <strong>compensations must be retryable and idempotent</strong> (safe to run twice — refund with an idempotency key, release-seat as an idempotent state transition). Retry with backoff; if it still won't go, the saga parks the order in a <code>needs_manual_review</code> state and pages a human. The honest senior line: <em>sagas don't eliminate the unfixable case, they shrink it to a monitored queue instead of a frozen database.</em></p>
+    </div>
+  </section>
+
+  <section id="outbox">
+    <div class="section-head"><span class="section-num">05</span><h2>Making sagas survivable: the transactional outbox</h2></div>
+    <p class="lede">Sagas run on events and commands — which means the saga's weakest joint is the seam between <em>writing to the database</em> and <em>telling anyone about it</em>. Get this wrong and steps silently never happen.</p>
+
+    <h3>The atomicity trap, stated plainly</h3>
+    <p>Inside the Seats service, the naive code does two things:</p>
+    <pre>UPDATE seats SET status='reserved' WHERE id='14B';   -- write 1: the database
+publish("SeatReserved", {seat: "14B"});                  -- write 2: the broker</pre>
+    <p>Crash between the two and the seat is reserved but no event ever fires — the saga stalls with nobody notified. Swap the order (publish, then write) and a crash sends a phantom <code>SeatReserved</code> for a seat that was never reserved. <strong>Two writes, no atomicity</strong> — it is the distributed-transaction problem again, one level down.</p>
+
+    <h3>The outbox pattern, from zero</h3>
+    <div class="definition">
+      <strong class="term">Transactional outbox</strong>
+      <p>Instead of publishing directly, the service writes the event into an <code>outbox</code> table <strong>in the same local database transaction</strong> as the business write. One atomic commit covers both. A separate <span class="term">relay</span> process then reads unsent outbox rows, publishes them to the broker, and marks them sent.</p>
+    </div>
+    <pre>BEGIN;
+  UPDATE seats SET status='reserved' WHERE id='14B';
+  INSERT INTO outbox(event_id, type, payload) VALUES ('evt-991', 'SeatReserved', '{...}');
+COMMIT;   -- both or neither. This is the whole trick.</pre>
+    <p>The relay can be a simple poller (<code>SELECT … WHERE sent=false</code>) or log-based <span class="term">CDC</span> (change-data-capture, e.g. Debezium tailing the write-ahead log — no polling load on the database). Either way, crash-safety falls out naturally:</p>
+    <ul>
+      <li>Crash before commit → nothing happened, nothing published. Correct.</li>
+      <li>Crash after commit, before relay publishes → the outbox row is still <code>sent=false</code>; the relay publishes it on restart. Correct.</li>
+      <li>Crash after publish, before marking sent → the relay publishes <em>again</em>. Duplicate event — which is why the next paragraph exists.</li>
+    </ul>
+
+    <h3>Idempotent consumers close the loop</h3>
+    <p>The relay's contract is <strong>at-least-once delivery</strong> — the third case above makes duplicates possible by construction, and "exactly-once" across a database and a broker is not on offer (same impossibility flavor as Lesson 9's delivery semantics). So every consumer must be <span class="term">idempotent</span>: safe to process the same event twice. The standard recipe is an <code>event_id</code> primary key on the consumer side — <code>INSERT … ON CONFLICT DO NOTHING</code> — or a conditional state transition (<code>UPDATE … WHERE status='pending'</code>). <strong>At-least-once delivery + idempotent consumers = the only sane contract.</strong> Say that sentence verbatim in the room; it's the password.</p>
+
+    <div class="green-box">
+      <p><strong>Why this composes with everything you've learned:</strong> the outbox is Lesson 9's queue semantics applied to the producer side; the relay's polling/backoff is Lesson 11's territory; idempotency keys are the same idea as Lesson 13's fencing tokens — a unique token that makes a repeated operation safe. Distributed transactions aren't a new topic so much as the place where all the old topics meet.</p>
+    </div>
+  </section>
+
+  <section id="lab-saga">
+    <div class="section-head"><span class="section-num">06</span><h2>Interactive lab A: the saga orchestrator simulator</h2></div>
+    <p class="lede">Run the season-ticket checkout as a saga. Inject a failure at any step, switch between orchestration and choreography, and watch compensations unwind in reverse. Nothing is random — every run is fully determined by your choices, so poke each failure point deliberately.</p>
+
+    <div class="lab">
+      <h3>Checkout saga: Reserve seat → Charge card → Confirm + email</h3>
+      <p class="howto">Pick where the failure lands (or none), pick the driving style, then press <strong>Run checkout</strong>. Read the timeline like a match report — who did what, in what order, and what the fan sees.</p>
+      <div class="controls">
+        <label style="font-weight:600">Fail at:
+          <select id="saga-fail">
+            <option value="none">No failure (happy path)</option>
+            <option value="reserve">T1 · Reserve seat</option>
+            <option value="charge">T2 · Charge card</option>
+            <option value="confirm">T3 · Confirm + email</option>
+          </select>
+        </label>
+      </div>
+      <div class="controls">
+        <button class="btn on" id="saga-mode-orch">Orchestration</button>
+        <button class="btn" id="saga-mode-chor">Choreography</button>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="saga-run">Run checkout</button>
+        <button class="btn" id="saga-reset">Reset</button>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Final order state</div><div class="score" id="saga-outcome" style="font-size:1.05rem">—</div><span class="badge" id="saga-badge" style="display:none"></span></div>
+        <div class="stat"><div class="node-name">Steps run</div><div class="score" id="saga-steps">—</div></div>
+        <div class="stat"><div class="node-name">Compensations run</div><div class="score" id="saga-comp">—</div></div>
+      </div>
+      <div class="log" id="saga-log" aria-live="polite"><div><span class="t">[t0]</span> Press "Run checkout" to start the saga.</div></div>
+      <p style="color:var(--muted);font-size:.93rem;margin-top:12px" id="saga-note"></p>
+    </div>
+
+    <div class="callout">
+      <h4>What to notice</h4>
+      <ul>
+        <li><strong>Fail at T1:</strong> nothing to compensate — the saga dies before writing anything. This is why cheap reversible steps go first.</li>
+        <li><strong>Fail at T2:</strong> the seat was reserved, so C1 (release seat) runs. The fan sees "payment failed" — never a reserved seat with no payment.</li>
+        <li><strong>Fail at T3 (email):</strong> the orchestrator does <em>not</em> refund. Forward recovery: retry the email, because the business outcome (a paid, reserved seat) is exactly right. Refunding here would be the machine undoing a correct result.</li>
+        <li><strong>Choreography mode:</strong> same steps, but the timeline reads as services reacting to events instead of a conductor issuing commands. Ask yourself: if this were six steps with branches, where would you look to find order #4821's state?</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="lab-2pc">
+    <div class="section-head"><span class="section-num">07</span><h2>Interactive lab B: the 2PC blocking demo</h2></div>
+    <p class="lede">The same checkout, run under two-phase commit. Crash the coordinator at different moments and watch what happens to the participants — then run the identical crash against a saga and compare.</p>
+
+    <div class="lab">
+      <h3>2PC: coordinator + 3 participants (Seats, Payments, Notifications)</h3>
+      <p class="howto">Run the happy path first. Then crash the coordinator mid-protocol and try to get the participants unstuck without it.</p>
+      <div class="controls">
+        <button class="btn primary" id="tpc-happy">Happy-path commit</button>
+        <button class="btn" id="tpc-crash1">Crash coordinator: during prepare</button>
+        <button class="btn" id="tpc-crash2">Crash coordinator: after prepare</button>
+      </div>
+      <div class="controls">
+        <button class="btn" id="tpc-recover" disabled>Recover coordinator</button>
+        <button class="btn" id="tpc-saga" disabled>Same crash — run it as a saga instead</button>
+        <button class="btn" id="tpc-reset">Reset</button>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Participants blocked</div><div class="score" id="tpc-blocked">—</div></div>
+        <div class="stat"><div class="node-name">Ticks with locks held</div><div class="score" id="tpc-ticks">—</div></div>
+        <div class="stat"><div class="node-name">Outcome</div><div class="score" id="tpc-outcome" style="font-size:1.05rem">—</div></div>
+      </div>
+      <div class="log" id="tpc-log" aria-live="polite"><div><span class="t">[t0]</span> Coordinator is up. Participants are idle.</div></div>
+      <p style="color:var(--muted);font-size:.93rem;margin-top:12px" id="tpc-note"></p>
+    </div>
+
+    <div class="warn-box">
+      <p><strong>The takeaway, stated once:</strong> in both crash scenarios the participants did everything right — voted yes, wrote their prepare logs — and still froze, because the <em>decision</em> lives in exactly one place. That's the blocking tax. The saga version of the same crash never blocks: there is no decision to wait for, only the next step or a compensation.</p>
+    </div>
+  </section>
+
+  <section id="spectrum">
+    <div class="section-head"><span class="section-num">08</span><h2>The industry spectrum: how people actually avoid the problem</h2></div>
+    <p class="lede">Sagas are the workhorse, but the senior move is knowing the full menu — including the options that make the problem disappear before it starts.</p>
+
+    <h3>Option 0: don't have a distributed transaction</h3>
+    <p>The cheapest distributed transaction is the one you design away. Colocate data that must change atomically inside one service and one database — if two writes genuinely cannot tolerate a visible middle, they belong in the same local transaction. Split sagas along natural business seams, and accept eventual consistency wherever the business allows it (analytics, notifications, search indexes). Every cross-service transaction you avoid is 2PC's blocking tax and a saga's compensation graph you never have to build.</p>
+
+    <h3>Option 1: saga (choreography or orchestration)</h3>
+    <p>The default for cross-service business transactions: e-commerce checkout, booking flows, onboarding. Non-blocking, no distributed locks, compensations as first-class business logic. The cost is the visible middle (section 04) and the operational burden of the compensations themselves.</p>
+
+    <h3>Option 2: TCC — try / confirm / cancel</h3>
+    <div class="definition">
+      <strong class="term">TCC (Try–Confirm–Cancel)</strong>
+      <p>Each service exposes three operations: <strong>try</strong> (tentatively hold the resource — the airline "hold this seat for 15 minutes"), <strong>confirm</strong> (finalize all holds), <strong>cancel</strong> (release all holds). Like a saga where every step's "compensation" is designed in from the start as a first-class cancel, and the try-phase holds are time-bounded so nothing stays reserved forever.</p>
+    </div>
+    <p>TCC shines where business language already has "hold" in it — travel booking, ticket sales, inventory reservation. It's really a saga with a reservation-flavored vocabulary and TTLs on the tentative state.</p>
+
+    <h3>Option 3: 2PC — only inside one vendor's walls</h3>
+    <p>Keep it where the coordinator and participants share an operator, a network, and a pager rotation: a database's internal replication, XA across one company's mainframe databases. The moment the participants are independently deployed services, the blocking tax (Lab B) disqualifies it.</p>
+
+    <table class="cmp">
+      <tr><th>Approach</th><th>Atomicity guarantee</th><th>Isolation</th><th>Survives coordinator crash</th><th>When to reach for it</th></tr>
+      <tr><td>Single-DB transaction</td><td>True all-or-nothing</td><td>Full (locks)</td><td>Yes (WAL recovery)</td><td>Everything that fits in one database — always prefer this</td></tr>
+      <tr><td>2PC</td><td>True all-or-nothing</td><td>Full (locks, blocking)</td><td>No — participants block</td><td>Single-vendor clusters only</td></tr>
+      <tr><td>Saga, choreography</td><td>Eventual (via compensations)</td><td>None — visible middle</td><td>Yes — always forward progress</td><td>Few steps, stable flow, simple compensations</td></tr>
+      <tr><td>Saga, orchestration</td><td>Eventual (via compensations)</td><td>None — visible middle</td><td>Yes — orchestrator is retryable state</td><td>Many steps, branching, need a dashboard</td></tr>
+      <tr><td>TCC</td><td>Eventual (try→confirm/cancel)</td><td>Tentative holds with TTL</td><td>Yes — holds expire</td><td>Reservation-flavored domains (travel, tickets)</td></tr>
+    </table>
+
+    <div class="callout">
+      <h4>Where this shows up in real systems</h4>
+      <ul>
+        <li><strong>E-commerce checkout</strong> — orchestrated saga: reserve inventory → charge → arrange shipping, with release/refund/cancel compensations.</li>
+        <li><strong>Hotel + flight booking</strong> — TCC: hold both, confirm both, or cancel both; holds expire so a crashed client can't pin inventory forever.</li>
+        <li><strong>Durable orchestrators</strong> — workflow engines like Temporal/Cadence exist precisely to run saga orchestrators as crash-safe, event-sourced state machines: the orchestrator itself becomes the thing that can't be lost.</li>
+        <li><strong>Uber-style dispatch</strong> (Lesson 19) — saga-flavored: soft-reserve a driver with a TTL, confirm on accept, release on timeout. The TTL <em>is</em> the compensation for a lost message.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">09</span><h2>Q&amp;A with full model answers</h2></div>
+    <p class="lede">Read the question, form your own answer, then open the model answer and compare — especially the reasoning chain, not just the verdict.</p>
+
+    <div class="qa">
+      <div class="question">
+        <div class="qnum">Question 1 of 4</div>
+        <div class="qtext">Your checkout spans inventory, payment, and shipping. The business rule: never take the customer's money without a reserved item. Saga or 2PC — walk me through your choice.</div>
+        <details class="reveal"><summary>Model answer</summary><div class="body answer">
+          <p><strong>Saga, orchestrated — and 2PC is disqualified before we start.</strong> 2PC would give true atomicity, but its participants block holding locks if the coordinator crashes mid-protocol (Lab B), and it adds two round trips plus durable prepare-log writes to the checkout critical path. Across three independently deployed services, that's an availability and latency tax the business didn't ask for.</p>
+          <p><strong>Step order follows the reversibility rule:</strong> T1 reserve inventory (cheap to compensate: release the hold), T2 charge payment (compensable but expensive and customer-visible: refund), T3 create shipping label (irreversible-ish: cancel the label). Payment is never first — its compensation is a refund the customer actually sees on their statement.</p>
+          <p><strong>Failure handling:</strong> T1 fails → nothing to compensate, order dies. T2 fails (declined) → run C1, release the inventory hold. T3 fails → retry first (label APIs flake); only if the business outcome is dead do we refund + release. Every service-to-service handoff goes through the transactional outbox so no step is silently lost, and every consumer is idempotent on event ID because delivery is at-least-once.</p>
+          <p><strong>The one-line justification:</strong> the business needs <em>eventual</em> all-or-nothing with a correct visible middle, not <em>instant</em> all-or-nothing with blocking locks — that's exactly the saga's trade.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Question 2 of 4</div>
+        <div class="qtext">A saga's charge step succeeded but the confirmation step failed permanently. The customer was charged. What does your system do — and what does the customer see?</div>
+        <details class="reveal"><summary>Model answer</summary><div class="body answer">
+          <p><strong>Do not refund.</strong> The business outcome is correct — a paid, reserved seat — and refunding a good payment because a notification failed is the machine undoing a correct result. Compensations must follow business value, not mechanical reversal.</p>
+          <p><strong>What the system does:</strong> forward recovery first — the confirmation step is retryable (SMTP 5xx, template service down), so retry with backoff via the outbox relay. The order sits in an explicit intermediate state, <code>confirmed_unnotified</code>, which is a first-class state the system knows how to render. If retries exhaust, the order parks in a dead-letter/ops queue with an alert; a daily reconciliation job diffs "charged" against "notified" and catches anything the retries missed.</p>
+          <p><strong>What the customer sees:</strong> their order history shows "confirmed" — because it is confirmed. The email arrives late, or they see the confirmation in-app. What they must never see is a charge with no order, which is the failure mode this design exists to prevent.</p>
+          <p><strong>The general principle:</strong> distinguish <em>retryable infrastructure failure</em> (retry the step) from <em>business-rule failure</em> (compensate the saga). Most saga "failures" in production are the first kind.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Question 3 of 4</div>
+        <div class="qtext">Why can't the saga just lock the rows it touches until the whole thing completes?</div>
+        <details class="reveal"><summary>Model answer</summary><div class="body answer">
+          <p><strong>Because cross-database locks need a lock coordinator — and that coordinator is 2PC wearing a different hat.</strong> A lock held in the Seats database means nothing to the Payments database unless some protocol makes them agree on lock acquisition order, deadlock detection, and what happens when the lock holder crashes. Designing that protocol from scratch re-derives two-phase commit, blocking tax included.</p>
+          <p>The saga's entire point is trading isolation for availability: instead of preventing the visible middle with locks, it <em>models</em> the visible middle as explicit states (<code>reserving</code>, <code>pending_payment</code>) and repairs bad endings with compensations. If the business truly needs hard isolation — no reader may ever see the intermediate state — then you don't have a saga-shaped problem: colocate the data in one database and use a local transaction (Option 0 in section 08).</p>
+          <p>One nuance worth volunteering: <em>within</em> each step, the local transaction still uses normal row locks — isolation is abandoned only <em>between</em> steps, never inside one.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Question 4 of 4</div>
+        <div class="qtext">Choreography or orchestration for a 6-step travel booking flow — flight, hotel, car, payment, insurance, email — with partial-refund rules that depend on which steps succeeded?</div>
+        <details class="reveal"><summary>Model answer</summary><div class="body answer">
+          <p><strong>Orchestration, without hesitation.</strong> Three reasons, in order of importance:</p>
+          <ol>
+            <li><strong>The compensation graph is conditional.</strong> Partial-refund rules ("refund flight only if hotel was never confirmed") are business logic that needs one place to live. In choreography that logic scatters across six services' event handlers, and the question "what is the correct refund for booking #7712?" has no single place to be answered.</li>
+            <li><strong>Debuggability at six steps with branches.</strong> An orchestrator keeps the saga's state machine in one durable store — you can open a dashboard and see exactly which step booking #7712 is on. Choreography's emergent flow is fine at two steps and genuinely undebuggable at six with conditional branches.</li>
+            <li><strong>Retry policy centralization.</strong> Flight APIs and hotel APIs fail differently; the orchestrator holds per-step retry/backoff policy instead of each service inventing its own.</li>
+          </ol>
+          <p><strong>The honest caveat to add:</strong> the orchestrator is now a service I must keep available — but it degrades, it doesn't block: its state is a durable state machine (a database row + outbox, or a workflow engine like Temporal), so a crash just means "resume on restart," never "everyone freezes holding locks." That's the fundamental asymmetry with 2PC's coordinator.</p>
+        </div></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">10</span><h2>Practice drills (untimed)</h2></div>
+    <p class="lede">Untimed, on paper or in your head. The rubric under each drill is the actual grading bar — check yourself against it.</p>
+
+    <div class="question">
+      <div class="qnum">Drill 1</div>
+      <div class="qtext">Saga the food-delivery order</div>
+      <div class="context">A food-delivery order has five steps: accept the order, charge the customer, assign a courier, get the restaurant's confirmation, dispatch the courier. List each local transaction, write its compensating transaction, and order the steps so the hardest-to-reverse goes last. Then name the failure at each step and say whether you'd retry or compensate.</div>
+      <details class="reveal"><summary>Rubric — what a strong answer includes</summary><div class="body">
+        <ul>
+          <li>Steps ordered by reversibility: accept → charge → assign courier → restaurant confirm → dispatch last (dispatch is the irreversible one — the courier is physically moving).</li>
+          <li>Every step has a named compensation: accept→cancel order record; charge→refund; assign→unassign; restaurant confirm→cancel with restaurant; dispatch→recall is best-effort, so dispatch must be last and guarded.</li>
+          <li>Retry-vs-compensate judgment per step: transient failures (payment gateway timeout, courier-service 500) → retry; business failures (card declined, restaurant rejects) → compensate.</li>
+          <li>Names the visible middle: between "charged" and "restaurant confirmed," the customer sees "finding your restaurant…" — an explicit state, not a spinner of unknown meaning.</li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Drill 2</div>
+      <div class="qtext">Choreography or orchestration — three calls</div>
+      <div class="context">Decide the driving style for each, with one sentence of justification: (a) signup flow — create user, send welcome email; (b) insurance claim — 5 steps with fraud checks and conditional payouts; (c) marketplace payout — split one payment across 3 sellers with per-seller tax withholding.</div>
+      <details class="reveal"><summary>Rubric — what a strong answer includes</summary><div class="body">
+        <ul>
+          <li>(a) <strong>Choreography</strong> — two steps, linear, trivially compensable (delete user / nothing to undo for the email). A conductor would be pure overhead.</li>
+          <li>(b) <strong>Orchestration</strong> — conditional branches and fraud-check outcomes need centralized state and a single place for the payout rules; debugging emergent events across 5 steps is the failure mode.</li>
+          <li>(c) <strong>Orchestration</strong> — money movement with per-party rules needs an auditable, replayable state machine; "who got paid what" must be answerable from one store.</li>
+          <li>Bonus credit: notes that (a) could graduate to orchestration if a third step with branching (e.g., KYC verification) is added later — the choice follows complexity, not dogma.</li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Drill 3</div>
+      <div class="qtext">Sketch the outbox</div>
+      <div class="context">Design the outbox table for the Payments service in the ticket saga, plus the relay that publishes to the broker. Then answer: what exactly breaks if the relay dies for 10 minutes? What breaks if it delivers an event twice?</div>
+      <details class="reveal"><summary>Rubric — what a strong answer includes</summary><div class="body">
+        <ul>
+          <li>Table sketch: <code>outbox(event_id PK, aggregate_id, type, payload JSON, created_at, sent_at NULL)</code>; business write + outbox insert in one local transaction.</li>
+          <li>Relay: polls <code>WHERE sent_at IS NULL ORDER BY created_at</code> (or CDC on the WAL), publishes, then marks sent. Mentions the publish-then-mark ordering and why it forces at-least-once.</li>
+          <li>Relay dead 10 min: <strong>nothing breaks, only delays</strong> — charges are durable in the DB; events queue up in the outbox and flush on recovery. The saga pauses; it doesn't corrupt. (Contrast: naive publish-then-crash would have <em>lost</em> steps.)</li>
+          <li>Delivered twice: <strong>nothing breaks if consumers are idempotent</strong> — dedupe on <code>event_id</code> (insert-if-absent) or conditional state transitions. Names the sentence: at-least-once + idempotent consumers is the only sane contract.</li>
+        </ul>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">11</span><h2>Cheat sheet &amp; 60-second framing</h2></div>
+
+    <div class="cheatsheet">
+      <h3>Six decisions, in order</h3>
+      <ol>
+        <li><strong>Can the writes live in one database?</strong> If yes, stop — a local transaction beats every pattern here.</li>
+        <li><strong>2PC or saga?</strong> 2PC only inside one vendor's cluster. Across services: saga. The blocker is the blocking.</li>
+        <li><strong>Choreography or orchestration?</strong> Few linear steps → choreography. Branching, 5+ steps, or "where is order #4821?" → orchestration.</li>
+        <li><strong>Order steps by reversibility.</strong> Cheap and reversible first; irreversible or customer-visible (refunds, emails, shipments) last.</li>
+        <li><strong>Retry or compensate?</strong> Transient infrastructure failure → retry the step. Business-rule failure → compensate the saga, in reverse.</li>
+        <li><strong>How do steps talk?</strong> Transactional outbox on the producer side; idempotent consumers on the other. At-least-once is the contract — design for it, don't fight it.</li>
+      </ol>
+    </div>
+
+    <div class="framing">
+      <p><strong>60-second framing — say this in the room:</strong></p>
+      <p>"A distributed transaction is one business action across independent databases, so there's no shared rollback. Two-phase commit gets all-or-nothing by making every participant promise before anyone commits — but if the coordinator crashes mid-protocol, participants block holding locks, which is why the industry doesn't use it across services. The saga pattern breaks the transaction into local steps with compensating transactions that unwind in reverse. I order steps so the hardest to reverse goes last, retry transient failures instead of compensating them, use the transactional outbox so no step is silently lost, and keep every consumer idempotent because delivery is at-least-once."</p>
+    </div>
+
+    <div class="callout">
+      <h4>🎙️ In-the-room talk-track (when they ask you to design checkout)</h4>
+      <p>"I'll model checkout as an orchestrated saga across inventory, payment, and fulfillment. Step order: reserve inventory, then charge, then fulfill — cheapest to reverse first. Every handoff goes through a transactional outbox; consumers dedupe on event IDs. Payment failure releases the hold; fulfillment failure retries first and only refunds if the business outcome is dead. The order has explicit intermediate states so the UI never shows a charge without an order. I considered 2PC and rejected it — a coordinator crash would freeze inventory with locks held, and I don't need instant atomicity, I need eventual all-or-nothing that never blocks."</p>
+    </div>
+
+    <footer>
+      <p>Lesson 21 · Part of the daily system design series. <a href="../index.html">← All lessons</a></p>
+    </footer>
+<script>
+/* Lab logic is pure and deterministic so it can be smoke-tested outside a browser.
+   window.SagaLab.run({failAt, mode}) -> {events, stepsRun, compRun, outcome, badge, note}
+   window.TpcLab.run({crashAt}) -> state {events, blocked, ticks, outcome, recover(), sagaInstead()} */
+(function () {
+  'use strict';
+
+  // ---------- Lab A: saga simulator ----------
+  var SAGA_STEPS = [
+    { id: 'reserve', name: 'T1 · Reserve seat', service: 'Seats' },
+    { id: 'charge',  name: 'T2 · Charge card', service: 'Payments' },
+    { id: 'confirm', name: 'T3 · Confirm + email', service: 'Notifications' }
+  ];
+  var COMPENSATIONS = {
+    reserve: 'C1 · Release seat 14B (Seats)',
+    charge:  'C2 · Refund $240 (Payments)',
+    confirm: 'C3 · Send correction email (Notifications)'
+  };
+
+  function sagaRun(cfg) {
+    var failAt = cfg.failAt || 'none';
+    var mode = cfg.mode || 'orch';
+    var events = [];
+    var t = 0, stepsRun = 0, compRun = 0;
+    function log(kind, text) { events.push({ t: ++t, kind: kind, text: text }); }
+
+    function orchCmd(step) {
+      log('cmd', 'Orchestrator → command: ' + step.name);
+    }
+    function chorEvent(text) {
+      log('event', text);
+    }
+
+    var completed = []; // step ids that committed
+    var outcome, badge, note;
+
+    function doStep(step) {
+      stepsRun++;
+      if (mode === 'orch') orchCmd(step);
+      if (failAt === step.id) {
+        if (step.id === 'reserve') {
+          log('bad', 'Seats: seat 14B is already sold — T1 FAILED (no write committed).');
+        } else if (step.id === 'charge') {
+          log('bad', 'Payments: card declined (insufficient funds) — T2 FAILED.');
+        } else {
+          log('bad', 'Notifications: SMTP 5xx on first attempt — T3 FAILED (transient).');
+          log('info', 'Orchestrator: T3 is retryable infrastructure failure → forward recovery, NOT compensation.');
+          log('info', 'Notifications: retry #1 … still 5xx.');
+          log('good', 'Notifications: retry #2 … email delivered. Order confirmed.');
+          completed.push(step.id);
+          outcome = 'confirmed';
+          badge = 'ok';
+          note = 'The fan sees a confirmed order; the email simply arrived late. Forward recovery beat compensation — never refund a good payment for a flaky SMTP server.';
+          return 'recovered';
+        }
+        return 'failed';
+      }
+      if (step.id === 'reserve') {
+        log('good', 'Seats: seat 14B marked reserved (local tx committed) + SeatReserved → outbox.');
+        if (mode === 'chor') chorEvent('Payments hears SeatReserved; Notifications ignores it (not its event).');
+        log('info', 'Visible middle: other shoppers now see 14B as reserved-but-unpaid — an explicit state, not a hidden lock.');
+      } else if (step.id === 'charge') {
+        log('good', 'Payments: $240 charged (local tx committed) + CardCharged → outbox.');
+        if (mode === 'chor') chorEvent('Notifications hears CardCharged; Seats ignores it.');
+      } else {
+        log('good', 'Notifications: confirmation email sent + order marked complete.');
+        if (mode === 'chor') chorEvent('OrderConfirmed published — saga complete.');
+      }
+      completed.push(step.id);
+      return 'ok';
+    }
+
+    function compensate() {
+      log('info', (mode === 'orch' ? 'Orchestrator' : 'Saga') + ': running compensations in REVERSE order.');
+      for (var i = completed.length - 1; i >= 0; i--) {
+        compRun++;
+        var c = COMPENSATIONS[completed[i]];
+        log('warn', 'Compensating: ' + c + ' (new write — history is repaired, not erased).');
+      }
+    }
+
+    log('info', 'Saga started (' + (mode === 'orch' ? 'orchestration: one conductor' : 'choreography: events only') + ').');
+    var r1 = doStep(SAGA_STEPS[0]);
+    if (r1 === 'failed') {
+      outcome = 'aborted — nothing to undo';
+      badge = 'warn';
+      note = 'The fan sees “seat unavailable”. T1 failed before committing anything, so the saga dies with zero compensations — this is why cheap, reversible steps go first.';
+    } else {
+      var r2 = doStep(SAGA_STEPS[1]);
+      if (r2 === 'failed') {
+        compensate();
+        outcome = 'compensated — order dead, books clean';
+        badge = 'warn';
+        note = 'The fan sees “payment failed — no charge made”. C1 released the seat hold, so 14B is back on sale. No locks were ever held across services.';
+      } else if (!outcome) {
+        var r3 = doStep(SAGA_STEPS[2]);
+        if (r3 === 'ok') {
+          outcome = 'confirmed';
+          badge = 'ok';
+          note = 'The fan gets a confirmation email. Every handoff went through the outbox, so a crash at any point would have resumed — not lost — the saga.';
+        }
+      }
+    }
+
+    return { events: events, stepsRun: stepsRun, compRun: compRun, outcome: outcome, badge: badge, note: note };
+  }
+
+  // ---------- Lab B: 2PC blocking demo ----------
+  var PARTICIPANTS = ['Seats', 'Payments', 'Notifications'];
+
+  function tpcRun(cfg) {
+    var crashAt = cfg.crashAt || 'none';
+    var events = [];
+    var t = 0;
+    function log(kind, text) { events.push({ t: ++t, kind: kind, text: text }); }
+    var state = {
+      events: events, blocked: 0, ticks: 0, outcome: '—', crashed: false, decision: null,
+      recover: function () {
+        if (!state.crashed) { log('info', 'Coordinator is already up — nothing to recover.'); return; }
+        log('good', 'Coordinator restarted.');
+        if (state.decision === null) {
+          log('info', 'No decision in coordinator log — re-deriving from participant votes (all had voted YES).');
+          log('info', 'Coordinator records decision=COMMIT and re-sends it.');
+        } else {
+          log('info', 'Decision=COMMIT found in coordinator’s durable log — replaying it.');
+        }
+        PARTICIPANTS.forEach(function (p) { log('good', p + ': received COMMIT → committed prepared write, released locks.'); });
+        state.blocked = 0;
+        state.outcome = 'committed (after ' + state.ticks + ' blocked ticks)';
+        state.crashed = false;
+        log('good', 'All participants unblocked. Outcome: COMMIT — but the seat was frozen for the whole outage.');
+      },
+      sagaInstead: function () {
+        log('info', '— Same crash point, but the checkout is a saga —');
+        log('good', 'No coordinator decision exists to wait for: the orchestrator resumes from its durable state machine.');
+        log('good', 'In-flight step either completes or its compensation runs. Zero participants blocked, zero locks held across services.');
+        state.blocked = 0;
+        state.outcome = 'saga: forward progress, nothing blocked';
+        state.crashed = false;
+      }
+    };
+
+    log('info', 'Coordinator: sending PREPARE to 3 participants.');
+    PARTICIPANTS.forEach(function (p) {
+      log('good', p + ': checks passed → wrote prepare log, acquired row locks → voted YES.');
+    });
+
+    if (crashAt === 'none') {
+      log('info', 'Coordinator: all YES → recorded decision=COMMIT in its log.');
+      PARTICIPANTS.forEach(function (p) { log('good', p + ': COMMIT received → committed, locks released.'); });
+      state.outcome = 'committed';
+      return state;
+    }
+
+    state.crashed = true;
+    if (crashAt === 'during-prepare') {
+      log('bad', 'Coordinator CRASHED before recording any decision.');
+    } else {
+      log('info', 'Coordinator recorded decision=COMMIT in its durable log…');
+      log('bad', '…then CRASHED before sending the decision.');
+      state.decision = 'commit';
+    }
+    PARTICIPANTS.forEach(function (p) {
+      log('warn', p + ': PREPARED but no decision — locks HELD, cannot decide alone (it promised).');
+    });
+    state.blocked = 3;
+    for (var i = 1; i <= 5; i++) {
+      state.ticks++;
+      log('warn', 'tick ' + i + ': 3 participants still blocked, locks still held. Seat 14B is frozen; other checkouts queue behind it.');
+    }
+    state.outcome = 'BLOCKED — waiting on coordinator';
+    return state;
+  }
+
+  // expose for testing + DOM wiring
+  var root = (typeof window !== 'undefined') ? window : {};
+  root.SagaLab = { run: sagaRun };
+  root.TpcLab = { run: tpcRun };
+
+  // ---------- DOM wiring (skipped when there is no document, e.g. node smoke test) ----------
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function renderLog(el, events) {
+    el.innerHTML = events.map(function (e) {
+      var cls = e.kind === 'good' ? 'good' : (e.kind === 'bad' ? 'bad' : '');
+      return '<div><span class="t">[t' + e.t + ']</span> <span class="' + cls + '">' + esc(e.text) + '</span></div>';
+    }).join('');
+    el.scrollTop = el.scrollHeight;
+  }
+
+  if (typeof document !== 'undefined' && document.getElementById) {
+    // Lab A wiring
+    (function () {
+      if (!$('saga-run')) return;
+      var mode = 'orch';
+      function setMode(m) {
+        mode = m;
+        $('saga-mode-orch').classList.toggle('on', m === 'orch');
+        $('saga-mode-chor').classList.toggle('on', m === 'chor');
+      }
+      $('saga-mode-orch').addEventListener('click', function () { setMode('orch'); });
+      $('saga-mode-chor').addEventListener('click', function () { setMode('chor'); });
+      $('saga-run').addEventListener('click', function () {
+        var r = sagaRun({ failAt: $('saga-fail').value, mode: mode });
+        renderLog($('saga-log'), r.events);
+        $('saga-outcome').textContent = r.outcome;
+        $('saga-steps').textContent = r.stepsRun;
+        $('saga-comp').textContent = r.compRun;
+        var b = $('saga-badge');
+        b.style.display = 'inline-block';
+        b.textContent = r.badge === 'ok' ? 'healthy end state' : 'recovered end state';
+        b.className = 'badge ' + r.badge;
+        $('saga-note').textContent = 'Fan’s view: ' + r.note;
+      });
+      $('saga-reset').addEventListener('click', function () {
+        $('saga-log').innerHTML = '<div><span class="t">[t0]</span> Press "Run checkout" to start the saga.</div>';
+        $('saga-outcome').textContent = '—'; $('saga-steps').textContent = '—'; $('saga-comp').textContent = '—';
+        $('saga-badge').style.display = 'none'; $('saga-note').textContent = '';
+      });
+    })();
+
+    // Lab B wiring
+    (function () {
+      if (!$('tpc-happy')) return;
+      var current = null;
+      function show(s) {
+        current = s;
+        renderLog($('tpc-log'), s.events);
+        $('tpc-blocked').textContent = s.blocked;
+        $('tpc-ticks').textContent = s.ticks;
+        $('tpc-outcome').textContent = s.outcome;
+        $('tpc-note').textContent = '';
+        var needRecovery = s.crashed;
+        $('tpc-recover').disabled = !needRecovery;
+        $('tpc-saga').disabled = !needRecovery;
+      }
+      function note(text) { $('tpc-note').textContent = text; }
+      $('tpc-happy').addEventListener('click', function () {
+        show(tpcRun({ crashAt: 'none' }));
+        note('Happy path: 2PC works fine when nothing crashes. The tax only appears under failure — which is exactly when you need the protocol most.');
+      });
+      $('tpc-crash1').addEventListener('click', function () {
+        show(tpcRun({ crashAt: 'during-prepare' }));
+        note('The decision was never recorded. Recovery must re-derive it from participant votes — and every participant is forbidden from deciding alone.');
+      });
+      $('tpc-crash2').addEventListener('click', function () {
+        show(tpcRun({ crashAt: 'after-prepare' }));
+        note('The decision was durable, so recovery is a simple replay — but the participants still blocked for the entire outage. Durability of the decision does not fix blocking.');
+      });
+      $('tpc-recover').addEventListener('click', function () {
+        if (!current) return;
+        current.recover(); show(current);
+        note('Recovered — but count the cost: ' + current.ticks + ' ticks of frozen inventory. In production those ticks are minutes of a coordinator restart, with locks held the whole time.');
+      });
+      $('tpc-saga').addEventListener('click', function () {
+        if (!current) return;
+        current.sagaInstead(); show(current);
+        note('Same crash, saga design: there is no single decision to wait for, so there is nothing to block on. The orchestrator’s state is durable; it resumes.');
+      });
+      $('tpc-reset').addEventListener('click', function () {
+        current = null;
+        $('tpc-log').innerHTML = '<div><span class="t">[t0]</span> Coordinator is up. Participants are idle.</div>';
+        $('tpc-blocked').textContent = '—'; $('tpc-ticks').textContent = '—'; $('tpc-outcome').textContent = '—';
+        $('tpc-note').textContent = '';
+        $('tpc-recover').disabled = true; $('tpc-saga').disabled = true;
+      });
+    })();
+  }
+})();
+</script>
+</body>
+</html>
