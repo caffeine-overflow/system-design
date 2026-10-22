@@ -1,0 +1,1032 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Design a Notification System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .pitch {
+      background: #2e7d43; border-radius: var(--radius); padding: 26px;
+      margin: 22px 0; max-width: 46rem; color: #fff; position: relative; overflow: hidden;
+      border: 3px solid rgba(255,255,255,.85);
+    }
+    .pitch h4 { color: #fff; margin: 0 0 8px; }
+    .pitch p { color: #f2f8f3; max-width: none; margin: 8px 0; }
+    .pitch .tag { display: inline-block; background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 12px; font-size: .8rem; font-weight: 700; margin-bottom: 8px; }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 260px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .log .good { color: #7fd8a8; }
+    .log .bad { color: #ff8f7d; }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .bars { margin: 16px 0; }
+    .bar-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+    .bar-row .bar-label { min-width: 130px; font-weight: 600; font-size: .92rem; }
+    .bar-track { flex: 1; height: 22px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 11px; background: var(--blue); }
+    .bar-fill.impolite { background: var(--accent); }
+    .bar-row .bar-val { min-width: 110px; font-family: "IBM Plex Mono", monospace; font-size: .85rem; }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .cheatsheet {
+      background: var(--surface); border: 2px solid var(--ink);
+      border-radius: var(--radius); padding: 22px 24px; margin: 24px 0; max-width: 46rem;
+    }
+    .cheatsheet h3 { margin: 0 0 10px; }
+    .cheatsheet ol { max-width: none; }
+    .framing {
+      border-left: 4px solid var(--purple); background: var(--purple-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .framing p { margin: 8px 0; max-width: none; }
+    footer { margin-top: 60px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 20px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <p class="crumbs"><a href="../index.html">All lessons</a> · Lesson 22</p>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 22 · Classic Design</span>
+    <h1>Design a Notification System</h1>
+    <p class="whyline">Every app on your phone has one: the thing that taps you when something happens. Riverside FC's app must tell 100 million fans about a goal within seconds, remind them about tomorrow's ticket sale, and email them a Sunday digest — without waking anyone twelve times a night, without sending three copies of the same goal, and without the SMS bill bankrupting the club. The gap between "send a message" and "send the right message, to the right device, once, at the right time, at scale" is the entire design problem.</p>
+    <div class="meta">
+      <span>Classic design</span>
+      <span>Push · Email · SMS · Fan-out</span>
+      <span>~45 min read + labs</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#what">What is a notification system? — the definition from zero</a></li>
+      <li><a href="#math">Requirements &amp; the back-of-the-envelope math</a></li>
+      <li><a href="#architecture">The architecture: why you never send from the request path</a></li>
+      <li><a href="#hard">The hard parts — senior depth</a></li>
+      <li><a href="#failures">Failure modes</a></li>
+      <li><a href="#traps">Senior-depth traps</a></li>
+      <li><a href="#lab-surge">Interactive lab A: the match-night surge simulator</a></li>
+      <li><a href="#lab-cost">Interactive lab B: the channel cost &amp; failover planner</a></li>
+      <li><a href="#qa">Q&amp;A with full model answers</a></li>
+      <li><a href="#drills">Practice drills (untimed)</a></li>
+      <li><a href="#cheatsheet">Cheat sheet &amp; 60-second framing</a></li>
+    </ol>
+  </nav>
+
+  <section id="what">
+    <div class="section-head"><span class="section-num">01</span><h2>What is a notification system?</h2></div>
+    <p class="lede">The whole lesson in one scene: 89th minute of the cup final, Riverside FC scores. Eighty million phones light up within a minute. Meanwhile a fan in Toronto gets a ticket-sale reminder at 9 AM <em>her</em> time, another gets a Sunday digest email, and a third gets an SMS with a one-time code to log in. One system, three very different deliveries. What exactly is it made of?</p>
+
+    <div class="definition">
+      <strong class="term">Notification</strong>
+      <p>A message the <strong>system</strong> pushes to a user about something that happened — as opposed to a message the user pulls by opening the app. The direction matters: notifications are system → user, which means the system owns the timing, the targeting, and the volume. Get any of those wrong and you're spam.</p>
+    </div>
+
+    <h3>The vocabulary, from zero</h3>
+    <ul>
+      <li><span class="term">Channel</span> — the transport the message travels on: <strong>push</strong> (a banner on the phone's lock screen), <strong>email</strong>, <strong>SMS</strong> (and in-app inbox, the quiet fourth). Channels differ in cost, speed, intrusiveness, and reliability — the entire design is about matching each message to the right one.</li>
+      <li><span class="term">Provider</span> — the company that owns the last mile. You never talk to a phone directly: push goes through <strong>FCM</strong> (Firebase Cloud Messaging, Google) for Android and <strong>APNs</strong> (Apple Push Notification service) for iPhones; email through <strong>SES</strong>/<strong>SendGrid</strong>; SMS through <strong>Twilio</strong>/<strong>Vonage</strong>. Your system hands the message to a provider and tracks what happens next.</li>
+      <li><span class="term">Template</span> — the message skeleton with placeholders: <code>⚽ GOAL! {{scorer}} scores in the {{minute}}' — {{home}} {{homeScore}}-{{awayScore}} {{away}}</code>. Templates are versioned like code, because a broken placeholder at 80M sends is a very public bug.</li>
+      <li><span class="term">Fan-out</span> — one event becoming N notifications: 1 goal event → 80M pushes. Same word as <a href="pub-sub-event-driven.html">Lesson 12</a>'s fan-out, and the same math: the publisher does O(1) work, the system does O(N). Fan-out is where notification systems live or die.</li>
+      <li><span class="term">Preference</span> — the per-user, per-type settings: which channels for which notification types, quiet hours, timezone, opt-in/opt-out. The preference service is the bouncer — nothing gets sent without its say-so.</li>
+    </ul>
+
+    <h3>Three kinds of notifications</h3>
+    <p>Interviewers expect you to split the world three ways, because each kind gets different infrastructure:</p>
+    <ul>
+      <li><strong>Transactional</strong> — the user caused it and expects it: OTP codes, password resets, purchase receipts. Highest priority, lowest volume, SMS-allowed. Latency SLO in seconds.</li>
+      <li><strong>Engagement</strong> — the system nudging: goal alerts, "your team plays tomorrow", ticket reminders. High volume, push-first, rate-limited per user. This is the 89th-minute problem.</li>
+      <li><strong>Marketing/digest</strong> — newsletters, weekly digests, promotions. Lowest priority, email-first, batched, timezone-scheduled. The first thing you shed in a surge.</li>
+    </ul>
+    <p>The split matters because it drives every later decision: separate queues, separate retry policies, separate cost controls. An OTP and a newsletter must never share a queue — one delayed OTP is a failed login; one delayed newsletter is nothing.</p>
+
+    <div class="callout">
+      <h4>⚽ The soccer picture to keep</h4>
+      <p>Think of the notification system as the club's matchday operations team. The <strong>score feed</strong> is the fourth official raising the board — one signal. The <strong>ops team</strong> decides who needs to know (preferences), in what order (priority), through which channel (announcer, big screen, text to the stewards), and makes sure nobody hears the same announcement three times (dedup). Eighty million fans, one team, zero chaos — that's the job.</p>
+    </div>
+
+    <h3>What it is not</h3>
+    <p>Two confusions to kill early. <strong>Not a chat system</strong> (<a href="chat-system-whatsapp.html">Lesson 17</a>): chat is user → user, where ordering and exactly-once UX are the hard parts. Notifications are system → user, where targeting, dedup, and cost are the hard parts. <strong>Not a queue tutorial</strong> (<a href="message-queues.html">Lesson 9</a>): queues are the plumbing you'll use, but the design problems — collapse windows, per-user caps, token hygiene, provider failover — are notification-specific.</p>
+  </section>
+
+  <section id="math">
+    <div class="section-head"><span class="section-num">02</span><h2>Requirements &amp; the back-of-the-envelope math</h2></div>
+    <p class="lede">State the requirements first, then let the numbers tell you where the system actually lives. The punchline of this section: the average load is boring, the surge is the system, and the bill is an SMS-containment problem.</p>
+
+    <h3>Functional requirements</h3>
+    <ul>
+      <li>Send across push, email, and SMS to <strong>100M users</strong>, each with ~1.5 devices.</li>
+      <li>Per-user, per-type preferences: opt-in/out (legally mandatory), channel choice, quiet hours, timezone.</li>
+      <li>Templated, localized messages, rendered at send time.</li>
+      <li>Dedup and collapse: no fan gets the same goal alert twice, no fan gets twelve pushes in a night.</li>
+      <li>Delivery tracking: sent → delivered → opened, per notification.</li>
+      <li>Provider failover: no single provider outage may kill a channel.</li>
+    </ul>
+
+    <h3>Non-functional requirements</h3>
+    <ul>
+      <li><strong>Latency:</strong> goal alert to tens of millions of devices within ~60 seconds; OTP SMS in under 10 seconds.</li>
+      <li><strong>Throughput:</strong> survive the cup-final surge (see below) — the average rate is irrelevant next to it.</li>
+      <li><strong>Reliability:</strong> at-least-once handoff to providers; retries with idempotency; the preference check is never skipped, even under load.</li>
+      <li><strong>Cost:</strong> SMS dominates the bill by two orders of magnitude — the design must minimize and gate SMS.</li>
+    </ul>
+
+    <h3>The math, every step shown</h3>
+    <p><strong>Steady state.</strong> Assume 3 notifications per user per day across channels:</p>
+    <pre>100M users × 3 notifs/day = 300M notifications/day
+300M ÷ 86,400 sec/day ≈ 3,472 notifications/sec average</pre>
+    <p>3.5K/sec average. Any single server fleet can do that in its sleep — which is exactly why junior answers stop here and senior answers don't.</p>
+    <p><strong>The surge.</strong> Cup final, 89th-minute goal. 80M fans opted into goal alerts; the club promises delivery within 60 seconds:</p>
+    <pre>80M notifications ÷ 60 sec ≈ 1,330,000 notifications/sec
+Peak factor = 1,330,000 ÷ 3,472 ≈ 383× the average</pre>
+    <p>Read that again: <strong>the surge is ~383× the average.</strong> You do not build for 3.5K/sec; you build a system that idles at 3.5K/sec and absorbs 1.3M/sec for a minute without falling over. That single ratio drives the queueing, the shedding policy, and the fan-out design.</p>
+    <p><strong>Storage for tracking.</strong> Each notification gets a tracking row — IDs, channel, status, provider message ID, timestamps, open/click flags — call it 200 bytes:</p>
+    <pre>300M/day × 200 bytes = 60 GB/day
+60 GB × 90-day retention = 5.4 TB</pre>
+    <p>5.4 TB is small for object storage, but the <em>hot</em> slice (last 7 days, for dedup lookups and dashboards) lives in fast storage — the temperature split is the design point, not the total.</p>
+    <p><strong>Device token registry.</strong> 100M users × 1.5 devices = 150M tokens; ~100 bytes each with metadata → ~15 GB. Fits in RAM on a handful of boxes. Size is not the problem — <strong>freshness</strong> is: tokens die silently on every reinstall, logout, and OS refresh, and a dead token is a wasted send.</p>
+    <p><strong>The bill.</strong> Channel mix 80% push / 15% email / 5% SMS, with realistic unit costs — push ~$0.002 per 1,000 (infra only), email ~$0.10 per 1,000, SMS ~$10 per 1,000 ($0.01 each):</p>
+    <pre>Monthly sends = 300M/day × 30 = 9B
+Push:  7.2B × $0.000002 = $14,400/mo
+Email: 1.35B × $0.0001  = $135,000/mo
+SMS:   450M × $0.01     = $4,500,000/mo   ← 96.8% of the bill</pre>
+    <p>The notification system is, financially, <strong>an SMS-cost-containment system with a notification feature</strong>. Every SMS gate, per-user cap, and channel-fallback rule in this lesson exists because of that $4.5M line. Try it yourself in <a href="#lab-cost">Lab B</a>.</p>
+
+    <div class="green-box">
+      <p><strong>The one-line sizing verdict (say it first in the room):</strong> "3.5K notifications a second on average, a 1.3M-a-second surge on a cup-final goal — a 383× peak factor — 5.4 TB of tracking over 90 days, and a bill that's 97% SMS. So the design is a surge-absorbing fan-out pipeline with SMS treated as a scarce resource."</p>
+    </div>
+  </section>
+
+  <section id="architecture">
+    <div class="section-head"><span class="section-num">03</span><h2>The architecture: why you never send from the request path</h2></div>
+    <p class="lede">The single rule everything hangs from: <strong>the HTTP request that says "send this" returns in milliseconds; the actual sending happens asynchronously.</strong> Three reasons: provider calls take hundreds of milliseconds (FCM under surge, worse) and would block your API servers; a cup-final burst would melt any synchronous fleet; and retries, dedup, collapse, and failover are a queue's job, not a request's job. The request returns <code>202 Accepted</code> with a notification ID. Everything else is pipeline.</p>
+
+    <h3>The pipeline, stage by stage</h3>
+    <ol>
+      <li><strong>Notification API.</strong> Receives send requests from services, scheduled jobs, and the marketing console. Validates the payload, checks the caller's own rate limit, stamps an <span class="term">idempotency key</span> (a unique token so a retried request doesn't create a second notification), and returns 202. It sends nothing.</li>
+      <li><strong>Template rendering.</strong> Fills placeholders and picks the locale — <em>at send time, not request time</em>. Between "request" and "send" the score changes and the fan's language setting might too; rendering early bakes in stale data. The template version is pinned per notification so you can audit exactly what was sent.</li>
+      <li><strong>Preference service.</strong> The bouncer. Per-user, per-type: opted in or out? Which channels? Quiet hours active? What timezone is it there? <strong>This check runs before fan-out</strong>: filtering 80M subscribed fans down to 62M opted-in <em>before</em> you enqueue saves ~22% of every downstream cost — queue writes, worker CPU, provider calls. It is the cheapest byte in the system, and it is never skipped, even in a surge. (Skipping it under load is how you send marketing to opted-out users — per-message fines under TCPA/GDPR/CASL.)</li>
+      <li><strong>Dedup / collapse stage.</strong> Keyed on <code>(user_id, event_fingerprint)</code> in Redis with a TTL equal to the collapse window. Same goal re-fired by the flaky score feed? Same score update already queued? → one notification. <em>Collapse</em> goes one step further than dedup: if a newer score for the same match arrives while the older one is still queued, the older one is dropped — latest wins.</li>
+      <li><strong>Priority lanes.</strong> Three lanes, three queues: <strong>instant</strong> (OTP, goal alerts), <strong>standard</strong> (ticket reminders), <strong>digest</strong> (news, weekly email). Workers are weighted toward instant, but the digest lane always gets <em>some</em> share — strict priority starves it forever during a long match night.</li>
+      <li><strong>Per-channel queues.</strong> Push, email, and SMS each get their own queue — different throughput, different cost, different retry policy. The SMS queue has the tightest rate limits and the biggest budget; it is guarded like a vault.</li>
+      <li><strong>Workers.</strong> Pull from the queues, batch aggressively (FCM multicast to 500 tokens per call, SES bulk send), handle provider responses, and update the device token registry from provider feedback.</li>
+      <li><strong>Providers.</strong> FCM/APNs for push, SES/SendGrid for email, Twilio/Vonage for SMS — and <strong>always a secondary per channel</strong>. The secondary is configured, credentialed, and warm <em>before</em> the incident, not during it.</li>
+    </ol>
+
+    <h3>Where fan-out happens</h3>
+    <p>"Send a goal alert to all subscribers" arrives as <em>one</em> request and must become 62M per-user, per-device jobs. That explosion happens in a dedicated <strong>fan-out worker</strong>, after preferences: it pages the subscriber segment in chunks (10K users at a time — never 62M rows in one transaction, never one giant enqueue), and writes per-user jobs to the queues. Chunked fan-out is also what makes the surge survivable: the queue depth grows in a controlled way, and you can watch it grow on a dashboard instead of discovering it in a page.</p>
+
+    <div class="definition">
+      <strong class="term">Device token registry</strong>
+      <p>The mapping of <code>user_id → [device tokens]</code>, sharded by user. A device token is the opaque address FCM/APNs gave the app on install — "deliver pushes for this app on this phone to <em>this</em> string". Tokens die constantly: reinstalls, logouts, OS refreshes, app uninstalls. You learn about deaths from <strong>provider feedback</strong> — FCM's <code>NotRegistered</code>, APNs' HTTP 410 — and delete on feedback, not by polling. A registry that isn't cleaned is a slow leak of wasted sends.</p>
+    </div>
+
+    <h3>The sidecars</h3>
+    <ul>
+      <li><strong>Delivery tracker.</strong> Ingests provider webhooks (FCM delivery receipts, Twilio status callbacks) and moves each notification through <code>queued → sent → delivered → opened</code>. This is where "sent ≠ delivered" becomes visible.</li>
+      <li><strong>Analytics pipeline.</strong> Open/click events at tens of millions a day flow to the warehouse, sampled. Marketers get their dashboard; the hot path never waits for it.</li>
+      <li><strong>Scheduler.</strong> Timezone-aware: "digest at 8 AM local" means computing the send time per user, enqueueing with a not-before timestamp. Quiet hours are enforced here, not trusted to the worker.</li>
+    </ul>
+
+    <div class="callout">
+      <h4>⚽ The pipeline as a matchday</h4>
+      <p>The goal goes in (API). The announcer checks the script version and the language of each stand (template rendering). The stewards check tickets at the gate — no ticket, no entry (preferences). The control room notices the same goal was already announced and kills the duplicate (dedup). Urgent announcements jump the PA queue; the halftime playlist waits its turn (priority lanes). Separate crews handle the big screen, the radio, and the text alerts (per-channel queues and workers), each with a backup crew on standby (secondary providers). And someone logs everything for the post-match report (delivery tracker).</p>
+    </div>
+  </section>
+
+  <section id="hard">
+    <div class="section-head"><span class="section-num">04</span><h2>The hard parts — senior depth</h2></div>
+    <p class="lede">The pipeline above is the junior answer. These are the problems that actually page people, each with the mechanism that solves it and the number that sizes it.</p>
+
+    <h3>Dedup and collapse windows</h3>
+    <p>The 89th-minute goal: the score feed fires the goal event <em>twice</em> — a retry at the feed you don't control. Without dedup, 62M fans get two identical pushes and your app gets uninstalled. The dedup key is <code>(user_id, event_fingerprint)</code> where the fingerprint is <code>(match_id, event_type, event_version)</code>, stored in Redis with a TTL equal to the <span class="term">collapse window</span>. Same key inside the window → suppressed. Windows are per type: a goal collapses for the whole match (you'll never want two "GOAL!" pushes for one goal); a score <em>update</em> collapses to latest-only — if "1-0" is still queued when "2-0" arrives, drop the 1-0. That's <strong>collapse</strong>, not just dedup: the queue holds the freshest truth, not every intermediate truth.</p>
+
+    <h3>Priority tiers and starvation</h3>
+    <p>Three lanes (section 03), but the subtlety is the scheduling: strict priority means a long match night — goal, controversy, extra time, penalties — starves the digest lane until morning, and a backlog of 40M digest emails at dawn is its own incident. The standard fix is <strong>weighted fair sharing</strong>: instant gets ~70% of worker capacity, standard ~20%, digest ~10%, always. In a true surge you additionally <em>shed</em>: pause the digest lane entirely, degrade standard into digests, and never touch transactional.</p>
+
+    <h3>Per-user rate limits</h3>
+    <p>The "don't wake the fan twelve times" rule, enforced as a <span class="term">token bucket per user per channel</span> (Lesson 11's algorithm, applied per human): e.g., 5 pushes/hour, 1 non-transactional SMS/day, 3 emails/day. The bucket is checked at the dedup stage — before enqueue — so a capped fan costs you one Redis lookup, not a queued job. Transactional messages (OTP) bypass the cap but not the dedup: a double-tapped "resend" must not mint two codes.</p>
+
+    <h3>Multi-device fan-out and read sync</h3>
+    <p>One user, five devices: phone, tablet, old phone in a drawer, work phone, spouse's iPad still logged in. Fan-out sends to <em>all active tokens</em> — but the drawer phone's token died eight months ago, which is why registry hygiene (section 03) is load-bearing. The senior touch: <strong>read-state sync</strong>. The fan reads the goal alert on her phone; the tablet should clear it too. Implementation: opening the app syncs a per-user read cursor (same idea as Lesson 17's read receipts), and a quiet "clear notification N" signal goes to the other devices. Without it, five devices × every alert = the user experiences your dedup as broken.</p>
+
+    <h3>At-least-once sending and idempotency keys</h3>
+    <p>You will retry, and the provider will retry. The contract that makes this safe: <strong>one idempotency key per notification, carried end-to-end</strong> — from your API's 202, through the queues, to the provider call. Same key at your API → returns the existing notification ID instead of enqueueing a duplicate. Same key at the provider → the provider returns the original message instead of sending (and billing) a second SMS. The dedup stage handles <em>event</em> duplicates; the idempotency key handles <em>request</em> duplicates. Both layers, always.</p>
+
+    <div class="warn-box">
+      <p><strong>The trap inside the safety net:</strong> provider-side dedup only works <em>per provider</em>. Fail over from Twilio to Vonage mid-incident and Vonage has never seen your idempotency keys — a retried SMS sends twice and bills twice. Failover must carry dedup state: mark "handed to provider A" before switching, reconcile provider A's receipts first, and only then re-send the unacknowledged remainder through B. (Trap 3 in section 06.)</p>
+    </div>
+
+    <h3>"Sent" is not "delivered"</h3>
+    <p>Four distinct states, and conflating them is the classic junior error:</p>
+    <ul>
+      <li><strong>Accepted</strong> — your API returned 202. Nothing has happened yet.</li>
+      <li><strong>Sent</strong> — the provider acknowledged your request. The provider may still be queueing it.</li>
+      <li><strong>Delivered</strong> — the provider confirms it reached the device (FCM delivery receipts, Twilio status callbacks via webhook). Dead phones and uninstalled apps die here.</li>
+      <li><strong>Opened</strong> — the user tapped (push) or the tracking pixel fired (email). Email opens are approximate — pixel blockers lie.</li>
+    </ul>
+    <p>Your SLA, your dashboards, and your incident reviews run on <strong>delivered</strong>, never on sent. "We sent 62M" during an outage review is how you learn the provider queued them and delivered 40M.</p>
+
+    <h3>Ordering of follow-ups</h3>
+    <p>"GOAL! 1-0" arriving after "GOAL! 2-0" is a correctness bug the fan <em>sees</em>. The fix: order per user, not globally. Partition the push queue by <code>user_id</code> (same partition → same worker → FIFO per user), or attach a per-user sequence number and have the client hold #5 until #4 arrives. Cross-channel ordering (the email arriving before the push) is best-effort — say so out loud instead of promising it.</p>
+
+    <h3>Backpressure on the surge</h3>
+    <p>1.33M notifications/sec arrive; your providers accept ~100K/sec combined. The queue depth grows at ~1.2M/sec — after 60 seconds you're holding ~70M queued jobs. That's fine <em>if it's designed for</em>: the queues are the shock absorber, and depth + drain-rate are the two dashboards you watch. The shedding order is fixed in advance: digest paused first, standard degraded into digests, transactional untouched. The nuclear option, and a great interview line: <strong>collapse the surge into a summary</strong> — if the queue depth for one match passes a threshold, stop enqueueing per-goal pushes and enqueue one "3 goals! Final: 3-2" per user instead.</p>
+
+    <h3>Provider failover, with a price tag</h3>
+    <p>Health-check each primary continuously: error rate, p99 latency, and webhook silence. Trip a <span class="term">circuit breaker</span> at thresholds (e.g., &gt;5% errors over 2 minutes) and shift the channel's traffic to the secondary. Two things juniors miss: <strong>the secondary is more expensive</strong> (SMS secondary at 1.4× is typical — the failover decision has a dollar amount, and finance should know it), and <strong>failback needs hysteresis</strong> (don't flap between providers every 90 seconds; require 10 clean minutes before returning). Time-sensitive email can additionally fall back to push — a degraded channel beats a dead one.</p>
+
+    <h3>Quiet hours and timezone-aware scheduling</h3>
+    <p>Store the user's timezone at preference time; compute "8 AM digest" and "22:00–08:00 quiet" in <em>local</em> time, per user. Transactional passes through quiet hours; everything else waits with a not-before timestamp. The edge cases are the interview gold: daylight-saving transitions (2:30 AM happens twice — or never), users who travel (timezone changes mid-trip), and the fan who set quiet hours but bought tickets for a 9 PM match — <strong>event-relative notifications ("kickoff in 1 hour") override quiet hours by user expectation</strong>, and that exception should be explicit in your design, not discovered in a complaint.</p>
+
+    <h3>Template versioning and localization</h3>
+    <p>Templates are code: versioned, reviewed, dry-runnable in CI. Each notification pins the version it rendered with — when the 9 PM push reads "GOAL! {{scorer}}", you need to know <em>which</em> template version shipped the raw placeholder. Localization is a fallback chain (<code>fr-CA → fr → en</code>), never a missing string. And the poison-template defense from section 05: a render exception must kill one message, never the worker — per-message try/catch, attempt limit, dead-letter queue.</p>
+  </section>
+
+  <section id="failures">
+    <div class="section-head"><span class="section-num">05</span><h2>Failure modes</h2></div>
+    <p class="lede">Every one of these has paged someone. For each: what it looks like, and the layered defense.</p>
+    <ul>
+      <li><strong>Provider outage.</strong> Regional FCM degradation on a match night: pushes queue, latencies spike, webhooks go silent. Defense: circuit breaker → secondary provider; pause the digest lane; dashboard on <em>delivered</em>, not sent, so you see the real gap. Failback only after 10 clean minutes.</li>
+      <li><strong>Token storms.</strong> A forced app update overnight: 5M devices re-register tokens at once, then APNs feedback floods with the newly-dead old tokens. Defense: registry writes go through a batch job, never the hot path; feedback processing is idempotent and backpressured; the registry is sharded by user so the storm spreads.</li>
+      <li><strong>Retry storms.</strong> Provider returns 500s; every worker retries; 3× traffic amplification hits a struggling provider and finishes it off. Defense: exponential backoff <em>with jitter</em> (Lesson 9's thundering-herd lesson, again), per-provider circuit breakers, and a <strong>retry budget</strong> — retries capped at N% of send volume, the rest waits.</li>
+      <li><strong>SMS cost blowup.</strong> A bug classifies a marketing blast as transactional: 15M SMS × $0.01 = $150K before lunch. Defense in depth: per-sender daily SMS budgets with hard stops, anomaly alerts on SMS volume (3σ over the 7-day baseline pages someone), and bulk SMS sends above a threshold need explicit approval. The $4.5M/month line from section 02 is why this gets three defenses, not one.</li>
+      <li><strong>Stuck queues / poison templates.</strong> A bad template version throws on every render; workers die one by one; the queue depth climbs while nothing sends. Defense: per-message try/catch (one bad message never kills a worker), attempt limit → dead-letter queue + alert, template dry-run in CI, and instant rollback to the previous template version.</li>
+      <li><strong>Preferences bypassed under load.</strong> Someone "optimizes" the hot path during the final and skips the preference check: marketing pushes go to opted-out users. Defense: the preference check is a hard dependency of the pipeline, not an optimization target — and quiet-hours/opt-out violations are monitored as a correctness metric, with per-message legal exposure behind them.</li>
+    </ul>
+  </section>
+
+  <section id="traps">
+    <div class="section-head"><span class="section-num">06</span><h2>Senior-depth traps</h2></div>
+    <p class="lede">Three questions that sound simple and punish shallow answers. Each has a one-line verdict and the reasoning that earns it.</p>
+
+    <div class="question">
+      <div class="qnum">Trap 1</div>
+      <div class="qtext">"At-least-once means the same goal alert can arrive twice — where does dedup live?"</div>
+      <div class="context">They're testing whether you know dedup is layered, not a single checkbox.</div>
+      <details class="reveal"><summary>Model answer</summary><div class="body answer">
+        <p><strong>Three layers, and you need all three.</strong> Layer 1, at your edge: the dedup/collapse stage on <code>(user_id, event_fingerprint)</code> — this kills the score-feed double-fire before it becomes 62M duplicate jobs. Layer 2, across your pipeline: the idempotency key per notification — a retried API request returns the existing notification ID instead of enqueueing again, and the provider call carries the same key so the provider won't double-send. Layer 3, on the device: the app dedups by notification ID as the last line of defense, because the phone OS can still display two banners if a provider retries across your key rotation. The honest close: <em>at-least-once means duplicates are possible by construction — the design goal is making them invisible, not impossible.</em></p>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Trap 2</div>
+      <div class="qtext">"Why is 'sent' not 'delivered'?"</div>
+      <div class="context">They're testing whether your mental model of the provider boundary is real.</div>
+      <details class="reveal"><summary>Model answer</summary><div class="body answer">
+        <p><strong>Because "sent" is your provider's receipt for your request, and "delivered" is the device's receipt for the message — with a queue, a dead phone, and an uninstalled app in between.</strong> Your worker gets a 200 from FCM: that's <em>sent</em>. FCM may queue it; the phone may be off, offline, or the app may have been deleted three months ago with a still-registered token. <em>Delivered</em> only exists when the provider's delivery receipt (or the SMS status callback) comes back through your webhook. The operational consequences: SLAs and incident reviews run on delivered, dashboards show the sent→delivered gap as a first-class metric, and "we sent 62M" is never the answer to "did the fans get it".</p>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Trap 3</div>
+      <div class="qtext">"Your provider dedups by your idempotency key — what happens when you switch providers mid-incident?"</div>
+      <div class="context">They're testing whether your failover design survives contact with the idempotency story.</div>
+      <details class="reveal"><summary>Model answer</summary><div class="body answer">
+        <p><strong>The new provider has never seen your keys, so every retried message sends — and bills — twice.</strong> Provider-side dedup is namespaced per provider; failover to Vonage doesn't transfer Twilio's memory of your idempotency keys. The fix is sequencing, not hoping: mark each message "handed to provider A" before the handoff; on failover, first reconcile provider A's delivery receipts and only re-send the <em>unacknowledged</em> remainder through B — ideally with B-specific keys derived from the originals so a late receipt from A can't collide. And the cost line, said out loud: the secondary charges 1.4× and the double-send window is real, so failover is a measured decision with a price tag, not a reflex.</p>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="lab-surge">
+    <div class="section-head"><span class="section-num">07</span><h2>Interactive lab A: the match-night surge simulator</h2></div>
+    <p class="lede">A full match, minute by minute: three goals (one for the opposition), a flaky score feed that double-fires one goal, halftime news, and a full-time summary. Tune the collapse window, the per-user hourly cap, and digest batching — then watch what 200K fans actually receive, what gets suppressed, and how deep the queue gets. Deterministic: same sliders, same result, every time.</p>
+
+    <div class="lab">
+      <h3>Cup final: goal alerts to N fans, one flaky feed</h3>
+      <p class="howto">Set the knobs, press <strong>Run the match</strong>. Provider throughput is fixed at 25,000 pushes/sec — stated, not hidden — so you can see the queue absorb the surge.</p>
+      <div class="slider-row"><label for="surge-fans">Subscribed fans</label><input type="range" id="surge-fans" min="10000" max="1000000" step="10000" value="200000"><output id="surge-fans-v">200,000</output></div>
+      <div class="slider-row"><label for="surge-collapse">Collapse window (minutes)</label><input type="range" id="surge-collapse" min="0" max="60" step="5" value="30"><output id="surge-collapse-v">30 min</output></div>
+      <div class="slider-row"><label for="surge-cap">Per-user cap (pushes/hour)</label><input type="range" id="surge-cap" min="1" max="10" step="1" value="5"><output id="surge-cap-v">5</output></div>
+      <div class="controls">
+        <button class="btn on" id="surge-digest">Digest batching: ON</button>
+        <button class="btn primary" id="surge-run">Run the match</button>
+        <button class="btn" id="surge-reset">Reset</button>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Pushes sent</div><div class="score" id="surge-sends">—</div></div>
+        <div class="stat"><div class="node-name">Suppressed</div><div class="score" id="surge-supp">—</div></div>
+        <div class="stat"><div class="node-name">Max queue depth</div><div class="score" id="surge-depth">—</div></div>
+        <div class="stat"><div class="node-name">Pushes per fan</div><div class="score" id="surge-perfan">—</div></div>
+      </div>
+      <div class="bars" id="surge-bars"></div>
+      <div class="log" id="surge-log" aria-live="polite"><div><span class="t">[t0]</span> Set the knobs and press "Run the match".</div></div>
+      <p style="color:var(--muted);font-size:.93rem;margin-top:12px" id="surge-note"></p>
+    </div>
+
+    <div class="callout">
+      <h4>What to notice</h4>
+      <ul>
+        <li><strong>Collapse window 0:</strong> the feed's double-fire at 33' becomes a second "GOAL!" for every fan. That is the uninstall event — one slider models it.</li>
+        <li><strong>Cap at 1–2:</strong> a goal-heavy night starts eating real alerts, not just noise. The cap is a blunt instrument: it can't tell a goal from gossip, which is why priority lanes exist underneath it.</li>
+        <li><strong>Digest off:</strong> every news item becomes a push and the per-fan count climbs — then the cap starts firing and fans miss the <em>second</em> goal because they got three news pushes. Batching protects the important by absorbing the unimportant.</li>
+        <li><strong>Queue depth:</strong> even with suppression, each goal is 200K pushes against 25K/sec of provider throughput — an 8-second drain per goal. Scale the fans slider to 1M and watch the drain stretch past a minute: that's the 383× peak factor made visible.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="lab-cost">
+    <div class="section-head"><span class="section-num">08</span><h2>Interactive lab B: the channel cost &amp; failover planner</h2></div>
+    <p class="lede">The bill is the design constraint. Set your scale and channel mix, see which channel owns the budget, then flip the primary SMS provider into an outage and watch what failover actually costs — in dollars and in delay.</p>
+
+    <div class="lab">
+      <h3>What does "free" push really cost next to SMS?</h3>
+      <p class="howto">Move the mix sliders and watch the monthly total. Then toggle the outage to price the failover.</p>
+      <div class="slider-row"><label for="cost-mau">Monthly active users</label><input type="range" id="cost-mau" min="10000000" max="200000000" step="10000000" value="100000000"><output id="cost-mau-v">100M</output></div>
+      <div class="slider-row"><label for="cost-npd">Notifications / user / day</label><input type="range" id="cost-npd" min="0.5" max="5" step="0.5" value="3"><output id="cost-npd-v">3</output></div>
+      <div class="slider-row"><label for="cost-push">Push share %</label><input type="range" id="cost-push" min="0" max="100" step="5" value="80"><output id="cost-push-v">80%</output></div>
+      <div class="slider-row"><label for="cost-email">Email share %</label><input type="range" id="cost-email" min="0" max="100" step="5" value="15"><output id="cost-email-v">15%</output></div>
+      <div class="slider-row"><label for="cost-sms">SMS share %</label><input type="range" id="cost-sms" min="0" max="30" step="1" value="5"><output id="cost-sms-v">5%</output></div>
+      <div class="controls">
+        <button class="btn" id="cost-outage">Primary SMS provider outage: OFF</button>
+        <button class="btn primary" id="cost-run">Price it</button>
+        <button class="btn" id="cost-reset">Reset</button>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Monthly total</div><div class="score" id="cost-total">—</div></div>
+        <div class="stat"><div class="node-name">SMS share of bill</div><div class="score" id="cost-share">—</div></div>
+        <div class="stat"><div class="node-name">Incident extra cost</div><div class="score" id="cost-incident">—</div></div>
+        <div class="stat"><div class="node-name">Incident p95 delay</div><div class="score" id="cost-delay">—</div></div>
+      </div>
+      <div class="bars" id="cost-bars"></div>
+      <div class="log" id="cost-log" aria-live="polite"><div><span class="t">[t0]</span> Unit costs: push $0.002/1K · email $0.10/1K · SMS $10.00/1K. Press "Price it".</div></div>
+      <p style="color:var(--muted);font-size:.93rem;margin-top:12px" id="cost-note"></p>
+    </div>
+
+    <div class="warn-box">
+      <p><strong>The takeaway, stated once:</strong> at any realistic mix, SMS is 90%+ of the bill while being a single-digit share of volume. That's why the architecture gates SMS behind per-sender budgets, per-user caps, and approval thresholds — and why the failover decision carries a price tag instead of being automatic and free. Move the SMS slider from 5% to 2% and read the monthly savings: that's a product decision worth more than any infrastructure optimization.</p>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">09</span><h2>Q&amp;A with full model answers</h2></div>
+    <p class="lede">Read the question, form your own answer, then open the model answer and compare — especially the reasoning chain, not just the verdict.</p>
+
+    <div class="qa">
+      <div class="question">
+        <div class="qnum">Question 1 of 4</div>
+        <div class="qtext">A fan has five devices registered — phone, tablet, an old phone in a drawer, a work phone, and a spouse's iPad still logged in. Walk me through what happens when a goal alert goes out.</div>
+        <details class="reveal"><summary>Model answer</summary><div class="body answer">
+          <p><strong>Fan-out to all <em>active</em> tokens, then sync the read state.</strong> The device token registry holds five tokens for this user, sharded by user ID. At send time the fan-out worker pulls the token list — and this is where registry hygiene pays off: the drawer phone's token died eight months ago, and if provider feedback (FCM <code>NotRegistered</code>, APNs 410) has been deleting dead tokens, it isn't in the list. So the push goes to four live devices, one provider call batched per platform.</p>
+          <p><strong>Then the part juniors skip: read-state sync.</strong> The fan reads the alert on her phone. Without sync, the tablet, work phone, and iPad keep buzzing — the user experiences your system as broken dedup. So opening the app advances a per-user read cursor (the same idea as Lesson 17's read receipts), and a quiet clear-signal goes to the other devices. The devices the user actually touches stay quiet; the drawer phone never wakes because its token is gone.</p>
+          <p><strong>The honest caveats to volunteer:</strong> per-device quiet hours are over-engineering — quiet hours are per user. And cross-device "exactly once displayed" is not a guarantee you can make; the guarantee is "sent to every live token, cleared everywhere once read."</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Question 2 of 4</div>
+        <div class="qtext">Can you give me exactly-once delivery of an OTP SMS?</div>
+        <details class="reveal"><summary>Model answer</summary><div class="body answer">
+          <p><strong>No — and the senior move is saying so immediately, then showing what you <em>can</em> guarantee.</strong> Exactly-once across your system and Twilio is not on offer: your worker can crash after the provider accepted the SMS but before you recorded it, and the retry will send a second one. Same impossibility flavor as Lesson 9's delivery semantics and Lesson 21's outbox — distributed systems give you at-least-once plus idempotency, not exactly-once.</p>
+          <p><strong>What you build instead, in layers:</strong> (1) one idempotency key per OTP <em>request</em> — the fan double-tapping "resend" returns the same code within its TTL instead of minting a second one; (2) the dedup/collapse stage so rapid resends collapse to one queued SMS; (3) the provider call carries the idempotency key so a retried call doesn't double-send <em>or double-bill</em>; (4) verification itself is idempotent — checking the code twice is harmless, and the code expires after one successful use. The user-visible result: one code, one SMS charge, no matter how many times anything retried. <em>Exactly-once effect</em> from at-least-once machinery — say that sentence.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Question 3 of 4</div>
+        <div class="qtext">Design the dedup for live score updates: the feed sends "1-0" at 33', "2-0" at 51', sometimes re-fires an old score, and sometimes sends corrections ("actually still 1-0").</div>
+        <details class="reveal"><summary>Model answer</summary><div class="body answer">
+          <p><strong>Two different keys for two different jobs.</strong> The <em>dedup</em> key is <code>(user_id, match_id, event_id)</code> — the feed's own event identity. A re-fired "1-0" carries the same event ID, hits the Redis key inside the collapse window, and dies. A correction carries a <em>new</em> event ID (it really is new information), so it passes dedup — and that's correct.</p>
+          <p>The <em>collapse</em> key is <code>(user_id, match_id, "score")</code> and it holds the latest queued payload. When "2-0" arrives while "1-0" is still queued unsent, compare-and-swap the queued payload: latest wins, the stale one never sends. The correction ("still 1-0") overwrites the queued "2-0" the same way — the fan gets the freshest truth, not every intermediate truth. TTL on both keys is the collapse window (the match duration for goals).</p>
+          <p><strong>The ordering guard:</strong> queue partition by user ID keeps one fan's updates FIFO, so "2-0" can never render before "1-0" on the same device. And the line that shows you see the whole picture: <em>dedup answers "have I seen this event?", collapse answers "is there a fresher truth already?"</em> — different questions, different keys.</p>
+        </div></details>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Question 4 of 4</div>
+        <div class="qtext">The score feed retries aggressively, your API retries the provider, and the provider retries delivery. How do you prevent a notification storm?</div>
+        <details class="reveal"><summary>Model answer</summary><div class="body answer">
+          <p><strong>Break the multiplication at every layer, because retries compose multiplicatively.</strong> Feed retries × your retries × provider retries is how one goal becomes nine pushes. The defenses, in pipeline order:</p>
+          <ol>
+            <li><strong>At your API:</strong> the idempotency key. A retried request with the same key returns the existing notification ID — it never becomes a second job. This kills the feed-retry amplification at the door.</li>
+            <li><strong>At the dedup stage:</strong> the <code>(user, event_fingerprint)</code> collapse window catches anything that slipped past with a new key but the same meaning — the flaky feed's "same goal, new request ID" case.</li>
+            <li><strong>At the provider call:</strong> the same idempotency key goes to the provider, so your own worker retry doesn't double-send or double-bill. Plus a <strong>retry budget</strong>: retries capped at a fixed fraction of send volume, with exponential backoff and jitter so workers don't march in lockstep.</li>
+            <li><strong>At the provider boundary:</strong> a circuit breaker on error rate — if the provider is 500ing, stop hammering it and shift to the secondary instead of retrying into the fire.</li>
+          </ol>
+          <p><strong>And the alarm:</strong> alert on send-rate anomalies (3σ over baseline), because a storm you detect in 2 minutes costs thousands of sends and one you detect at the invoice costs millions. The storm is never one bug — it's three retry loops that were each reasonable alone.</p>
+        </div></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">10</span><h2>Practice drills (untimed)</h2></div>
+    <p class="lede">Untimed, on paper or in your head. The rubric under each drill is the actual grading bar — check yourself against it.</p>
+
+    <div class="question">
+      <div class="qnum">Drill 1</div>
+      <div class="qtext">Size the surge</div>
+      <div class="context">100M users, 3 notifications/user/day average. Cup final: 80M fans opted into goal alerts, club promises delivery within 60 seconds, providers accept 100K pushes/sec combined. Compute: (a) the average rate, (b) the surge rate, (c) the peak factor, (d) the queue depth 60 seconds after the goal if nothing is shed, (e) how long the drain takes after the surge ends.</div>
+      <details class="reveal"><summary>Rubric — what a strong answer includes</summary><div class="body">
+        <ul>
+          <li>(a) 100M × 3 = 300M/day ÷ 86,400 ≈ <strong>3,472/sec</strong> average.</li>
+          <li>(b) 80M ÷ 60 sec ≈ <strong>1.33M/sec</strong> surge.</li>
+          <li>(c) 1.33M ÷ 3,472 ≈ <strong>383×</strong> peak factor.</li>
+          <li>(d) Net growth = 1.33M − 100K = 1.23M/sec × 60 sec ≈ <strong>74M queued</strong>. (Full credit for naming the subtraction — providers keep draining during the surge.)</li>
+          <li>(e) 74M ÷ 100K/sec = 740 sec ≈ <strong>12+ minutes</strong> to drain — which is why the shedding policy (digest paused, surge collapsed to a summary) exists: you don't actually let it reach 74M.</li>
+          <li>Bonus credit: notes the 60-second promise is already broken by the math alone (80M ÷ 100K/sec = 800 sec), so the real answer includes more provider throughput, more secondaries, or a renegotiated promise.</li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Drill 2</div>
+      <div class="qtext">The 2 AM page: the SMS bill is 10× normal</div>
+      <div class="context">It's 2 AM, the anomaly alert fires: SMS volume is ten times the baseline and climbing. List your investigation order — what you check first, second, third — and for each, the mechanism that would have prevented it.</div>
+      <details class="reveal"><summary>Rubric — what a strong answer includes</summary><div class="body">
+        <ul>
+          <li><strong>First: the per-sender dashboard.</strong> Which sender/template exploded? A marketing blast misclassified as transactional is the most common cause — check the template's priority tag first, not the infrastructure.</li>
+          <li><strong>Second: the retry path.</strong> Is the SMS queue retrying into a failing provider (retry storm)? Check provider error rate vs send rate; a 3–10× ratio screams retries, and the circuit breaker should have caught it.</li>
+          <li><strong>Third: failover state.</strong> Are we stuck on the 1.4× secondary from an earlier incident with no failback (hysteresis misconfigured)? Cost per send × volume tells you in one line.</li>
+          <li>Prevention per cause: per-sender daily SMS budgets with hard stops (cause 1); retry budgets + circuit breakers (cause 2); failback hysteresis with an alert on prolonged secondary use (cause 3).</li>
+          <li>Bonus credit: the immediate mitigation is the same regardless of cause — <strong>pause the SMS queue</strong> (transactional excepted by explicit allowlist), then diagnose. Stopping the bleed beats understanding the bleed.</li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Drill 3</div>
+      <div class="qtext">Quiet hours across timezones</div>
+      <div class="context">Design the data model and scheduling for: a Sunday digest delivered at 8 AM in each fan's local timezone, quiet hours 22:00–08:00 local during which only transactional messages go out, and fans who travel across timezones. Name the edge cases.</div>
+      <details class="reveal"><summary>Rubric — what a strong answer includes</summary><div class="body">
+        <ul>
+          <li>Schema: <code>preferences(user_id, timezone, quiet_start, quiet_end, digest_enabled)</code> — timezone stored as IANA name (<code>America/Toronto</code>), never a fixed offset.</li>
+          <li>Scheduling: a scheduler computes per-user send times ("next 8 AM local"), enqueues with a not-before timestamp; workers only pick up due jobs. Quiet hours enforced at enqueue/scheduling time, not trusted to the worker.</li>
+          <li>Transactional bypass is explicit: the message carries a priority tag, and the quiet-hours check reads the tag — no special-casing by sender.</li>
+          <li>Edge cases named: DST transitions (2:30 AM twice or never — schedule by local wall-clock, accept the duplicate/skip); traveling users (timezone updates on app open; in-flight digests keep the old zone — acceptable, stated); event-relative messages ("kickoff in 1 hour") override quiet hours by user expectation, and the exception is explicit in the design.</li>
+        </ul>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">11</span><h2>Cheat sheet &amp; 60-second framing</h2></div>
+
+    <div class="cheatsheet">
+      <h3>Six decisions, in order</h3>
+      <ol>
+        <li><strong>Never send from the request path.</strong> API returns 202 with a notification ID; everything else is pipeline. Synchronous sending melts at 383× peak.</li>
+        <li><strong>Preferences before fan-out.</strong> Filter 80M → opted-in before enqueueing. The cheapest byte in the system, and never skipped — opt-out violations carry per-message fines.</li>
+        <li><strong>One event, many devices:</strong> fan-out after prefs in 10K-user chunks; token registry sharded by user, cleaned on provider feedback; read-state sync so five devices don't buzz five times.</li>
+        <li><strong>Dedup in two places:</strong> collapse stage on <code>(user, event fingerprint)</code> for event duplicates, idempotency keys end-to-end for request duplicates. Collapse keeps the freshest truth, not every truth.</li>
+        <li><strong>Priority lanes, separate queues.</strong> Transactional never waits behind marketing; shed digest first in a surge; the nuclear option is collapsing the surge into one summary per user.</li>
+        <li><strong>"Sent" ≠ "delivered".</strong> SLA on delivery webhooks. Every provider gets a warm secondary, and failover carries dedup state — the new provider has never seen your idempotency keys.</li>
+      </ol>
+    </div>
+
+    <div class="framing">
+      <p><strong>60-second framing — say this in the room:</strong></p>
+      <p>"A notification system turns system events into messages on the right device at the right time. At 100M users that's 3.5K notifications a second on average — and 1.3M a second on a cup-final goal, a 383× peak factor, so the whole design is a surge-absorbing pipeline, never a synchronous send: the API returns 202 and everything flows through queues. Preferences are checked before fan-out, because filtering to opted-in users first is the cheapest byte in the system. Fan-out explodes one event into per-user, per-device jobs in chunks; a collapse stage dedups on user plus event fingerprint so the flaky feed's double-fire becomes one push; priority lanes keep OTPs ahead of newsletters; and idempotency keys run end-to-end because delivery is at-least-once. 'Sent' means the provider accepted it — my SLA runs on delivered, via webhooks. And the bill is 97% SMS, so SMS is gated behind budgets, caps, and approvals, with a warm secondary provider for failover."</p>
+    </div>
+
+    <div class="callout">
+      <h4>🎙️ In-the-room talk-track (when they ask you to design it)</h4>
+      <p>"I'll walk the pipeline: Notification API validates and returns 202 with an idempotency key — nothing sends synchronously. Templates render at send time with pinned versions. The preference service filters to opted-in users before fan-out — that's a 20%+ saving on everything downstream and it's never skipped. The dedup stage collapses on user plus event fingerprint with per-type windows, so a double-fired goal is one push. Then priority lanes — instant, standard, digest — each with its own queue, weighted workers, and a fixed shed order for surges. Per-channel queues feed workers that batch to FCM/APNs, SES, and Twilio, each with a warm secondary. Delivery webhooks drive the sent-to-delivered tracking my SLA is measured on. For the surge math: 80M fans in 60 seconds is 1.3M a second against 3.5K average — the queues are the shock absorber, and past a depth threshold I'd collapse per-goal pushes into one summary per user. Cost-wise, SMS is 97% of the bill, so it gets per-sender budgets, per-user caps, and anomaly paging."</p>
+    </div>
+
+    <footer>
+      <p>Lesson 22 · Part of the daily system design series. <a href="../index.html">← All lessons</a></p>
+    </footer>
+<script>
+/* Lab logic is pure and deterministic so it can be smoke-tested outside a browser.
+   window.SurgeLab.run({fans, collapseMin, capPerHour, digestOn})
+     -> {events, sends, suppressed, maxQueueDepth, perFan, bars, note}
+   window.CostLab.run({mau, perDay, pushPct, emailPct, smsPct, outage})
+     -> {events, monthlySends, channels, total, smsShare, incident, note} */
+(function () {
+  'use strict';
+
+  function fmt(n) {
+    return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+  function money(n) {
+    if (n >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+    if (n >= 1e3) return '$' + (n / 1e3).toFixed(1) + 'K';
+    return '$' + n.toFixed(2);
+  }
+
+  // ---------- Lab A: match-night surge simulator ----------
+  var PROVIDER_RATE = 25000; // pushes/sec — fixed and stated in the lab copy
+  var DIGEST_SLOTS = [45, 60, 75, 90]; // match minutes at which digests flush
+
+  function surgeRun(cfg) {
+    var fans = cfg.fans || 200000;
+    var collapseMin = (cfg.collapseMin == null) ? 30 : cfg.collapseMin;
+    var cap = cfg.capPerHour || 5;
+    var digestOn = !!cfg.digestOn;
+    var events = [];
+    function log(kind, text) { events.push({ kind: kind, text: text }); }
+
+    var raw = [
+      { t: 12,   type: 'goal', key: 'goal-1',     pri: 'instant', label: "GOAL! Riverside 1-0 (12')" },
+      { t: 33,   type: 'goal', key: 'goal-2',     pri: 'instant', label: "GOAL! Riverside 2-0 (33')" },
+      { t: 33.5, type: 'goal', key: 'goal-2',     pri: 'instant', label: "re-fire of the 33' goal — flaky feed" },
+      { t: 45,   type: 'news', key: 'news-ht',    pri: 'low',     label: "Halftime team news (45')" },
+      { t: 52,   type: 'goal', key: 'goal-3-opp', pri: 'instant', label: 'Opposition goal, 2-1 (52\')' },
+      { t: 68,   type: 'news', key: 'news-1',     pri: 'low',     label: 'Transfer rumor #1 (68\')' },
+      { t: 69,   type: 'news', key: 'news-2',     pri: 'low',     label: 'Transfer rumor #2 (69\')' },
+      { t: 70,   type: 'news', key: 'news-3',     pri: 'low',     label: 'Injury update (70\')' },
+      { t: 90,   type: 'summary', key: 'summary-ft', pri: 'low',  label: 'Full-time summary (90\')' }
+    ];
+
+    // Batch low-priority items into digest slots (when digesting is on).
+    var slotItems = {};
+    var timeline = [];
+    raw.forEach(function (ev) {
+      if (ev.pri === 'low' && digestOn) {
+        var slot = null;
+        for (var i = 0; i < DIGEST_SLOTS.length; i++) {
+          if (DIGEST_SLOTS[i] >= ev.t) { slot = DIGEST_SLOTS[i]; break; }
+        }
+        slot = (slot == null) ? 90 : slot;
+        (slotItems[slot] = slotItems[slot] || []).push(ev);
+      } else {
+        timeline.push(ev);
+      }
+    });
+    Object.keys(slotItems).forEach(function (slot) {
+      var items = slotItems[slot];
+      timeline.push({
+        t: +slot, type: 'digest', key: 'digest-' + slot, pri: 'instant',
+        label: 'Digest @' + slot + "' (" + items.length + ' items)', batched: items.length
+      });
+    });
+    timeline.sort(function (a, b) { return a.t - b.t; });
+
+    var seen = {};       // dedupKey -> minute actually delivered
+    var sentTimes = [];  // minutes at which per-fan pushes went out
+    var queue = 0, maxDepth = 0, prevT = 0;
+    var sends = 0, dupEv = 0, capEv = 0, batchedItems = 0;
+    var bars = [];
+
+    function drain(toT) {
+      var gapSec = Math.max(0, toT - prevT) * 60;
+      queue = Math.max(0, queue - PROVIDER_RATE * gapSec);
+      prevT = toT;
+    }
+    function inWindow(nowT) {
+      var cutoff = nowT - 60, n = 0;
+      for (var i = 0; i < sentTimes.length; i++) if (sentTimes[i] > cutoff) n++;
+      return n;
+    }
+
+    timeline.forEach(function (ev) {
+      drain(ev.t);
+      // 1) dedup on the event fingerprint
+      if (seen[ev.key] != null && (ev.t - seen[ev.key]) <= collapseMin) {
+        dupEv++;
+        log('warn', ev.label + ' — DUPLICATE suppressed by the ' + collapseMin + '-min collapse window.');
+        bars.push({ label: ev.label, depthK: queue / 1000 });
+        return;
+      }
+      // 2) per-user hourly cap
+      if (inWindow(ev.t) >= cap) {
+        capEv++;
+        log('warn', ev.label + ' — SUPPRESSED by the per-user cap (' + cap + ' pushes/hr).');
+        bars.push({ label: ev.label, depthK: queue / 1000 });
+        return;
+      }
+      // 3) send
+      seen[ev.key] = ev.t;
+      sends += fans;
+      queue += fans;
+      sentTimes.push(ev.t);
+      if (queue > maxDepth) maxDepth = queue;
+      if (ev.batched) batchedItems += ev.batched;
+      log('good', ev.label + ' — pushed to ' + fmt(fans) + ' fans. Queue depth now ' + fmt(queue) + '.');
+      bars.push({ label: ev.label, depthK: queue / 1000 });
+    });
+    drain(150); // let the queue fully drain after the window
+
+    var suppressed = {
+      duplicates: dupEv * fans,
+      cap: capEv * fans,
+      digestBatched: batchedItems * fans
+    };
+    var perFan = sends / fans;
+    var note = 'The average fan received ' + perFan.toFixed(1) + ' pushes during the match. ' +
+      'Peak queue depth was ' + fmt(maxDepth) + ' against ' + fmt(PROVIDER_RATE) + '/sec of provider throughput — ' +
+      'about ' + Math.ceil(maxDepth / PROVIDER_RATE) + 's to drain the worst burst. ' +
+      'Suppressed: ' + fmt(suppressed.duplicates) + ' duplicates, ' +
+      fmt(suppressed.cap) + ' over the hourly cap, ' +
+      fmt(suppressed.digestBatched) + ' news items folded into digests.';
+
+    return {
+      events: events, sends: sends, suppressed: suppressed,
+      maxQueueDepth: maxDepth, perFan: perFan, bars: bars, note: note,
+      providerRate: PROVIDER_RATE
+    };
+  }
+
+  // ---------- Lab B: channel cost & failover planner ----------
+  var UNIT_PUSH = 0.002 / 1000;   // $ per push  (~infra only)
+  var UNIT_EMAIL = 0.10 / 1000;   // $ per email
+  var UNIT_SMS = 10.00 / 1000;    // $ per SMS
+  var SMS_FAILOVER_MULT = 1.4;    // secondary SMS vendor price multiple
+  var INCIDENT_MIN = 60;          // modeled outage length, minutes
+  var DETECTION_MIN = 10;         // time to trip the circuit breaker
+  var REROUTE_DRAIN_MIN = 15;     // queue drain after reroute
+
+  function costRun(cfg) {
+    var mau = cfg.mau || 100000000;
+    var perDay = cfg.perDay || 3;
+    var pushPct = cfg.pushPct == null ? 80 : cfg.pushPct;
+    var emailPct = cfg.emailPct == null ? 15 : cfg.emailPct;
+    var smsPct = cfg.smsPct == null ? 5 : cfg.smsPct;
+    var outage = !!cfg.outage;
+    var events = [];
+    function log(kind, text) { events.push({ kind: kind, text: text }); }
+
+    var tot = pushPct + emailPct + smsPct;
+    if (tot <= 0) tot = 1;
+    pushPct /= tot; emailPct /= tot; smsPct /= tot;
+
+    var monthlySends = mau * perDay * 30;
+    var channels = [
+      { name: 'Push',  sends: monthlySends * pushPct,  unit: UNIT_PUSH,  cost: monthlySends * pushPct * UNIT_PUSH },
+      { name: 'Email', sends: monthlySends * emailPct, unit: UNIT_EMAIL, cost: monthlySends * emailPct * UNIT_EMAIL },
+      { name: 'SMS',   sends: monthlySends * smsPct,   unit: UNIT_SMS,   cost: monthlySends * smsPct * UNIT_SMS }
+    ];
+    var total = channels[0].cost + channels[1].cost + channels[2].cost;
+    var smsShare = total > 0 ? (channels[2].cost / total) * 100 : 0;
+
+    log('info', 'Monthly sends: ' + fmt(monthlySends) + ' (' + fmt(mau) + ' MAU × ' + perDay + '/day × 30).');
+    channels.forEach(function (c) {
+      log(c.name === 'SMS' ? 'warn' : 'info',
+        c.name + ': ' + fmt(c.sends) + ' sends × $' + c.unit.toFixed(6) + ' = ' + money(c.cost) + '/mo.');
+    });
+    log(total > 0 ? 'good' : 'info', 'Monthly total: ' + money(total) + ' — SMS is ' + smsShare.toFixed(1) + '% of the bill.');
+
+    var incident = { extra: 0, delayMin: 0, rerouted: 0 };
+    if (outage && channels[2].sends > 0) {
+      var hourlySms = channels[2].sends / 30 / 24;
+      incident.rerouted = Math.round(hourlySms * (INCIDENT_MIN / 60));
+      incident.extra = incident.rerouted * UNIT_SMS * (SMS_FAILOVER_MULT - 1);
+      incident.delayMin = DETECTION_MIN + REROUTE_DRAIN_MIN;
+      log('bad', 'OUTAGE: primary SMS provider down for ' + INCIDENT_MIN + ' min. Circuit breaker trips after ~' + DETECTION_MIN + ' min.');
+      log('warn', 'Failover: ' + fmt(incident.rerouted) + ' SMS rerouted to the secondary at 1.4× — extra cost ' + money(incident.extra) + '.');
+      log('warn', 'Consequence: p95 delay +' + incident.delayMin + ' min for that hour\'s SMS (detection + reroute drain). Dedup state reconciled before re-send (Trap 3).');
+    } else if (outage) {
+      log('info', 'Outage toggled, but SMS share is 0% — nothing to fail over. Push and email ride through on their own secondaries.');
+    }
+
+    var note;
+    if (smsPct > 0.02 && total > 0) {
+      var moved = (smsPct - 0.02) * monthlySends;
+      var saving = moved * (UNIT_SMS - UNIT_PUSH);
+      note = 'Product lever beats infra lever: moving SMS from ' + (smsPct * 100).toFixed(1) + '% to 2% of the mix (the rest → push) saves ' +
+        money(saving) + '/mo — more than any provider renegotiation. That is why SMS gets budgets, caps, and approval gates.';
+    } else {
+      note = 'SMS is already at or below 2% of the mix — the bill is dominated by push/email infra. The next lever is email batching and digest consolidation.';
+    }
+
+    return {
+      events: events, monthlySends: monthlySends, channels: channels,
+      total: total, smsShare: smsShare, incident: incident, note: note
+    };
+  }
+
+  // expose for testing + DOM wiring
+  var root = (typeof window !== 'undefined') ? window : {};
+  root.SurgeLab = { run: surgeRun };
+  root.CostLab = { run: costRun };
+
+  // ---------- DOM wiring (skipped when there is no document, e.g. node smoke test) ----------
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function renderLog(el, events) {
+    el.innerHTML = events.map(function (e) {
+      var cls = e.kind === 'good' ? 'good' : (e.kind === 'bad' ? 'bad' : '');
+      return '<div><span class="' + cls + '">' + esc(e.text) + '</span></div>';
+    }).join('');
+    el.scrollTop = el.scrollHeight;
+  }
+  function renderBars(el, bars, fmtVal) {
+    var max = 0;
+    bars.forEach(function (b) { if (b.depthK > max) max = b.depthK; });
+    if (max <= 0) max = 1;
+    el.innerHTML = bars.map(function (b) {
+      var w = Math.max(2, Math.round((b.depthK / max) * 100));
+      return '<div class="bar-row"><div class="bar-label">' + esc(b.label) + '</div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:' + w + '%"></div></div>' +
+        '<div class="bar-val">' + esc(fmtVal(b)) + '</div></div>';
+    }).join('');
+  }
+
+  if (typeof document !== 'undefined' && document.getElementById) {
+    // Lab A wiring
+    (function () {
+      if (!$('surge-run')) return;
+      var digestOn = true;
+      function syncOutputs() {
+        $('surge-fans-v').textContent = fmt(+$('surge-fans').value);
+        $('surge-collapse-v').textContent = $('surge-collapse').value + ' min';
+        $('surge-cap-v').textContent = $('surge-cap').value;
+      }
+      ['surge-fans', 'surge-collapse', 'surge-cap'].forEach(function (id) {
+        $(id).addEventListener('input', syncOutputs);
+      });
+      $('surge-digest').addEventListener('click', function () {
+        digestOn = !digestOn;
+        $('surge-digest').textContent = 'Digest batching: ' + (digestOn ? 'ON' : 'OFF');
+        $('surge-digest').classList.toggle('on', digestOn);
+      });
+      $('surge-run').addEventListener('click', function () {
+        var r = surgeRun({
+          fans: +$('surge-fans').value,
+          collapseMin: +$('surge-collapse').value,
+          capPerHour: +$('surge-cap').value,
+          digestOn: digestOn
+        });
+        renderLog($('surge-log'), r.events);
+        $('surge-sends').textContent = fmt(r.sends);
+        var s = r.suppressed;
+        $('surge-supp').textContent = fmt(s.duplicates + s.cap + s.digestBatched);
+        $('surge-depth').textContent = fmt(r.maxQueueDepth);
+        $('surge-perfan').textContent = r.perFan.toFixed(1);
+        renderBars($('surge-bars'), r.bars, function (b) { return fmt(b.depthK) + 'K queued'; });
+        $('surge-note').textContent = r.note +
+          ' Suppressed breakdown — duplicates: ' + fmt(s.duplicates) +
+          ' · over cap: ' + fmt(s.cap) + ' · digest-batched: ' + fmt(s.digestBatched) + '.';
+      });
+      $('surge-reset').addEventListener('click', function () {
+        $('surge-log').innerHTML = '<div><span class="t">[t0]</span> Set the knobs and press "Run the match".</div>';
+        $('surge-sends').textContent = '—'; $('surge-supp').textContent = '—';
+        $('surge-depth').textContent = '—'; $('surge-perfan').textContent = '—';
+        $('surge-bars').innerHTML = ''; $('surge-note').textContent = '';
+      });
+      syncOutputs();
+    })();
+
+    // Lab B wiring
+    (function () {
+      if (!$('cost-run')) return;
+      var outage = false;
+      function syncOutputs() {
+        var mau = +$('cost-mau').value;
+        $('cost-mau-v').textContent = (mau >= 1e6) ? (mau / 1e6) + 'M' : fmt(mau);
+        $('cost-npd').value = $('cost-npd').value; // keep
+        $('cost-npd-v').textContent = $('cost-npd').value;
+        $('cost-push-v').textContent = $('cost-push').value + '%';
+        $('cost-email-v').textContent = $('cost-email').value + '%';
+        $('cost-sms-v').textContent = $('cost-sms').value + '%';
+      }
+      ['cost-mau', 'cost-npd', 'cost-push', 'cost-email', 'cost-sms'].forEach(function (id) {
+        $(id).addEventListener('input', syncOutputs);
+      });
+      $('cost-outage').addEventListener('click', function () {
+        outage = !outage;
+        $('cost-outage').textContent = 'Primary SMS provider outage: ' + (outage ? 'ON' : 'OFF');
+        $('cost-outage').classList.toggle('on', outage);
+      });
+      $('cost-run').addEventListener('click', function () {
+        var r = costRun({
+          mau: +$('cost-mau').value,
+          perDay: +$('cost-npd').value,
+          pushPct: +$('cost-push').value,
+          emailPct: +$('cost-email').value,
+          smsPct: +$('cost-sms').value,
+          outage: outage
+        });
+        renderLog($('cost-log'), r.events);
+        $('cost-total').textContent = money(r.total);
+        $('cost-share').textContent = r.smsShare.toFixed(1) + '%';
+        $('cost-incident').textContent = outage ? money(r.incident.extra) : '—';
+        $('cost-delay').textContent = outage ? ('+' + r.incident.delayMin + ' min') : '—';
+        renderBars($('cost-bars'), r.channels.map(function (c) {
+          return { label: c.name, depthK: c.cost / 1000 };
+        }), function (b) { return money(b.depthK * 1000) + '/mo'; });
+        $('cost-note').textContent = r.note;
+      });
+      $('cost-reset').addEventListener('click', function () {
+        $('cost-log').innerHTML = '<div><span class="t">[t0]</span> Unit costs: push $0.002/1K · email $0.10/1K · SMS $10.00/1K. Press "Price it".</div>';
+        $('cost-total').textContent = '—'; $('cost-share').textContent = '—';
+        $('cost-incident').textContent = '—'; $('cost-delay').textContent = '—';
+        $('cost-bars').innerHTML = ''; $('cost-note').textContent = '';
+      });
+      syncOutputs();
+    })();
+  }
+})();
+</script>
+</div>
+</body>
+</html>
