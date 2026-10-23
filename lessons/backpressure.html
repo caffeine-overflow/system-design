@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Backpressure — When Demand Outruns Capacity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa;
+      --surface: #ffffff;
+      --surface-2: #edf1f4;
+      --ink: #172028;
+      --muted: #56636d;
+      --line: #cbd4da;
+      --line-strong: #8998a3;
+      --accent: #d84a2f;
+      --accent-soft: #fde9e4;
+      --blue: #1769aa;
+      --blue-soft: #e1eff9;
+      --green: #167454;
+      --green-soft: #ddf3e9;
+      --amber: #9c6415;
+      --amber-soft: #fff0d6;
+      --purple: #6b4fa1;
+      --purple-soft: #ece6f7;
+      --code: #15212a;
+      --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b;
+        --surface: #182128;
+        --surface-2: #202c34;
+        --ink: #eef3f6;
+        --muted: #b4c0c8;
+        --line: #33434e;
+        --line-strong: #6f818c;
+        --accent: #ff775e;
+        --accent-soft: #3c2421;
+        --blue: #69b6ef;
+        --blue-soft: #172f40;
+        --green: #61c59f;
+        --green-soft: #17372d;
+        --amber: #e4ae56;
+        --amber-soft: #382d1b;
+        --purple: #b39ddb;
+        --purple-soft: #2a2440;
+        --code: #0b1115;
+        --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 17px;
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .crumbs a:hover { text-decoration: underline; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem);
+      line-height: 1.08; letter-spacing: -0.02em; font-weight: 800;
+    }
+    .whyline {
+      font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span {
+      font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line);
+      padding: 5px 12px; border-radius: 999px; color: var(--muted);
+    }
+    .toc {
+      margin: 34px 0 0; padding: 22px 24px; background: var(--surface);
+      border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    section { margin-top: 58px; }
+    .section-head {
+      display: flex; align-items: baseline; gap: 14px;
+      border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px;
+    }
+    .section-num {
+      font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem;
+      color: var(--accent); white-space: nowrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition {
+      border-left: 4px solid var(--blue); background: var(--blue-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box {
+      background: var(--amber-soft); border: 1px solid var(--amber);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box {
+      background: var(--green-soft); border: 1px solid var(--green);
+      border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code {
+      font-family: "IBM Plex Mono", monospace; font-size: .88em;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 7px;
+    }
+    pre {
+      font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55;
+      background: var(--code); color: var(--code-ink);
+      padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem;
+    }
+    table.cmp {
+      border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0;
+      background: var(--surface); font-size: .95rem;
+    }
+    table.cmp th, table.cmp td {
+      border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top;
+    }
+    table.cmp th { background: var(--surface-2); }
+    .lab {
+      background: var(--surface); border: 2px solid var(--line);
+      border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem;
+      box-shadow: var(--shadow);
+    }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn {
+      border: 1px solid var(--line-strong); background: var(--surface-2);
+      border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat {
+      border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px;
+      background: var(--paper); text-align: center;
+    }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge {
+      display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px;
+      padding: 3px 12px; margin-top: 4px;
+    }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log {
+      font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code);
+      color: var(--code-ink); border-radius: 10px; padding: 14px 16px;
+      max-height: 260px; overflow-y: auto; margin-top: 14px;
+    }
+    .log div { margin: 4px 0; }
+    .log .t { color: var(--accent); }
+    .log .good { color: #7fd8a8; }
+    .log .bad { color: #ff8f7d; }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .bars { margin: 16px 0; }
+    .bar-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+    .bar-row .bar-label { min-width: 130px; font-weight: 600; font-size: .92rem; }
+    .bar-track { flex: 1; height: 22px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 11px; background: var(--blue); }
+    .bar-fill.impolite { background: var(--accent); }
+    .bar-row .bar-val { min-width: 110px; font-family: "IBM Plex Mono", monospace; font-size: .85rem; }
+    .reveal { margin-top: 12px; }
+    .reveal > summary {
+      cursor: pointer; font-weight: 700; color: var(--blue);
+      list-style: none; display: inline-block; padding: 6px 0;
+    }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .qa { margin: 22px 0; }
+    .question {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+    .question .qnum {
+      font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600;
+      color: var(--accent); margin-bottom: 6px;
+    }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .cheatsheet {
+      background: var(--surface); border: 2px solid var(--ink);
+      border-radius: var(--radius); padding: 22px 24px; margin: 24px 0; max-width: 46rem;
+    }
+    .cheatsheet h3 { margin: 0 0 10px; }
+    .cheatsheet ol { max-width: none; }
+    .framing {
+      border-left: 4px solid var(--purple); background: var(--purple-soft);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 16px 20px; margin: 20px 0; max-width: 46rem;
+    }
+    .framing p { margin: 8px 0; max-width: none; }
+    footer { margin-top: 60px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 20px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <p class="crumbs"><a href="../index.html">All lessons</a> · Lesson 23</p>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 23 · Advanced Trade-off</span>
+    <h1>Backpressure — When Demand Outruns Capacity</h1>
+    <p class="whyline">Every system you will ever design has a ceiling: the number of requests per second it can actually finish. Most days you never touch it. But the day 500,000 fans show up for 40,000 seats, or a retry bug multiplies your traffic five-fold overnight, the ceiling is the whole design. Backpressure is the art of surviving that day: deciding, <em>before</em> the surge, what the system does when more work arrives than it can finish.</p>
+    <div class="meta">
+      <span>Advanced trade-off</span>
+      <span>Queues · Load shedding · Retry storms · Flow control</span>
+      <span>~40 min read + labs</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#what">What is backpressure? — the definition from zero</a></li>
+      <li><a href="#math">The math of overload: arrival rate vs service rate</a></li>
+      <li><a href="#five">The five responses: buffer, scale, shed, push back, degrade</a></li>
+      <li><a href="#real">Backpressure in real systems</a></li>
+      <li><a href="#failures">When backpressure goes wrong — failure modes</a></li>
+      <li><a href="#traps">Senior-depth traps</a></li>
+      <li><a href="#lab-presale">Interactive lab A: the derby presale crush simulator</a></li>
+      <li><a href="#lab-retry">Interactive lab B: the retry-storm multiplier</a></li>
+      <li><a href="#qa">Q&amp;A with full model answers</a></li>
+      <li><a href="#drills">Practice drills (untimed)</a></li>
+      <li><a href="#cheatsheet">Cheat sheet, 60-second framing &amp; talk-track</a></li>
+    </ol>
+  </nav>
+
+  <section id="what">
+    <div class="section-head"><span class="section-num">01</span><h2>What is backpressure?</h2></div>
+    <p class="lede">The whole lesson in one scene: 10:00 AM, Riverside FC opens the derby ticket presale. 500,000 fans hit the site at once for 40,000 seats. The checkout pipeline can process 300 checkouts a second. In the first 60 seconds, 500,000 requests arrive and 18,000 finish. What happens to the other 482,000 — and what <em>should</em> happen — is backpressure.</p>
+
+    <div class="definition">
+      <strong class="term">Backpressure</strong>
+      <p>Any mechanism by which an overloaded component <strong>slows down the work flowing into it</strong>. The name is literal: when a pipe is too narrow for the water, pressure builds up — and instead of letting the pipe burst, you push pressure <em>backwards</em> toward the source, asking it to ease off. Backpressure is the feedback signal that travels from the bottleneck upstream to the sender: "I can't take this much. Slow down."</p>
+    </div>
+
+    <h3>The vocabulary, from zero</h3>
+    <ul>
+      <li><span class="term">Arrival rate (λ)</span> — how fast work <em>arrives</em>, in requests per second. Lambda is the demand side. In the presale: roughly 500,000 fans in 60 seconds ≈ <strong>8,333 requests/sec</strong> in the first minute.</li>
+      <li><span class="term">Service rate (μ)</span> — how fast the system can <em>finish</em> work, in requests per second. Mu is the capacity side. The checkout pipeline: <strong>300 checkouts/sec</strong>.</li>
+      <li><span class="term">Queue depth</span> — how much work is currently waiting. If λ &gt; μ, the queue grows at roughly <strong>(λ − μ) per second</strong>. After 60 seconds of presale: (8,333 − 300) × 60 ≈ <strong>482,000 waiting</strong>.</li>
+      <li><span class="term">Utilization (ρ = λ/μ)</span> — how busy the system is. ρ = 1 means exactly saturated. ρ = 27.8 in the presale minute means the system is nearly 28× over capacity. Backpressure is the regime where ρ &gt; 1, i.e. <strong>λ &gt; μ</strong>.</li>
+      <li><span class="term">Saturation</span> — the state of running at full capacity. A saturated system has <em>zero</em> spare capacity: every new arrival either waits or is refused. Saturation is normal in a well-used system; it only becomes an incident when it goes unmanaged.</li>
+      <li><span class="term">Load shedding</span> — deliberately refusing or dropping the lowest-value work so the rest survives. The bouncer who turns away the rowdiest arrivals so the venue stays safe.</li>
+      <li><span class="term">Flow control</span> — the sender and receiver <em>agreeing</em> on the pace: the receiver tells the sender "send me only this much". TCP does this; so do modern streaming libraries.</li>
+    </ul>
+
+    <div class="callout">
+      <h4>⚽ The soccer picture to keep</h4>
+      <p>Picture the stadium gates at a sold-out derby. Fans (requests) pour down the street toward the turnstiles (your servers). When the concourse inside is full, the stewards don't let people pile into the stairwells — they <strong>stop the flow at the outer gate and tell the crowd to wait in the square outside</strong>. That signal — from the full concourse, back out to the street — is backpressure. Notice three things: (1) the signal flows <em>backwards</em>, from the bottleneck to the source; (2) the crowd in the square is a <em>cheap</em> place to wait (no pressure on the turnstiles); (3) the stewards <em>also</em> decide who gets in first (season-ticket holders' lane) — that's load shedding and priorities. Every mechanism in this lesson is one of those three steward moves.</p>
+    </div>
+
+    <h3>Why this lesson exists</h3>
+    <p>Junior answers to "design a ticket sale" describe the happy path: checkout flow, payment, seat map, confirmation email. Senior answers start at <strong>ρ = 27.8</strong> and design the unhappy path first, because the unhappy path is the entire problem. Two facts make backpressure non-optional:</p>
+    <ul>
+      <li><strong>You can't make μ infinite.</strong> Databases don't autoscale writes, payment providers rate-limit you, and every new server takes minutes to boot — the surge arrives in seconds.</li>
+      <li><strong>Doing nothing is a decision with the worst outcomes.</strong> An unmanaged queue grows unboundedly: memory runs out, latencies hit minutes, timeouts fire, clients <em>retry</em> — and every retry is new demand on an already-saturated system. Doing nothing doesn't absorb the surge; it converts the surge into a cascade.</li>
+    </ul>
+    <p>A note on scope: <a href="distributed-transactions-saga.html">Lesson 21</a> used the season-ticket checkout to discuss getting all-or-nothing right across databases. Different match, different problem. That lesson was about <em>correctness</em> when the work is modest. This one is about <em>survival</em> when the work is enormous.</p>
+  </section>
+
+  <section id="math">
+    <div class="section-head"><span class="section-num">02</span><h2>The math of overload: arrival rate vs service rate</h2></div>
+    <p class="lede">Backpressure is one of the rare design topics where three tiny formulas answer most questions. Everything in this section is worked with the derby presale numbers so the math sticks to a story.</p>
+
+    <h3>Formula 1: the queue grows at (λ − μ) per second</h3>
+    <p>This is almost insultingly simple, which is why it's powerful. If 8,333 fans arrive per second and 300 finish per second, the queue gains 8,033 per second:</p>
+<pre>λ = 8,333 req/s (first minute)    μ = 300 req/s
+queue growth = λ − μ = 8,033 req/s
+after 60 s: 8,033 × 60 ≈ 482,000 waiting</pre>
+    <p>The design insight: <strong>a queue is a bet that λ &gt; μ is temporary.</strong> If the surge lasts 60 seconds and your queue can hold 482,000 requests' worth of state, fine. If the surge lasts an hour — or forever, because timeouts turned one request into five (section 05) — the bet loses. Every queue decision is really a decision about how long you're willing to bet the imbalance lasts.</p>
+
+    <h3>Formula 2: Little's Law — queue × wait are two views of one thing</h3>
+    <p><span class="term">Little's Law</span> says: the average number of items in a system <strong>L</strong> equals the arrival rate <strong>λ</strong> times the average time each item spends in the system <strong>W</strong>:</p>
+<pre>L = λ × W        →        W = L ÷ λ</pre>
+    <p>It holds for <em>any</em> system — a checkout pipeline, a stadium queue, a hospital ER. Applied to the presale: a fan arriving to find 482,000 people ahead of her, with the pipeline finishing 300 per second, waits:</p>
+<pre>W = 482,000 ÷ 300 ≈ 1,607 seconds ≈ 27 minutes</pre>
+    <p>That number is the one that matters to the business: <strong>27 minutes of waiting</strong> is when fans refresh the page, open five tabs, and call customer support — each of which is <em>new demand</em>. Little's Law is how you convert "the queue is big" into "the user experience is broken", which is how you justify the backpressure design to anyone who isn't an engineer.</p>
+
+    <h3>Formula 3: latency explodes as utilization approaches 100%</h3>
+    <p>For a single server with random arrivals, the average wait grows as <strong>1 / (μ − λ)</strong>. Watch what happens as λ creeps toward μ:</p>
+<pre>μ = 300/s.   λ = 150/s (ρ = 0.5)  → wait ≈ 1/(300−150)  ≈ 6.7 ms
+             λ = 270/s (ρ = 0.9)  → wait ≈ 1/(300−270)  ≈ 33 ms
+             λ = 295/s (ρ = 0.98) → wait ≈ 1/(300−295)   ≈ 200 ms
+             λ = 300/s (ρ = 1.0)  → wait → unbounded</pre>
+    <p>The curve has a knee: from ρ = 0.5 to ρ = 0.9, wait grows 5×; from 0.9 to 0.98, another 6× — and past 1.0 there is no steady state at all, just a queue that grows forever. Two consequences experienced designers never forget:</p>
+    <ul>
+      <li><strong>Capacity headroom is a latency feature, not waste.</strong> Running at 60–70% utilization isn't laziness — it's buying the flat part of the curve. This is why autoscaling <em>targets</em> are usually set at ~70%, not ~100%.</li>
+      <li><strong>A tiny capacity loss at high utilization is a huge latency event.</strong> If one database replica dies and μ drops 10% while λ stays put, you can jump from ρ = 0.9 to ρ = 1.0 instantly — the incident isn't "we lost 10% of capacity", it's "the queue started growing forever".</li>
+    </ul>
+
+    <div class="green-box">
+      <p><strong>The one-line math verdict (say it first in the room):</strong> "The presale arrives at 8,333 a second against 300 a second of checkout capacity — ρ ≈ 28. The queue grows at 8,000 a second, and by Little's Law the last fan waits 27 minutes. No happy-path design survives that; the question is what the system does with the 482,000 it can't serve."</p>
+    </div>
+  </section>
+
+  <section id="five">
+    <div class="section-head"><span class="section-num">03</span><h2>The five responses: buffer, scale, shed, push back, degrade</h2></div>
+    <p class="lede">When λ &gt; μ, there are exactly five things a system can do. They differ in what they buy you, what they cost, and how fast they take effect — which is why real designs combine two or three of them. Work through each with the presale running.</p>
+
+    <h3>1. Buffer — queue the overflow</h3>
+    <p>Hold the extra work and serve it when capacity frees up. This is the default instinct, and it's the right first lever for <strong>short bursts</strong>: a queue absorbs a 30-second spike beautifully.</p>
+    <p>But a queue is not free. Three prices:</p>
+    <ul>
+      <li><strong>Latency.</strong> Every queued request waits (Little's Law). Buffering 482,000 checkouts means 27-minute waits — technically "no one is dropped", practically everyone is angry.</li>
+      <li><strong>Memory.</strong> A queue holds <em>connections and state</em>, and those are expensive. 482,000 open HTTP connections at ~100 KB of kernel buffers each ≈ <strong>48 GB of RAM</strong> — plus your servers' thread pools, which typically cap at a few hundred threads each. The queue dies of memory long before it drains.</li>
+      <li><strong>State decay.</strong> Queued work goes stale: a held checkout whose payment authorization expires, a held seat that the fan no longer wants. The longer the buffer, the more of it is waste.</li>
+    </ul>
+    <p>The senior rule: <strong>buffering is for absorbing seconds of burst, not minutes of imbalance.</strong> Size the queue for the burst you expect, bound it hard, and have a plan for when it fills — which is the next three levers.</p>
+    <div class="definition">
+      <strong class="term">Bounded queue</strong>
+      <p>A queue with a hard maximum size. When full, new arrivals are <em>refused</em> (see shedding) instead of accepted. An <strong>unbounded queue</strong> accepts everything until the process runs out of memory — which is how "just queue it" becomes an out-of-memory crash at 2 AM. In every design you'll ever draw, the box labeled "queue" gets a number next to it: its bound.</p>
+    </div>
+
+    <h3>2. Scale — add capacity</h3>
+    <p>Raise μ to meet λ: boot more checkout servers, add workers. The only lever that serves <em>everyone</em> — and the slowest one to take effect:</p>
+    <ul>
+      <li><strong>It takes minutes; the surge takes seconds.</strong> A new VM or container needs 2–5 minutes to boot, warm its caches, and join the load balancer. The presale crush peaks in the first 60.</li>
+      <li><strong>Not everything scales.</strong> Stateless checkout <em>frontends</em> scale fine. The <em>database writes</em> underneath them don't autoscale — and neither does your payment provider, which will rate-limit you no matter how many servers you boot. Scaling moves the bottleneck; it rarely removes it.</li>
+      <li><strong>It costs money for the 364 days you don't need it.</strong> Hence <strong>autoscaling</strong> (automatically adding/removing servers based on a metric like CPU or queue depth), usually targeting ~70% utilization for the latency reasons in section 02.</li>
+    </ul>
+    <p>Scale is a <em>planned</em> lever — you design the system to be scalable (stateless, partitionable) so that when the surge comes, the lever exists. It is not a reaction you improvise mid-surge. ⚽ <em>The stewards can't build a bigger concourse during the match — but the club can open the third gate that was designed into the stadium.</em></p>
+
+    <h3>3. Shed load — refuse the lowest-value work</h3>
+    <p>When the queue is full, stop accepting. Return an error <em>fast</em> — <code>503 Service Unavailable</code> — so the client knows immediately instead of waiting 27 minutes to find out.</p>
+    <p>Shedding is where <strong>priorities</strong> enter the design. Not all requests are equal, and a good shedding policy says so explicitly:</p>
+    <ul>
+      <li><strong>Shed bots and scrapers first.</strong> Rate-limit aggressive IPs and user agents (see <a href="rate-limiting.html">Lesson 11</a>) — presales attract scalper bots, and dropping them is pure win.</li>
+      <li><strong>Shed cheap work last?</strong> Actually the reverse: shed <em>cheap-to-retry, low-value</em> work first. The fan browsing the seat map can be told "come back in 10 minutes" — the fan mid-checkout with a payment hold cannot be dropped without losing the sale.</li>
+      <li><strong>Never shed the money path silently.</strong> A shed checkout must fail <em>loudly and cleanly</em>: release the seat hold, tell the fan exactly what happened ("the presale is at capacity — your place in the queue is #412,318"), and give a retry time. A silent drop is how you double-charge people.</li>
+    </ul>
+    <p>The HTTP contract for shedding: <code>503</code> with a <code>Retry-After</code> header (a number of seconds the client should wait before trying again). <span class="term">Retry-After</span> is the polite form of backpressure — the server telling the client exactly how long to back off, instead of the client guessing. ⚽ <em>The steward doesn't just turn fans away — he tells them "come back to this gate in 20 minutes", which spreads the crowd instead of compressing it.</em></p>
+
+    <h3>4. Push back — tell the sender to slow down</h3>
+    <p>Instead of refusing work at the door, send a signal upstream: <em>ease off</em>. The difference from shedding is direction: shedding is the server protecting itself; push-back is the server <em>coordinating</em> with its callers.</p>
+    <ul>
+      <li><strong>429 Too Many Requests</strong> — rate-limiting's way of pushing back (<a href="rate-limiting.html">Lesson 11</a>). Per-client limits turn one fan's 50 refreshes into 1 effective request.</li>
+      <li><strong>TCP flow control</strong> — the receiver advertises a <span class="term">receive window</span> ("I have room for N more bytes"), and the sender is forbidden from exceeding it. The original backpressure, baked into the internet since the 1980s.</li>
+      <li><strong>Reactive streams' request(n)</strong> — the consumer says "send me exactly n items", and the producer sends <em>only</em> n. Demand flows upstream before data flows downstream. This is the "pull" model of backpressure: the slow side sets the pace, by design.</li>
+      <li><strong>Kafka consumer pause</strong> — a consumer falling behind pauses fetching from a partition; lag grows in the <em>broker</em> (cheap disk) instead of in the consumer (expensive memory).</li>
+    </ul>
+    <p>The catch: <strong>push-back only works if the sender cooperates.</strong> TCP senders must obey the window; reactive producers must honor request(n). A browser user hammering refresh doesn't cooperate — which is why public-facing systems pair push-back (for well-behaved clients) with shedding (for the rest). ⚽ <em>The stewards can ask the crowd to wait — but the fans who vault the barrier get ejected. Cooperation and enforcement, together.</em></p>
+
+    <h3>5. Degrade — serve a cheaper answer</h3>
+    <p>Lower μ's <em>cost per request</em> so the same capacity serves more of them. Degradation trades quality for throughput:</p>
+    <ul>
+      <li><strong>Serve cached/static content.</strong> The seat map becomes a static image instead of a live interactive query — 10× cheaper per request.</li>
+      <li><strong>Turn off expensive features.</strong> Recommendations, personalization, real-time seat-availability counts — off during the surge, back after. A simplified checkout (fewer steps, no upsells) also <em>raises</em> μ directly.</li>
+      <li><strong>Batch and coalesce.</strong> Ten fans asking for the same seat-map tile get one computed answer (see <a href="caching-strategies.html">Lesson 3</a>'s stampede mitigations).</li>
+    </ul>
+    <p>Degradation needs <strong>feature flags</strong> (switches you can flip without deploying) and a pre-decided <em>degradation order</em>: which features go first, second, third. Deciding the order mid-incident is how you accidentally turn off checkout instead of recommendations.</p>
+
+    <h3>The comparison table</h3>
+    <table class="cmp">
+      <tr><th>Lever</th><th>What it buys</th><th>What it costs</th><th>Effect speed</th><th>Presale move</th></tr>
+      <tr><td><strong>Buffer</strong></td><td>Absorbs short bursts; nobody refused</td><td>Latency + memory; stale work</td><td>Instant</td><td>Bounded queue of ~20K checkouts</td></tr>
+      <tr><td><strong>Scale</strong></td><td>Serves everyone; raises μ</td><td>Minutes to take effect; DB/payment limits</td><td>Minutes</td><td>Pre-warmed extra frontends; DB read replicas ready</td></tr>
+      <tr><td><strong>Shed</strong></td><td>Protects the core; fails fast</td><td>Lost sales; angry fans</td><td>Instant</td><td>503 + Retry-After for bots and browsers over the cap</td></tr>
+      <tr><td><strong>Push back</strong></td><td>Coordinated slowdown; no waste</td><td>Needs cooperative clients</td><td>Instant</td><td>429s + waiting-room admission at μ</td></tr>
+      <tr><td><strong>Degrade</strong></td><td>More served per server</td><td>Worse experience; needs flags</td><td>Seconds</td><td>Static seat map; upsells off</td></tr>
+    </table>
+    <p>The senior answer to "the system is overloaded, what do you do?" is never one lever: <strong>push back first</strong> (429 + waiting room admits at μ), <strong>shed by value</strong> (bots first, money path last), <strong>degrade the expensive features</strong>, <strong>buffer the rest with a bound</strong>, and have <strong>scaling pre-planned</strong>. Say all five, then argue which two dominate for the scenario in front of you.</p>
+
+    <div class="callout">
+      <h4>⚽ The steward's playbook, summarized</h4>
+      <p><strong>Buffer:</strong> let a short line form at the gate. <strong>Scale:</strong> open the third gate — if it was designed in. <strong>Shed:</strong> turn away the ticketless and the troublemakers first. <strong>Push back:</strong> hold the crowd in the square and admit at the turnstiles' pace. <strong>Degrade:</strong> skip the bag check theater, scan tickets only. Same five moves, whether the bottleneck is a turnstile or a checkout pipeline.</p>
+    </div>
+  </section>
+
+  <section id="real">
+    <div class="section-head"><span class="section-num">04</span><h2>Backpressure in real systems</h2></div>
+    <p class="lede">The five levers aren't theory — they're the same handful of mechanisms wearing different uniforms. Recognize the uniform and you can read any system's backpressure story in minutes.</p>
+
+    <h3>TCP: the original backpressure</h3>
+    <p>Every TCP connection runs flow control. The receiver advertises a <strong>receive window</strong> — "I currently have room for N bytes" — in every acknowledgment, and the sender <em>may not</em> send more than the window allows. Fast sender, slow receiver? The window shrinks to zero and the sender <em>stops</em> — no buffering explosion, no data loss, just waiting. Then the window reopens and flow resumes. This is push-back in its purest form: the slow side sets the pace, and the protocol enforces it. Everything below is a re-invention of this idea for higher layers.</p>
+
+    <h3>Reactive streams: request(n)</h3>
+    <p>Libraries like RxJava, Project Reactor, and Akka Streams formalize the pull model: a subscriber sends <code>request(n)</code> — "I'm ready for n items" — and the publisher is <em>forbidden</em> from sending n+1. Demand flows upstream; data flows downstream only to fill expressed demand. Why it matters for your designs: when a service consumes from a fast producer (a Kafka topic, an event firehose), the reactive pattern means the consumer <em>can never be overwhelmed</em> — it simply requests more when it's ready. The queue lives in the producer's buffer, which is the cheap, designed-for-it place.</p>
+
+    <h3>Kafka: let lag live in the broker</h3>
+    <p>A Kafka consumer that falls behind doesn't buffer millions of messages in its own memory — it <strong>pauses fetching</strong> and lets the backlog sit in the broker's partitions (cheap disk, designed for retention). <span class="term">Consumer lag</span> (how far behind the latest offset a consumer is) becomes the backpressure gauge: alert on <em>lag growth rate</em>, not just lag, because a stable lag of 1M messages is fine and a lag growing at 10K/sec is an incident in progress. This is the "cheap place to wait" principle from the stadium: the broker is the square outside the gates.</p>
+
+    <h3>HTTP APIs: 429, 503, and Retry-After</h3>
+    <p>The web's backpressure vocabulary is three status codes plus one header:</p>
+    <ul>
+      <li><code>429 Too Many Requests</code> — "you specifically are sending too much" (per-client push-back; <a href="rate-limiting.html">Lesson 11</a>).</li>
+      <li><code>503 Service Unavailable</code> — "I'm overloaded for everyone right now" (shedding).</li>
+      <li><code>Retry-After: 30</code> — "try again in 30 seconds" — the coordination that turns shedding from a rejection into a <em>schedule</em>.</li>
+    </ul>
+    <p>The header is the difference between a stampede and an orderly queue: without it, every shed client retries <em>immediately</em>; with it, retries spread out. Always pair a 429/503 with Retry-After. Always.</p>
+
+    <h3>Adaptive concurrency limits</h3>
+    <p>Fixed limits ("max 200 concurrent requests") are guesses; traffic patterns change. <span class="term">Adaptive concurrency limits</span> (Netflix's concurrency-limits library is the canonical example) adjust the limit <em>dynamically</em>: probe slightly above the current limit, and if latency degrades, back off; if latency is flat, inch up. It's TCP congestion control re-applied to service concurrency — the system continuously discovers its own μ instead of hardcoding a guess. When an interviewer asks "how do you size the queue bound?", "adaptively, from measured latency" is the senior answer.</p>
+
+    <h3>Where the queue should live (the one rule)</h3>
+    <p>Across every system above, one rule repeats: <strong>let the backlog accumulate in the cheapest, most purpose-built place.</strong> Kafka lag lives on broker disk, not in consumer RAM. The presale's waiting room holds <em>ticket numbers</em> (a few bytes each), not open checkout connections. TCP's window stops the sender instead of buffering at the receiver. Whenever you draw a queue on a whiteboard, ask: <em>is this the cheapest place this wait could live?</em> If the answer is "in 400,000 open HTTP connections", redraw it.</p>
+  </section>
+
+  <section id="failures">
+    <div class="section-head"><span class="section-num">05</span><h2>When backpressure goes wrong — failure modes</h2></div>
+    <p class="lede">Every lever misapplied becomes an incident. These are the four ways backpressure designs actually fail in production — each with the mechanism, the math, and the fix.</p>
+
+    <h3>1. The unbounded buffer — death by "just queue it"</h3>
+    <p>The most common failure: a queue with no bound, in a system where λ &gt; μ for longer than anyone expected. The queue grows, memory grows, garbage-collection pauses grow, latency grows — and then the process dies of out-of-memory, <em>taking the queued work with it</em>. The cruel part: the queue was the <em>protection</em>, and it became the bomb. <strong>Fix:</strong> every queue gets a bound; when the bound is hit, the system sheds or pushes back (levers 3 and 4). "Unbounded queue" should read as "unbounded incident" in every design review.</p>
+
+    <h3>2. The retry storm — when the cure multiplies the disease</h3>
+    <p>A client calls your overloaded checkout; it times out after 30 seconds; the client retries. Then retries the retry. If each failed request is retried 3 times, <strong>one unit of demand becomes four</strong> — and if the failure <em>rate</em> is r, the effective load multiplier is the geometric series:</p>
+<pre>multiplier = 1 + r + r² + r³ + … (up to max retries)
+r = 20% failures, 3 retries → 1 + 0.2 + 0.04 + 0.008 = 1.25× load
+r = 50% failures, 3 retries → 1 + 0.5 + 0.25 + 0.125 = 1.88× load</pre>
+    <p>Read the second line: at 50% failure, naive retries nearly <em>double</em> the load — which raises the failure rate — which raises the multiplier. This is the <span class="term">retry storm</span> (also called a <span class="term">thundering herd</span> when it's synchronized: 10,000 clients all retrying at the same instant, often because they share one timeout value). The surge didn't kill the system; the <em>response to the surge</em> did. Try it in <a href="#lab-retry">Lab B</a>.</p>
+    <p><strong>The fix has four parts, all required:</strong></p>
+    <ul>
+      <li><strong>Backoff</strong> — wait longer between retries: 1s, 2s, 4s, 8s (<span class="term">exponential backoff</span>). Spreads the retry load over time.</li>
+      <li><strong>Jitter</strong> — add randomness to the backoff (±50%). Without jitter, every client that failed at 10:00:00 retries at 10:00:01 — synchronized, a herd. With jitter, they scatter across the second.</li>
+      <li><strong>Retry budget</strong> — cap retries as a <em>fraction of total traffic</em> (e.g., retries ≤ 10% of requests). When the budget is spent, fail fast instead of retrying. This bounds the multiplier no matter what clients do.</li>
+      <li><strong>Never retry what the server already refused for overload.</strong> A 503 with Retry-After means <em>wait the stated time</em>; a 429 means back off. Retrying either immediately is the client attacking the server it's trying to use.</li>
+    </ul>
+
+    <h3>3. Backpressure that doesn't propagate — the bottleneck moves</h3>
+    <p>You add a beautiful bounded queue with shedding at the API gateway. Traffic shifts — and now the <em>database connection pool</em> is the unbounded queue, and nobody put a bound on it. Backpressure applied at one layer while the layer below has no protection just <strong>moves the explosion downstream</strong>. <strong>Fix:</strong> trace the full path of a request and put the protection at <em>every</em> layer that can saturate: gateway queue bound, service thread-pool bound, DB pool max connections with a wait timeout, downstream client timeouts with budgets. The chain is only as protected as its least-protected link.</p>
+
+    <h3>4. Shedding the wrong work — protecting the system, losing the business</h3>
+    <p>Under pressure, the easiest thing to shed is whatever arrives most — which is often the <em>revenue</em>. A presale that sheds checkouts but keeps serving seat-map browsers has protected its servers and bankrupted its quarter. <strong>Fix:</strong> the shedding order is a <em>business</em> decision written down before the incident: bots first, then anonymous browsing, then non-critical features — the money path (payment, checkout commit) last, and even then with clean failure semantics (release holds, clear messaging). If you can't name your shedding order in the room, you don't have one.</p>
+
+    <div class="warn-box">
+      <p><strong>⚽ The four stadium disasters, translated:</strong> (1) Letting the stairwells fill with no limit until the structure fails — the unbounded buffer. (2) Announcing "gates are full" and having the entire crowd surge <em>back</em> at once, repeatedly — the retry storm. (3) Controlling the outer gate while the inner concourse has no stewards at all — unpropagated backpressure. (4) Ejecting the season-ticket holders to make room for the people selling scarves outside — shedding the wrong work.</p>
+    </div>
+
+    <h3>Cascading failure: why this lesson matters beyond one service</h3>
+    <p><span class="term">Cascading failure</span> is what happens when one saturated service drags its callers down with it: Service A slows down → Service B's threads all block waiting on A → B stops serving <em>its</em> callers → C blocks on B → the whole graph freezes, even though only A was sick. Backpressure is the circuit-breaker of this cascade <em>at the demand level</em>: B shedding/pushing back on its callers keeps B's threads free, so B survives A's slowness. (A <span class="term">circuit breaker</span> is the related but different mechanism: B <em>stops calling</em> the sick A for a while and fails fast instead — it protects the caller from a broken dependency; backpressure protects a service from too much demand. They compose: breaker cuts demand <em>to</em> the sick dependency; backpressure cuts demand <em>from</em> your own callers.)</p>
+  </section>
+
+  <section id="traps">
+    <div class="section-head"><span class="section-num">06</span><h2>Senior-depth traps</h2></div>
+    <p class="lede">Three places where confident-sounding answers fall apart. If you can navigate these, you own the topic.</p>
+    <ol>
+      <li><strong>"Just add a queue" is not a backpressure strategy — it's a backpressure <em>postponement</em>.</strong> A queue doesn't change λ or μ; it just converts "refused now" into "waiting, then refused later, with interest" unless the imbalance is temporary. The follow-up question is always: <em>what happens when the queue fills?</em> If the answer is "it can't fill", you've drawn an unbounded queue — see failure mode 1.</li>
+      <li><strong>Retries are load — budget them like load.</strong> Most designs specify retry counts ("3 retries") without specifying retry <em>budgets</em>. Under overload, the retry policy <em>is</em> the load policy: 3 naive retries at 50% failure nearly doubles demand. The senior move is naming all four parts — backoff, jitter, budget, and honoring Retry-After — and being able to write the multiplier math from section 05 on the board.</li>
+      <li><strong>Push-back assumes a cooperative client; the internet is not cooperative.</strong> request(n) works between your own services. For the public internet, pair every push-back with enforcement: 429s with per-client limits for the well-behaved, shedding for the bots and the refresh-mashers. And remember the cheapest backpressure of all is <em>admission-shaped demand</em>: the waiting room that admits exactly μ per second never needs to shed anyone — the queue is ticket numbers, not connections.</li>
+    </ol>
+  </section>
+
+  <section id="lab-presale">
+    <div class="section-head"><span class="section-num">07</span><h2>Interactive lab A: the derby presale crush simulator</h2></div>
+    <p class="lede">500,000 fans. 300 checkouts a second. Five simulated minutes. Pick a strategy and watch what happens to the queue, the fans, and the servers.</p>
+
+    <div class="lab">
+      <h3>⚽ The 10:00 AM presale</h3>
+      <p class="howto"><strong>How to play:</strong> set the arrival rate (how fast fans show up), checkout capacity (how fast you finish them), and the queue cap. Then run each strategy in turn and compare. <strong>No protection</strong> accepts everything into one big queue. <strong>Queue cap + shed</strong> refuses overflow with a fast 503 + Retry-After. <strong>Virtual waiting room</strong> hands every fan a cheap ticket number and admits exactly what the checkouts can handle — the queue is numbers, not connections.</p>
+      <div class="slider-row">
+        <label for="bp-lambda">Arrival rate λ (fans/sec)</label>
+        <input type="range" id="bp-lambda" min="500" max="10000" step="100" value="8333">
+        <output id="bp-lambda-out">8,333/s</output>
+      </div>
+      <div class="slider-row">
+        <label for="bp-mu">Checkout capacity μ (checkouts/sec)</label>
+        <input type="range" id="bp-mu" min="50" max="1000" step="10" value="300">
+        <output id="bp-mu-out">300/s</output>
+      </div>
+      <div class="slider-row">
+        <label for="bp-cap">Queue cap (waiting spots)</label>
+        <input type="range" id="bp-cap" min="0" max="100000" step="1000" value="20000">
+        <output id="bp-cap-out">20,000</output>
+      </div>
+      <div class="controls">
+        <button class="btn" id="bp-run-none">No protection — just queue</button>
+        <button class="btn" id="bp-run-shed">Queue cap + shed (503)</button>
+        <button class="btn primary" id="bp-run-room">Virtual waiting room</button>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Checkouts completed</div><div class="score" id="bp-served">–</div></div>
+        <div class="stat"><div class="node-name">Fans still waiting</div><div class="score" id="bp-waiting">–</div></div>
+        <div class="stat"><div class="node-name">Turned away (503)</div><div class="score" id="bp-shed">–</div></div>
+        <div class="stat"><div class="node-name">Wait for the last fan</div><div class="score" id="bp-wait">–</div></div>
+        <div class="stat"><div class="node-name">Verdict</div><div style="margin-top:6px"><span class="badge warn" id="bp-badge">run a strategy</span></div></div>
+      </div>
+      <h4>Queue depth over the 5 minutes</h4>
+      <div class="bars" id="bp-bars"></div>
+      <div class="log" id="bp-log"><div><span class="t">[lab]</span> Set the sliders, then run a strategy. Watch the red bars: that's expensive queue.</div></div>
+    </div>
+
+    <div class="callout">
+      <h4>What the lab is teaching</h4>
+      <p><strong>No protection</strong> "loses" nobody — and melts the servers: hundreds of thousands of open connections is tens of gigabytes of RAM, and the last fan waits the better part of an hour. <strong>Shedding</strong> protects the servers but turns away most of the crowd — the business question is whether those were bots or buyers. The <strong>waiting room</strong> keeps everyone (zero lost sales) while the expensive resource — checkout connections — never exceeds capacity: the backlog lives as ticket numbers, the cheapest possible place. That last move, <em>moving the wait to the cheapest place</em>, is the single most reusable backpressure idea in this lesson.</p>
+    </div>
+  </section>
+
+  <section id="lab-retry">
+    <div class="section-head"><span class="section-num">08</span><h2>Interactive lab B: the retry-storm multiplier</h2></div>
+    <p class="lede">Your checkout API handles 1,000 requests a second and starts failing under load. Every failed request gets retried. Watch what the retry policy does to the effective load — and why the retry policy <em>is</em> the load policy.</p>
+
+    <div class="lab">
+      <h3>🔁 Retry math, live</h3>
+      <p class="howto"><strong>How to play:</strong> set the failure rate and max retries, then compare <strong>naive retry</strong> (retry immediately, no jitter — what most default clients do) against <strong>disciplined retry</strong> (exponential backoff + jitter + a retry budget that caps retry traffic). Backend capacity is 1,400 req/s against a base load of 1,000 req/s.</p>
+      <div class="slider-row">
+        <label for="rt-err">Failure rate r</label>
+        <input type="range" id="rt-err" min="0" max="50" step="5" value="20">
+        <output id="rt-err-out">20%</output>
+      </div>
+      <div class="slider-row">
+        <label for="rt-retries">Max retries per request</label>
+        <input type="range" id="rt-retries" min="0" max="5" step="1" value="3">
+        <output id="rt-retries-out">3</output>
+      </div>
+      <div class="controls">
+        <button class="btn" id="rt-naive">Naive retry (immediate, no jitter)</button>
+        <button class="btn primary" id="rt-smart">Disciplined retry (backoff + jitter + budget)</button>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Base load</div><div class="score">1,000<span style="font-size:1rem">/s</span></div></div>
+        <div class="stat"><div class="node-name">Multiplier</div><div class="score" id="rt-mult">–</div></div>
+        <div class="stat"><div class="node-name">Effective load</div><div class="score" id="rt-eff">–</div></div>
+        <div class="stat"><div class="node-name">Capacity 1,400/s</div><div style="margin-top:6px"><span class="badge warn" id="rt-badge">pick a policy</span></div></div>
+      </div>
+      <h4>Load vs capacity</h4>
+      <div class="bars">
+        <div class="bar-row"><span class="bar-label">Base load</span><div class="bar-track"><div class="bar-fill" id="rt-bar-base" style="width:0%"></div></div><span class="bar-val" id="rt-bar-base-v">–</span></div>
+        <div class="bar-row"><span class="bar-label">Effective load</span><div class="bar-track"><div class="bar-fill impolite" id="rt-bar-eff" style="width:0%"></div></div><span class="bar-val" id="rt-bar-eff-v">–</span></div>
+      </div>
+      <p class="howto" id="rt-note" style="margin-bottom:0">Naive multiplier = 1 + r + r² + … (every failure retries fully). Disciplined = 1 + 0.5r + 0.25r² + … (backoff spreads retries, jitter de-synchronizes them, the budget caps total retry traffic).</p>
+    </div>
+
+    <div class="warn-box">
+      <p><strong>The takeaway to carry into every design review:</strong> at 50% failure with 3 naive retries, the effective load is <strong>1.88×</strong> the base — the retries alone push a struggling system over the edge, which raises the failure rate, which raises the multiplier. That feedback loop is the retry storm, and it is the single most common way a partial outage becomes a total one. The fix is never "retry harder".</p>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">09</span><h2>Q&amp;A with full model answers</h2></div>
+    <p class="lede">Four questions in the shape they get asked, each with the answer a senior is expected to give — including the numbers, the trade-offs named out loud, and the follow-up handled before it's asked.</p>
+
+    <div class="qa">
+      <div class="question">
+        <div class="qnum">Q1 · Classic design</div>
+        <div class="qtext">Design the derby ticket presale: 500K fans at 10 AM, 40K seats, checkout capacity 300/sec.</div>
+        <div class="context">They want the overload design, not the happy path. Start with the math, then the mechanism.</div>
+        <div class="answer">
+          <p><strong>Math first:</strong> 500K fans in the first 60 seconds ≈ 8,333 arrivals/sec against 300 checkouts/sec — ρ ≈ 28. The queue would grow at ~8,000/sec and the last fan would wait ~27 minutes by Little's Law. No buffer absorbs that; the design has to <em>shape</em> the demand.</p>
+          <p><strong>Core mechanism — a virtual waiting room:</strong> at 10:00 every fan gets a ticket number (a few bytes of state, cheap) and a position. Admission into checkout runs at exactly μ — 300/sec — so checkout connections never exceed capacity and the queue depth in the <em>expensive</em> tier stays flat. The page shows position + honest ETA (position ÷ 300/sec). Refreshing doesn't lose your place (ticket number in a cookie/localStorage, idempotent).</p>
+          <p><strong>Around the room:</strong> (1) <strong>Bot defenses first</strong> — presales attract scalpers; rate-limit aggressive clients and challenge suspicious ones <em>before</em> they get ticket numbers, so the room holds humans. (2) <strong>Idempotent checkout</strong> — one ticket number, one seat hold, one charge; retries can't double-book (the outbox/idempotency-key pattern from Lesson 21). (3) <strong>Payment provider limits</strong> — the provider caps <em>you</em> too; the admission rate must respect the provider's rate limit, not just yours. (4) <strong>Degrade the page</strong> — static seat map, no recommendations during the sale. (5) <strong>Clean failure</strong> — if a checkout fails mid-payment, release the seat hold and say so; never a silent drop on the money path.</p>
+          <p><strong>Why not just autoscale?</strong> Frontends scale in minutes; the surge peaks in 60 seconds. And the database writes and the payment provider don't autoscale at all — scaling moves the bottleneck to the payment API. The waiting room is the design; scaling is the pre-planned supplement.</p>
+          <p><strong>Handle the follow-up</strong> ("what if fans complain about the wait?"): the wait is honest and bounded — position and ETA are visible, and a 20-minute <em>known</em> wait with a held place converts far better than a 27-minute spinning loader that times out. Backpressure you can see is a feature.</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q2 · Trade-off judgment</div>
+        <div class="qtext">Your service is overloaded — λ &gt; μ and the queue is growing. Walk me through your options.</div>
+        <div class="context">The five-lever question. Name all five, then argue which dominate.</div>
+        <div class="answer">
+          <p><strong>Frame it:</strong> "λ exceeds μ, so the queue grows at (λ−μ)/sec. I have five levers, and I'd combine them: push back, shed, degrade, buffer, scale."</p>
+          <ol>
+            <li><strong>Push back first</strong> — 429s with Retry-After for well-behaved clients; the signal coordinates the slowdown instead of letting clients guess.</li>
+            <li><strong>Shed by value</strong> — 503 the lowest-value work first (scrapers, bots, expensive optional features); protect the money path; every shed fails fast and loud with a retry time.</li>
+            <li><strong>Degrade</strong> — serve cached/static answers, turn off personalization and recommendations; this directly raises μ per server.</li>
+            <li><strong>Buffer what's left</strong> — with a hard bound sized for the burst I expect (seconds, not minutes); when the bound hits, I'm back to shedding, by design.</li>
+            <li><strong>Scale in parallel</strong> — it's the slowest lever (minutes to boot, and the DB/payment tier may not scale at all), so it's pre-planned, not improvised.</li>
+          </ol>
+          <p><strong>What I'd watch:</strong> queue <em>growth rate</em> and consumer lag, not just depth — a stable deep queue is fine, a growing one is the incident. And I'd check the retry policy immediately, because naive retries multiply the load (the geometric-series math) and can turn my shedding into a retry storm.</p>
+          <p><strong>The senior close:</strong> "And I'd put the same protection at every layer that can saturate — gateway, thread pools, DB connection pool — because backpressure at one layer just moves the explosion to the next unprotected one."</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q3 · Concepts</div>
+        <div class="qtext">How does backpressure differ from a circuit breaker? When would you use each?</div>
+        <div class="context">They're testing whether you conflate two resilience patterns. Don't.</div>
+        <div class="answer">
+          <p><strong>The one-line distinction:</strong> a circuit breaker protects <em>you from a sick dependency</em>; backpressure protects <em>you from too much demand</em>. Different direction, different problem.</p>
+          <p><strong>Circuit breaker:</strong> Service B calls Service A; A gets slow. B's breaker trips after N failures/timeouts and B <em>stops calling A</em> for a cooldown period, failing fast instead. It protects B's threads from being consumed by a broken downstream, and it gives A room to recover. The signal flows <em>downstream-to-upstream about a dependency's health</em>.</p>
+          <p><strong>Backpressure:</strong> too many callers hit B. B sheds, 429s, or queues-with-a-bound to protect <em>itself</em>. The signal flows <em>upstream about B's own capacity</em>.</p>
+          <p><strong>They compose:</strong> in a cascade, you want both — B's breaker cuts demand <em>to</em> the sick A, while B's backpressure cuts demand <em>from</em> B's own callers, so B's threads stay free and the failure stays contained at A instead of freezing the whole call graph. If an interviewer asks for "resilience patterns", naming the pair — and the direction each signal flows — is the answer.</p>
+        </div>
+      </div>
+
+      <div class="question">
+        <div class="qnum">Q4 · Mechanisms</div>
+        <div class="qtext">Explain pull-based backpressure: TCP flow control and reactive streams' request(n).</div>
+        <div class="context">They want the mechanism, precisely — this is the "do you actually know how it works" question.</div>
+        <div class="answer">
+          <p><strong>The idea:</strong> in push-based systems the sender decides the pace and the receiver copes. In pull-based backpressure the <em>slow side sets the pace</em>: demand flows upstream before data flows downstream, so the receiver can never be overwhelmed — the queue, if any, lives on the producer's side, which is the designed-for-it place.</p>
+          <p><strong>TCP flow control:</strong> the receiver advertises a <em>receive window</em> — "I have room for N bytes" — in every ACK. The sender is forbidden from having more than N unacknowledged bytes in flight. Slow receiver → window shrinks → sender slows → window hits zero → sender <em>stops entirely</em> until the receiver reopens it. No buffering explosion, no loss; the protocol enforces the slow side's pace.</p>
+          <p><strong>Reactive request(n):</strong> the subscriber sends <code>request(n)</code> — "send me exactly n items" — and the publisher may send <em>at most</em> n. When the subscriber finishes processing, it requests more. Same shape as TCP's window, one level up: the consumer's readiness, not the producer's eagerness, drives the flow. Kafka's consumer pause is the same idea applied to partitions — fall behind, stop fetching, let lag sit on cheap broker disk.</p>
+          <p><strong>The design lesson:</strong> whenever you connect a fast producer to a slower consumer — an event firehose, a fan-out worker, a stream processor — prefer the pull shape. Ask "who sets the pace here?" and make sure the answer is the slower side.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">10</span><h2>Practice drills (untimed)</h2></div>
+    <p class="lede">Work these on paper or a whiteboard. Each has a rubric — grade yourself honestly.</p>
+
+    <div class="question">
+      <div class="qnum">Drill 1 · Capacity math</div>
+      <div class="qtext">An API receives λ = 2,000 req/s against μ = 500 req/s, with a bounded queue capped at 10,000. (a) How long until the queue fills and shedding starts? (b) What's the wait for a request arriving just as the queue fills? (c) The team proposes "just make the cap 100,000". What's wrong with that?</div>
+      <details class="reveal"><summary>Rubric — check your answer</summary><div class="body">
+        <ul>
+          <li>(a) Growth = 2,000 − 500 = 1,500/s → 10,000 ÷ 1,500 ≈ <strong>6.7 seconds</strong>. Full marks for showing the (λ−μ) step, not just the number.</li>
+          <li>(b) Little's Law: W = 10,000 ÷ 500 = <strong>20 seconds</strong>. Bonus for noting 20s likely exceeds the client timeout — so much of the buffered work will be retried or abandoned anyway.</li>
+          <li>(c) The cap isn't the problem — the <em>imbalance duration</em> is. 100K cap fills in 67s and the last arrival waits 200s. Bigger queue = bigger memory + longer waits + more stale work, with no change to λ or μ. Full marks for: "a queue is a bet the imbalance is temporary; raising the cap just raises the stakes of the bet."</li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Drill 2 · Incident autopsy</div>
+      <div class="qtext">10:00 — your checkout API starts returning 503s under a traffic spike. The mobile client retries each failed request 3 times, immediately. 10:05 — the entire checkout tier is down, including the database. Diagnose the cascade and write the four-part fix.</div>
+      <details class="reveal"><summary>Rubric — check your answer</summary><div class="body">
+        <ul>
+          <li><strong>Diagnosis:</strong> retry storm. At rising failure rates the 3× immediate retries multiply effective load (1 + r + r² + r³), which raises r further — a feedback loop. The DB died because the multiplied load hit the tier that couldn't shed. Full marks for naming the loop, not just "too much traffic".</li>
+          <li><strong>Fix (all four):</strong> exponential backoff + jitter on retries; a retry <em>budget</em> (retries capped as a fraction of traffic); honor Retry-After on 503/429 instead of retrying immediately; bounded queues + shedding at the tier <em>above</em> the DB so the database is never the component that discovers the overload.</li>
+          <li>Bonus: note the client timeout (probably 30s+) meant doomed requests held connections the whole time — shortening timeouts with backoff reduces the blast radius.</li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Drill 3 · Cross-lesson design</div>
+      <div class="qtext">Apply this lesson to <a href="notification-system.html">Lesson 22</a>'s notification system: the cup-final goal just fired, 80M pushes need sending in 60s, and the push provider starts 429ing you. Write the shedding order and the backpressure wiring, stage by stage.</div>
+      <details class="reveal"><summary>Rubric — check your answer</summary><div class="body">
+        <ul>
+          <li><strong>Shedding order (business-driven):</strong> digest/marketing lane paused first → standard lane degraded into digests → engagement (goal alerts) protected → transactional (OTP) never shed. Full marks for justifying the order by value-per-message and reversibility.</li>
+          <li><strong>Wiring:</strong> provider 429s honored with Retry-After (never retried immediately); per-channel queues are bounded with overflow → shed lowest lane first; workers use backoff + jitter; queue-depth <em>growth rate</em> alerts before depth does; preference-check stays upstream of everything (never skipped to "save capacity" — the fines cost more than the servers).</li>
+          <li>Bonus: the fan-out worker chunks at 10K users so the surge enters the queues in a controlled ramp, not one 62M-row explosion — admission shaping, the waiting-room idea from this lesson.</li>
+        </ul>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">11</span><h2>Cheat sheet, 60-second framing &amp; talk-track</h2></div>
+    <p class="lede">The whole lesson on one screen. Read this the morning of.</p>
+
+    <div class="cheatsheet">
+      <h3>Backpressure — six decisions</h3>
+      <ol>
+        <li><strong>Measure λ and μ first.</strong> You can't push back what you can't see. Dashboard queue depth <em>and</em> growth rate; alert on the growth rate — a stable deep queue is fine, a growing one is the incident.</li>
+        <li><strong>Buffers absorb seconds, not minutes.</strong> Bound every queue; size the bound for the burst you expect; define what happens when it fills (shed/push back) <em>before</em> it fills.</li>
+        <li><strong>Shed by value, not by arrival order.</strong> Bots and scrapers first, optional features next, the money path last — and the shedding order is a business decision written down before the incident.</li>
+        <li><strong>Push back early and explicitly.</strong> 429/503 <em>with</em> Retry-After, not silent timeouts. A coordinated slowdown beats a thousand clients guessing.</li>
+        <li><strong>Retries are load: budget them.</strong> Backoff + jitter + retry budget + honor Retry-After. Know the multiplier math (1 + r + r² + …) cold.</li>
+        <li><strong>Scale is the slowest lever.</strong> Minutes to boot, and DB writes / payment providers don't scale with you. Design stateless and partitionable so the lever exists — but never improvise it mid-surge.</li>
+      </ol>
+    </div>
+
+    <div class="framing">
+      <p><strong>60-second framing (say it verbatim to open):</strong> "Backpressure is what a system does when demand outruns capacity — when the arrival rate λ exceeds the service rate μ. The queue then grows at (λ−μ) per second, and by Little's Law the wait grows with it. There are five responses: buffer the overflow with a hard bound, scale capacity up, shed the lowest-value work with fast 503s, push back on senders with 429s and Retry-After, or degrade to cheaper answers. The failure modes are an unbounded buffer, a retry storm that multiplies the load, backpressure that doesn't propagate past one layer, and shedding the revenue instead of the bots. My rule: let the backlog live in the cheapest place — ticket numbers, not connections; broker disk, not consumer memory."</p>
+    </div>
+
+    <div class="callout">
+      <h4>🎙️ In-the-room talk-track</h4>
+      <p>1. <strong>State the inequality:</strong> "λ is X, μ is Y, so ρ is Z — we're N× over capacity." 2. <strong>Pick two levers and justify:</strong> "I'd push back with a waiting room admitting at μ, and shed bots first — buffering alone just delays the failure by minutes." 3. <strong>Name the failure mode you're preventing:</strong> "…so we don't get a retry storm / an unbounded queue / a cascade into the database." 4. <strong>Close with the cheap-place rule:</strong> "and the backlog lives as ticket numbers, not open connections." Four sentences, senior signal in each one.</p>
+    </div>
+
+    <footer>
+      <p>Lesson 23 · Part of the daily system design series. <a href="../index.html">All lessons →</a></p>
+    </footer>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+  function $(id) { return document.getElementById(id); }
+  function fmt(n) { return Math.round(n).toLocaleString("en-US"); }
+  function fmtWait(sec) {
+    if (!isFinite(sec) || sec < 0) return "–";
+    if (sec < 90) return Math.round(sec) + "s";
+    var m = Math.round(sec / 60);
+    return m >= 60 ? Math.floor(m / 60) + "h " + (m % 60) + "m" : m + " min";
+  }
+
+  /* ---------- Lab A: presale crush simulator ---------- */
+  var TOTAL_FANS = 500000, SIM_SECS = 300, BINS = 12;
+
+  function simulate(strategy, lambda, mu, cap) {
+    var injected = 0;
+    var q = 0, served = 0, shed = 0, tickets = 0, peakConn = 0;
+    var depths = [];
+    for (var t = 1; t <= SIM_SECS; t++) {
+      var arrivals = 0;
+      if (injected < TOTAL_FANS) { arrivals = Math.min(lambda, TOTAL_FANS - injected); injected += arrivals; }
+      if (strategy === "room") {
+        tickets += arrivals;
+        var admit = Math.min(mu, tickets);
+        tickets -= admit; served += admit;
+        peakConn = Math.max(peakConn, admit);
+        depths.push(tickets);
+      } else {
+        q += arrivals;
+        var done = Math.min(mu, q);
+        q -= done; served += done;
+        if (strategy === "shed" && q > cap) { shed += (q - cap); q = cap; }
+        peakConn = Math.max(peakConn, q);
+        depths.push(q);
+      }
+    }
+    var waiting = strategy === "room" ? tickets : q;
+    var binSize = Math.ceil(SIM_SECS / BINS), bars = [];
+    for (var b = 0; b < BINS; b++) {
+      var mx = 0;
+      for (var i = b * binSize; i < Math.min((b + 1) * binSize, depths.length); i++) mx = Math.max(mx, depths[i]);
+      bars.push(mx);
+    }
+    return { served: served, waiting: waiting, shed: shed, peakConn: peakConn, bars: bars,
+             waitLast: waiting > 0 ? waiting / mu : 0 };
+  }
+
+  function runLab(strategy) {
+    var lambda = +$("bp-lambda").value, mu = +$("bp-mu").value, cap = +$("bp-cap").value;
+    var r = simulate(strategy, lambda, mu, cap);
+    $("bp-served").textContent = fmt(r.served);
+    $("bp-waiting").textContent = fmt(r.waiting);
+    $("bp-shed").textContent = fmt(r.shed);
+    $("bp-wait").textContent = fmtWait(r.waitLast);
+    var badge = $("bp-badge");
+    var barsEl = $("bp-bars"); barsEl.innerHTML = "";
+    var maxBar = Math.max.apply(null, r.bars.concat([1]));
+    r.bars.forEach(function (v, i) {
+      var row = document.createElement("div"); row.className = "bar-row";
+      var lab = document.createElement("span"); lab.className = "bar-label";
+      lab.textContent = "min " + (i * 25) + "–" + ((i + 1) * 25);
+      var track = document.createElement("div"); track.className = "bar-track";
+      var fill = document.createElement("div");
+      fill.className = "bar-fill" + (strategy === "room" ? "" : " impolite");
+      fill.style.width = Math.max(1, Math.round(v / maxBar * 100)) + "%";
+      track.appendChild(fill);
+      var val = document.createElement("span"); val.className = "bar-val"; val.textContent = fmt(v);
+      row.appendChild(lab); row.appendChild(track); row.appendChild(val);
+      barsEl.appendChild(row);
+    });
+    var log = $("bp-log");
+    function line(html, cls) {
+      var d = document.createElement("div"); if (cls) d.className = cls; d.innerHTML = html; log.appendChild(d);
+    }
+    var names = { none: "No protection", shed: "Queue cap + shed", room: "Virtual waiting room" };
+    line('<span class="t">[run]</span> ' + names[strategy] + ' — λ=' + fmt(lambda) + '/s, μ=' + fmt(mu) + '/s, cap=' + fmt(cap));
+    if (strategy === "none") {
+      badge.className = "badge bad"; badge.textContent = "servers melting";
+      line('peak open connections: <span class="bad">' + fmt(r.peakConn) + '</span> ≈ ' + Math.round(r.peakConn * 100 / 1024 / 1024) + ' GB of connection buffers — the queue dies of memory before it drains.', "bad");
+      line('nobody turned away, but the last fan waits ' + fmtWait(r.waitLast) + '. ' + fmt(r.waiting) + ' fans are still queued at minute 5.');
+    } else if (strategy === "shed") {
+      badge.className = "badge warn"; badge.textContent = "survives, loses sales";
+      line('shed <span class="bad">' + fmt(r.shed) + '</span> fans with fast 503 + Retry-After. Servers healthy; queue never exceeded cap.', "bad");
+      line('question for the business: were those ' + fmt(r.shed) + ' turned-away fans bots — or buyers?', "good");
+    } else {
+      badge.className = "badge ok"; badge.textContent = "everyone kept";
+      line('peak checkout connections: <span class="good">' + fmt(r.peakConn) + '</span> — never above μ. The ' + fmt(r.waiting) + ' waiting fans hold ticket numbers (bytes), not connections.', "good");
+      line('zero lost sales; the wait lives in the cheapest possible place.');
+    }
+    log.scrollTop = log.scrollHeight;
+  }
+
+  ["bp-lambda", "bp-mu", "bp-cap"].forEach(function (id) {
+    $(id).addEventListener("input", function () {
+      var out = $(id + "-out");
+      var v = +$(id).value;
+      out.textContent = id === "bp-cap" ? fmt(v) : fmt(v) + "/s";
+    });
+  });
+  $("bp-run-none").addEventListener("click", function () { runLab("none"); });
+  $("bp-run-shed").addEventListener("click", function () { runLab("shed"); });
+  $("bp-run-room").addEventListener("click", function () { runLab("room"); });
+
+  /* ---------- Lab B: retry-storm multiplier ---------- */
+  var BASE = 1000, CAPACITY = 1400;
+  function multNaive(r, n) { var m = 0, p = 1; for (var i = 0; i <= n; i++) { m += p; p *= r; } return m; }
+  function multSmart(r, n) { var m = 1, p = 1; for (var i = 1; i <= n; i++) { p *= 0.5 * r; m += p; } return m; }
+
+  function runRetry(mode) {
+    var r = (+$("rt-err").value) / 100, n = +$("rt-retries").value;
+    var mult = mode === "naive" ? multNaive(r, n) : multSmart(r, n);
+    var eff = Math.round(BASE * mult);
+    $("rt-mult").textContent = mult.toFixed(3) + "×";
+    $("rt-eff").textContent = fmt(eff) + "/s";
+    var badge = $("rt-badge");
+    if (eff <= CAPACITY) { badge.className = "badge ok"; badge.textContent = "holds — under capacity"; }
+    else { badge.className = "badge bad"; badge.textContent = "collapse — over capacity"; }
+    $("rt-bar-base").style.width = Math.min(100, BASE / CAPACITY * 100) + "%";
+    $("rt-bar-base-v").textContent = fmt(BASE) + "/s";
+    $("rt-bar-eff").style.width = Math.min(100, eff / CAPACITY * 100) + "%";
+    $("rt-bar-eff-v").textContent = fmt(eff) + "/s";
+    $("rt-note").textContent = mode === "naive"
+      ? "Naive: multiplier = 1 + r + r² + … = " + mult.toFixed(3) + "×. Every failure retries fully and immediately — at r=" + Math.round(r * 100) + "% the retries alone add " + fmt(eff - BASE) + " req/s."
+      : "Disciplined: multiplier = 1 + 0.5r + 0.25r² + … = " + mult.toFixed(3) + "×. Backoff spreads retries over time, jitter de-synchronizes them, and the budget caps total retry traffic at a fraction of base load.";
+  }
+  $("rt-err").addEventListener("input", function () { $("rt-err-out").textContent = $("rt-err").value + "%"; });
+  $("rt-retries").addEventListener("input", function () { $("rt-retries-out").textContent = $("rt-retries").value; });
+  $("rt-naive").addEventListener("click", function () { runRetry("naive"); });
+  $("rt-smart").addEventListener("click", function () { runRetry("smart"); });
+
+  /* expose for smoke tests */
+  if (typeof window !== "undefined") { window.__bp = { simulate: simulate, multNaive: multNaive, multSmart: multSmart }; }
+})();
+</script>
+</body>
+</html>
