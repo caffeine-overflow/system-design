@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Hot Partitions — When One Shard Gets All the Traffic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+    :root {
+      color-scheme: light dark;
+      --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+      --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+      --accent: #d84a2f; --accent-soft: #fde9e4;
+      --blue: #1769aa; --blue-soft: #e1eff9;
+      --green: #167454; --green-soft: #ddf3e9;
+      --amber: #9c6415; --amber-soft: #fff0d6;
+      --purple: #6b4fa1; --purple-soft: #ece6f7;
+      --code: #15212a; --code-ink: #e9f0f4;
+      --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+        --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+        --accent: #ff775e; --accent-soft: #3c2421;
+        --blue: #69b6ef; --blue-soft: #172f40;
+        --green: #61c59f; --green-soft: #17372d;
+        --amber: #e4ae56; --amber-soft: #382d1b;
+        --purple: #b39ddb; --purple-soft: #2a2440;
+        --code: #0b1115; --code-ink: #ecf4f7;
+        --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Source Sans 3", sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+    button, input, select { font: inherit; color: inherit; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    .page { max-width: 1060px; margin: 0 auto; padding: 0 24px 88px; }
+    .topline { height: 5px; margin: 0 -24px; background: var(--accent); }
+    .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+    .crumbs a { color: var(--muted); text-decoration: none; }
+    .hero { padding: 30px 0 42px; border-bottom: 1px solid var(--line); }
+    .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+    .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 3rem); line-height: 1.08; letter-spacing: -0.02em; font-weight: 800; }
+    .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 20px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px; }
+    .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); padding: 5px 12px; border-radius: 999px; color: var(--muted); }
+    .toc { margin: 34px 0 0; padding: 22px 24px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+    .toc h2 { margin: 0 0 10px; font-size: 1.02rem; }
+    .toc ol { margin: 0; padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { text-decoration: none; }
+    section { margin-top: 58px; }
+    .section-head { display: flex; align-items: baseline; gap: 14px; border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin-bottom: 6px; }
+    .section-num { font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: .9rem; color: var(--accent); white-space: nowrap; }
+    .section-head h2 { margin: 0; font-size: 1.55rem; letter-spacing: -0.01em; }
+    .lede { font-size: 1.06rem; color: var(--muted); max-width: 46rem; }
+    h3 { margin: 34px 0 8px; font-size: 1.18rem; }
+    h4 { margin: 26px 0 6px; font-size: 1.05rem; }
+    p, ul, ol { max-width: 46rem; }
+    li { margin: 6px 0; }
+    .definition { border-left: 4px solid var(--blue); background: var(--blue-soft); border-radius: 0 var(--radius) var(--radius) 0; padding: 16px 20px; margin: 20px 0; max-width: 46rem; }
+    .definition strong.term { display: block; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); margin-bottom: 6px; }
+    .definition p { margin: 0; max-width: none; }
+    .callout { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 22px; margin: 20px 0; max-width: 46rem; box-shadow: var(--shadow); }
+    .callout h4 { margin: 0 0 8px; font-size: 1rem; }
+    .callout p { margin: 8px 0; max-width: none; }
+    .warn-box { background: var(--amber-soft); border: 1px solid var(--amber); border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem; }
+    .warn-box p { margin: 8px 0; max-width: none; }
+    .green-box { background: var(--green-soft); border: 1px solid var(--green); border-radius: var(--radius); padding: 16px 20px; margin: 20px 0; max-width: 46rem; }
+    .green-box p { margin: 8px 0; max-width: none; }
+    .term { font-weight: 700; }
+    code { font-family: "IBM Plex Mono", monospace; font-size: .88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; }
+    pre { font-family: "IBM Plex Mono", monospace; font-size: .86rem; line-height: 1.55; background: var(--code); color: var(--code-ink); padding: 18px 20px; border-radius: var(--radius); overflow-x: auto; max-width: 46rem; }
+    table.cmp { border-collapse: collapse; width: 100%; max-width: 46rem; margin: 18px 0; background: var(--surface); font-size: .95rem; }
+    table.cmp th, table.cmp td { border: 1px solid var(--line); padding: 10px 14px; text-align: left; vertical-align: top; }
+    table.cmp th { background: var(--surface-2); }
+    .lab { background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 24px; margin: 24px 0; max-width: 46rem; box-shadow: var(--shadow); }
+    .lab h3 { margin: 0 0 6px; font-size: 1.15rem; }
+    .lab .howto { color: var(--muted); font-size: .95rem; margin: 0 0 18px; }
+    .lab .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .btn { border: 1px solid var(--line-strong); background: var(--surface-2); border-radius: 10px; padding: 9px 16px; cursor: pointer; font-weight: 600; }
+    .btn:hover { border-color: var(--ink); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat { border: 2px solid var(--line-strong); border-radius: 12px; padding: 14px 16px; background: var(--paper); text-align: center; }
+    .stat .node-name { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .stat .score { font-family: "IBM Plex Mono", monospace; font-size: 1.7rem; font-weight: 600; margin: 4px 0; }
+    .stat .badge { display: inline-block; font-size: .75rem; font-weight: 700; border-radius: 999px; padding: 3px 12px; margin-top: 4px; }
+    .badge.ok { background: var(--green-soft); color: var(--green); border: 1px solid var(--green); }
+    .badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+    .badge.bad { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+    .log { font-family: "IBM Plex Mono", monospace; font-size: .84rem; background: var(--code); color: var(--code-ink); border-radius: 10px; padding: 14px 16px; max-height: 260px; overflow-y: auto; margin-top: 14px; }
+    .log div { margin: 4px 0; }
+    .slider-row { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+    .slider-row label { font-weight: 600; min-width: 220px; }
+    .slider-row output { font-family: "IBM Plex Mono", monospace; font-weight: 600; min-width: 120px; }
+    input[type="range"] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+    .bars { margin: 16px 0; }
+    .bar-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+    .bar-row .bar-label { min-width: 130px; font-weight: 600; font-size: .92rem; }
+    .bar-track { flex: 1; height: 22px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 11px; background: var(--blue); }
+    .bar-fill.impolite { background: var(--accent); }
+    .bar-row .bar-val { min-width: 110px; font-family: "IBM Plex Mono", monospace; font-size: .85rem; }
+    .reveal { margin-top: 12px; }
+    .reveal > summary { cursor: pointer; font-weight: 700; color: var(--blue); list-style: none; display: inline-block; padding: 6px 0; }
+    .reveal > summary::-webkit-details-marker { display: none; }
+    .reveal > summary::before { content: "▸ "; }
+    .reveal[open] > summary::before { content: "▾ "; }
+    .reveal .body { padding: 10px 0 4px; }
+    .question { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px; box-shadow: var(--shadow); }
+    .question .qnum { font-family: "IBM Plex Mono", monospace; font-size: .8rem; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+    .question .qtext { font-weight: 700; font-size: 1.08rem; margin-bottom: 4px; }
+    .question .context { color: var(--muted); font-size: .94rem; margin-bottom: 8px; }
+    .answer { border-top: 1px dashed var(--line-strong); padding-top: 14px; }
+    .answer p, .answer ul, .answer ol { max-width: none; }
+    .cheatsheet { background: var(--surface); border: 2px solid var(--ink); border-radius: var(--radius); padding: 22px 24px; margin: 24px 0; max-width: 46rem; }
+    .cheatsheet h3 { margin: 0 0 10px; }
+    .cheatsheet ol { max-width: none; }
+    .framing { border-left: 4px solid var(--purple); background: var(--purple-soft); border-radius: 0 var(--radius) var(--radius) 0; padding: 16px 20px; margin: 20px 0; max-width: 46rem; }
+    .framing p { margin: 8px 0; max-width: none; }
+    footer { margin-top: 60px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 20px; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="topline"></div>
+  <p class="crumbs"><a href="../index.html">All lessons</a> · Lesson 24</p>
+
+  <header class="hero">
+    <span class="lesson-tag">Lesson 24 · Advanced Trade-off</span>
+    <h1>Hot Partitions — When One Shard Gets All the Traffic</h1>
+    <p class="whyline">You sharded the database into ten pieces so it could handle ten times the load. Then one player scored a hat-trick, and nine of your ten shards sat idle while the tenth melted. That is a hot partition: the moment you learn that capacity is per-partition, not per-cluster — and that the average load across your shards is the most misleading number in your dashboard.</p>
+    <div class="meta">
+      <span>Advanced trade-off</span>
+      <span>Sharding · Skew · Caching · Key design</span>
+      <span>~40 min read + labs</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h2>On this page</h2>
+    <ol>
+      <li><a href="#what">What is a hot partition? — the definition from zero</a></li>
+      <li><a href="#causes">Why partitions go hot: six causes</a></li>
+      <li><a href="#math">The math of skew: why the cluster fails at 13% of its capacity</a></li>
+      <li><a href="#detect">Detecting a hot partition before your users do</a></li>
+      <li><a href="#fix">Fixing it: seven mitigations and when each one works</a></li>
+      <li><a href="#real">Hot partitions in real systems</a></li>
+      <li><a href="#traps">Senior-depth traps</a></li>
+      <li><a href="#lab-skew">Interactive lab A: the skew simulator</a></li>
+      <li><a href="#lab-fix">Interactive lab B: cool the hot partition</a></li>
+      <li><a href="#qa">Q&amp;A with full model answers</a></li>
+      <li><a href="#drills">Practice drills (untimed)</a></li>
+      <li><a href="#cheatsheet">Cheat sheet, 60-second framing &amp; talk-track</a></li>
+    </ol>
+  </nav>
+
+  <section id="what">
+    <div class="section-head"><span class="section-num">01</span><h2>What is a hot partition?</h2></div>
+    <p class="lede">The whole lesson in one scene: Riverside FC's fan app stores player statistics in a database sharded — split — by player into 10 partitions. On an ordinary Tuesday the load is spread evenly and everything is fast. Then the star striker scores a hat-trick in the derby, a transfer rumour breaks, and suddenly 8 out of every 10 stat requests are for one player. Nine partitions idle. One partition queues, throttles, and times out. Fans see errors for the one player they actually care about, while your dashboard says the cluster is only at 20% CPU. That gap — healthy average, dying part — is the hot partition problem.</p>
+
+    <div class="definition">
+      <strong class="term">Hot partition</strong>
+      <p>A partition (shard) that receives a <strong>disproportionate share of the traffic</strong> — reads, writes, or both — so it saturates, throttles, or slows down while sibling partitions sit idle. The system fails not because it lacks total capacity, but because the capacity is in the wrong place: the hot partition is the bottleneck, and the idle partitions cannot help it.</p>
+    </div>
+
+    <h3>The vocabulary, from zero</h3>
+    <ul>
+      <li><span class="term">Partition (shard)</span> — one slice of a dataset, stored on its own machine or set of machines. <a href="database-sharding.html">Lesson 6</a> covered how data is split; this lesson covers what happens when the split goes uneven.</li>
+      <li><span class="term">Partition key (shard key)</span> — the field whose value decides which partition a row lives on. In the fan app, the partition key is <code>player_id</code>: every row about the striker lives on the striker's partition, and nowhere else.</li>
+      <li><span class="term">Hot key</span> — a single record (one key) that gets an outsized share of traffic. The striker's stats row is a hot key.</li>
+      <li><span class="term">Hot partition</span> — the partition that <em>contains</em> the hot key (or hot range of keys). A hot key always makes its partition hot, but a partition can also go hot without any single hot key — for example, when thousands of different keys in the same range all get busy at once, like every match played today.</li>
+      <li><span class="term">Skew</span> — unevenness in how traffic is distributed. Perfect balance is 10% of traffic per partition on 10 partitions. The derby example is 80% on one partition: extreme skew.</li>
+      <li><span class="term">Throttling</span> — the database refusing or delaying requests that exceed a partition's capacity, even though the cluster as a whole has spare capacity. Throttling on one partition while the cluster looks idle is the signature symptom of a hot partition.</li>
+      <li><span class="term">Read-hot / write-hot</span> — a partition can be hot from reads (everyone <em>reading</em> the striker's stats), from writes (everyone <em>incrementing</em> the goal counter), or both. The fixes differ, which is why naming the direction matters before you reach for a fix.</li>
+    </ul>
+
+    <div class="callout">
+      <h4>⚽ The soccer picture to keep</h4>
+      <p>Picture the stadium with 10 merchandise stalls, one per stand. On a normal day fans spread out and every stall has a short queue. On derby day, the club puts the star striker's new shirt on sale — but only at stall 3. Suddenly stall 3 has a queue around the block while stalls 1, 2, and 4–10 stand empty. Opening an 11th stall somewhere else does not help: the queue is <em>for stall 3's product</em>. You have to either put the same shirt in more stalls (replication / caching), split the queue at stall 3 into several lines (splitting / salting), or move the shirt somewhere bigger (isolating the hot key). Every fix in this lesson is one of those three stall moves.</p>
+    </div>
+
+    <h3>Hot key vs hot partition — why the distinction earns points</h3>
+    <p>Interviewers listen for this distinction because it decides the fix. If one <em>key</em> is hot, adding partitions does nothing: that key still lives on exactly one partition, no matter how many partitions you add. If a <em>range</em> is hot — say, all of today's matches, or all players in one league — splitting that range across more partitions <em>does</em> help, because the traffic spreads across the new pieces. So the first diagnostic question is always: <strong>is the heat coming from one key, or from a whole range?</strong> Lab A lets you feel the difference in the numbers before you read the fixes.</p>
+    <p>A note on scope: <a href="database-sharding.html">Lesson 6</a> taught you how to choose a shard key and how to reshard. This lesson assumes that machinery and asks the harder question: what do you do when the key you chose — reasonably, at design time — turns hot at runtime, in production, on derby day?</p>
+  </section>
+
+  <section id="causes">
+    <div class="section-head"><span class="section-num">02</span><h2>Why partitions go hot: six causes</h2></div>
+    <p class="lede">Hot partitions are rarely bad luck. They come from six repeatable causes, and naming the cause is half the fix — each cause points at a different mitigation in section 05.</p>
+
+    <h3>1. Popularity skew — the celebrity effect</h3>
+    <p>Real-world popularity is never uniform; it follows a skewed distribution where a few items get most of the attention. In an illustrative fan-app distribution, the top player might take 30% of stat views, the top 10 players 60%, and the remaining 200 players share the last 40%. Any partition holding a top player inherits that player's fame. This is the striker case, the celebrity-user case in a feed, the viral-post case. It is the most common cause, and it is a property of your <em>users' attention</em>, not of your code — so you cannot fix it by tuning the database. You fix it by changing where the hot data can be served from (cache, replicas) or how the hot key is spread (salting, isolation).</p>
+
+    <h3>2. Low-cardinality shard keys — too few buckets</h3>
+    <p><span class="term">Cardinality</span> means how many distinct values a key can take. Shard by <code>league</code> and you have only a handful of values: if there are 4 leagues and 10 partitions, at most 4 partitions ever hold data and the biggest league's partition is hot by construction. Shard by <code>country</code> and one country's partition dwarfs the rest. The rule from Lesson 6, restated sharply: <strong>a shard key needs far more distinct values than you have partitions</strong>, and those values need to be roughly equally popular. High cardinality is necessary for balance, though — as cause 1 shows — not sufficient.</p>
+
+    <h3>3. Monotonic keys — everything new lands in one place</h3>
+    <p><span class="term">Monotonic</span> means always increasing: timestamps, auto-incrementing IDs, and sequential order numbers. If you range-partition by creation time or by ID, every new write goes to the <em>last</em> partition — the one holding the newest range — while older partitions go cold. This is a <strong>write-hot</strong> partition, and it is entirely predictable: the newest partition is hot by design, forever, until you change the key. Classic examples: a table partitioned by day where all of today's writes hit today's partition, and an order table keyed by sequential order ID where the tail partition takes every new order. Hash-partitioning (hash the key, then assign by hash) breaks monotonicity — one reason hash keys are the default for write-heavy tables.</p>
+
+    <h3>4. Recency skew — today is always hotter than yesterday</h3>
+    <p>Even with a good key, <em>access patterns</em> skew toward the recent: fans check today's match far more than last season's, readers open today's articles, analysts query this week's metrics. If your partitions are time ranges, the current partition is hot and the historical ones are cold — the same shape as cause 3, but on the read side. The fix is usually not re-partitioning (history still needs its partitions) but serving the hot present from a cache or replicas while the cold past stays on disk.</p>
+
+    <h3>5. Correlated flash crowds — one event, one partition</h3>
+    <p>Sometimes the heat is not a property of the data at all, but of a moment: the cup final, the transfer announcement, the goal in the 89th minute. Traffic that was spread across partitions collapses onto the partition holding the event's data, for minutes or hours, then disperses. The lesson from <a href="backpressure.html">Lesson 23</a> applies here: a transient spike wants a transient fix (cache, throttle, shed) more than a permanent re-architecture. If you reshard for every flash crowd, you will be resharding forever.</p>
+
+    <h3>6. Uneven partitions — same traffic, different capacity</h3>
+    <p>Sometimes the partition is not receiving more traffic — it is <em>weaker</em>. One partition holds far more data (so its queries scan more), sits on a slower or fuller node, or carries an extra replica burden. Same request rate, worse latency, and it looks exactly like a hot partition in the dashboards. Check partition <em>size</em> and node health alongside request rate before concluding the traffic is skewed; the fix here is rebalancing data or hardware, not throttling users.</p>
+
+    <div class="warn-box">
+      <p><strong>Read-hot or write-hot? Say it before you fix it.</strong> Caching fixes read-hot (serve the striker's stats from memory, not the partition). Caching does <em>nothing</em> for write-hot (every like, every counter increment still has to land on the one partition that owns the counter). Salting fixes write-hot (spread the increments across buckets). Salting does nothing for a read-hot single key unless you also change the read path to gather the buckets. Getting this backwards — caching a write hotspot, salting a read hotspot without a gather step — is the most common junior mistake on this topic.</p>
+    </div>
+  </section>
+
+  <section id="math">
+    <div class="section-head"><span class="section-num">03</span><h2>The math of skew: why the cluster fails at 13% of its capacity</h2></div>
+    <p class="lede">This is the section to do on the whiteboard. Three small calculations explain why a hot partition is a system failure, not a monitoring curiosity — and why "the cluster has plenty of capacity" is the wrong reassurance.</p>
+
+    <h3>Calculation 1: balanced vs skewed, same total traffic</h3>
+    <p>Setup: 10 partitions, each able to serve 1,500 requests/sec. Total cluster capacity is 10 × 1,500 = 15,000 req/s. Total traffic is 10,000 req/s.</p>
+<pre>Balanced (10% each):  10,000 ÷ 10 = 1,000 req/s per partition
+  utilisation per partition = 1,000 ÷ 1,500 ≈ 0.67  → healthy everywhere.
+
+Skewed (80% on one):  hot partition = 8,000 req/s → 8,000 ÷ 1,500 ≈ 5.3× over capacity
+  other 9 partitions = 2,000 ÷ 9 ≈ 222 req/s each → utilisation ≈ 0.15, idle.
+  Cluster average = 10,000 ÷ 15,000 ≈ 0.67 — the dashboard looks identical
+  to the balanced case, while the hot partition is throttling 6,500 req/s.</pre>
+    <p>The design insight: <strong>throughput is limited by the hottest partition, not by the sum of all partitions.</strong> Averages hide the bottleneck; the maximum is the system. Whenever you size a sharded system, size it by the hottest partition's load, not the average.</p>
+
+    <h3>Calculation 2: effective capacity collapses with skew</h3>
+    <p>Ask the inverse question: how much total traffic can the skewed system take before the hot partition saturates? If the hot partition holds share <em>s</em> of traffic and caps at <em>C</em>, the system caps at <em>C ÷ s</em>:</p>
+<pre>Balanced:  1,500 ÷ 0.10 = 15,000 req/s total  (the full cluster capacity)
+80% skew:  1,500 ÷ 0.80 = 1,875 req/s total   (12.5% of cluster capacity)
+50% skew:  1,500 ÷ 0.50 = 3,000 req/s total   (20% of cluster capacity)</pre>
+    <p>Read that again: at 80% skew, the cluster that was bought for 15,000 req/s fails at 1,875. That is the number to say in the room when someone proposes "just add shards" — and the reason the fix must attack the skew itself (cache the hot key, split the hot range, salt the hot counter), not the total shard count.</p>
+
+    <h3>Calculation 3: what each fix actually buys</h3>
+    <p>Same setup: hot partition at 8,000 req/s, capacity 1,500. Run each fix through the arithmetic:</p>
+<pre>Cache, 90% hit rate on the hot key:
+  8,000 × (1 − 0.90) = 800 req/s reach the partition  →  healthy, with margin.
+  Price: reads may be stale by the cache TTL (seconds, usually fine for stats).
+
+Replicas, 6 read replicas sharing the read load:
+  8,000 ÷ 6 ≈ 1,333 req/s each  →  just healthy.
+  Price: 6 copies to keep fresh; and replicas help reads only, never writes.
+
+Split the hot range into 8 sub-partitions:
+  8,000 ÷ 8 = 1,000 req/s each  →  healthy.
+  Price: only works if the heat is spread across the range — a single hot key
+  cannot be split (see the traps). Splitting into 2 gives 4,000 each: still hot.
+
+Salt a write-hot counter into 10 buckets:
+  5,000 increments/s ÷ 10 = 500/s per bucket  →  healthy on writes.
+  Price: every read must now gather and sum 10 buckets (10× read cost).</pre>
+    <p>Notice the pattern in every line: <strong>every fix converts the hot partition's load into a cost somewhere else</strong> — staleness, replica lag, read amplification, or operational complexity. There is no free fix; the senior skill is choosing which cost the system can afford. A stats page can afford seconds of staleness. A bank balance cannot afford a salted sum that is mid-update. The workload decides the fix, not the textbook.</p>
+
+    <div class="green-box">
+      <p><strong>The one-line math verdict (say it first in the room):</strong> "Ten partitions at 1,500 each is 15,000 of capacity on paper, but with 80% of traffic on one partition the system saturates at 1,875 — the hot partition is the system. So the fix has to move, copy, or spread the hot key itself: a 90% cache hit rate takes the hot partition from 8,000 to 800, which is the cheapest win available for a read-hot key."</p>
+    </div>
+  </section>
+
+  <section id="detect">
+    <div class="section-head"><span class="section-num">04</span><h2>Detecting a hot partition before your users do</h2></div>
+    <p class="lede">Hot partitions are easy to miss because every aggregate metric looks fine. Detection means looking at the distribution, not the average.</p>
+    <ul>
+      <li><strong>Per-partition throughput and latency, side by side.</strong> Plot each partition's requests/sec and p99 latency on the same chart. A hot partition shows up as one line diverging upward while the others stay flat. If your dashboard only shows the cluster average, you are blind to this entire failure mode.</li>
+      <li><strong>Throttling events per partition.</strong> Count throttled requests per partition, not just in total. A handful of throttled requests concentrated on one partition is a hot-partition signal; the same number spread evenly is just a busy system.</li>
+      <li><strong>The tell-tale paradox.</strong> "Users are getting timeouts, but the cluster is at 20% CPU." That sentence <em>is</em> the diagnosis: the work is not spread, so the average is meaningless. When you hear it, go straight to the per-partition view.</li>
+      <li><strong>Partition size and key heat.</strong> Track bytes per partition and requests per key (DynamoDB's Contributor Insights and similar tools rank the hottest keys for you). A partition that is both large <em>and</em> hot is doubly at risk: its queries are slower and its queue is longer.</li>
+      <li><strong>Alert on the maximum, and on skew.</strong> Alert when any single partition exceeds, say, 70% of its capacity, and when the ratio of the hottest partition to the average exceeds a threshold (3× is a reasonable starting point). Alerting on the average guarantees you learn about the hot partition from your users.</li>
+    </ul>
+    <p>One more diagnostic habit: when a hot partition is suspected, check whether the heat is reads or writes first (the counters differ), and whether it is one key or a range (the key-ranking view tells you). Those two answers select the fix from the table below without guessing.</p>
+  </section>
+
+  <section id="fix">
+    <div class="section-head"><span class="section-num">05</span><h2>Fixing it: seven mitigations and when each one works</h2></div>
+    <p class="lede">There is no single fix for hot partitions — there are seven, and the art is matching the fix to the cause and to the read/write direction. Work through the table, then the notes on the three fixes that get misused most.</p>
+
+    <table class="cmp">
+      <tr><th>Mitigation</th><th>Fixes</th><th>How it works</th><th>Price you pay</th></tr>
+      <tr><td><strong>Cache the hot key</strong></td><td>Read-hot</td><td>Serve hot reads from Redis / CDN / app memory; only misses hit the partition (<a href="caching-strategies.html">Lesson 3</a>)</td><td>Staleness up to the TTL; cache stampede risk if the TTL expires under load (jitter it, coalesce fills)</td></tr>
+      <tr><td><strong>Replicate the hot data</strong></td><td>Read-hot</td><td>Read replicas share the read load; the striker's stats exist on several nodes</td><td>Replica lag (stale reads); more copies to maintain; never helps writes</td></tr>
+      <tr><td><strong>Split the hot partition</strong></td><td>Range-hot</td><td>Divide the hot range into smaller ranges across more partitions</td><td>Rebalancing cost; useless for a single hot key (it cannot be split)</td></tr>
+      <tr><td><strong>Salt the hot key</strong></td><td>Write-hot</td><td>Write to <code>counter#0 … counter#9</code> (random suffix); reads sum the buckets</td><td>Reads cost 10× (scatter-gather); sums can be briefly inconsistent mid-write</td></tr>
+      <tr><td><strong>Choose a better shard key</strong></td><td>All, long-term</td><td>High-cardinality, hashed, non-monotonic key (e.g. hash of <code>user_id</code>, not <code>league</code> or timestamp)</td><td>A migration: re-keying means moving data and changing every query path</td></tr>
+      <tr><td><strong>Isolate the hot key</strong></td><td>Single hot key</td><td>Give the celebrity its own partition / cluster / dedicated capacity (a bulkhead)</td><td>Special-case code paths; the isolated key still needs its own scaling plan</td></tr>
+      <tr><td><strong>Throttle &amp; shape demand</strong></td><td>Transient spikes</td><td>Per-key rate limits, queues, and backpressure (<a href="rate-limiting.html">Lesson 11</a>, <a href="backpressure.html">Lesson 23</a>) while the spike passes</td><td>Some legitimate requests wait or fail; needs a fair per-key policy, not a global one</td></tr>
+    </table>
+
+    <h3>The decision guide (use it in the room)</h3>
+    <ul>
+      <li><strong>Read-hot, single key, can tolerate seconds of staleness → cache.</strong> This is the most common hot partition in the world, and the cache is the cheapest fix in this lesson (section 03: 8,000 → 800). Add a jittered TTL and request coalescing so the cache expiry does not recreate the spike.</li>
+      <li><strong>Read-hot, must be fresh → replicate.</strong> When the data cannot be stale (a balance, a seat count), replicas spread reads without staleness beyond replication lag — and you accept the lag honestly instead of pretending it is zero.</li>
+      <li><strong>Write-hot counter or tally → salt.</strong> Likes, view counts, vote totals: spread the writes across N buckets and pay the gather cost on reads. This is the standard answer for "design a counter at scale", and the gather step is the part candidates forget to mention.</li>
+      <li><strong>Range-hot (today's data, one region, one league) → split.</strong> Splitting works here because the heat is spread across the range; the new partitions each take a share. Split by enough: section 03 showed a ×2 split of an 8,000-load partition still leaves 4,000 each, still hot.</li>
+      <li><strong>Single key, permanent fame → isolate.</strong> The celebrity account, the flagship product, the league's official page: give it its own capacity and its own code path, and stop letting one key's fame set the sizing for everything else.</li>
+      <li><strong>Transient spike → throttle and wait.</strong> A flash crowd passes; a resharding does not un-happen. Shape demand for the hour, then let the system return to normal — and log the spike so the next one is cached in advance.</li>
+    </ul>
+
+    <h3>Two fixes that need a second sentence</h3>
+    <p><strong>Adaptive capacity (DynamoDB's version).</strong> Some managed databases detect a hot partition and temporarily lend it unused capacity from idle partitions. This is real and helpful — and it is a bandage, not a cure: it raises the hot partition's ceiling for a while, but it does not change the skew, and it does not survive a sustained 80% skew. Treat it as time bought to deploy a real fix, and say so.</p>
+    <p><strong>Request coalescing (single-flighting).</strong> When 10,000 fans ask for the same striker stats in the same second, the system should compute the answer once and hand the same answer to all 10,000, instead of running 10,000 identical queries. Coalescing is the cache's best friend for flash crowds: it turns a spike of identical reads into one read. Name it whenever a hot key is read far more than it is written.</p>
+  </section>
+
+  <section id="real">
+    <div class="section-head"><span class="section-num">06</span><h2>Hot partitions in real systems</h2></div>
+    <p class="lede">The same failure, in the uniforms you will actually meet.</p>
+    <ul>
+      <li><strong>DynamoDB.</strong> The canonical hot-partition story. A partition key value's data is capped in size (10 GB per key value) and a single partition historically handles on the order of 1,000 write and 3,000 read capacity units; exceed that on one key and DynamoDB throttles that key while the rest of the table idles. Adaptive capacity and automatic partition splitting soften it; the durable fixes are the ones in section 05 — a better key, caching (DAX), or write sharding for counters.</li>
+      <li><strong>Cassandra / Dynamo-style stores.</strong> Data is placed by hashing the partition key onto a token ring (<a href="consistent-hashing.html">Lesson 10</a>). A hot key hashes to exactly one token range, so no amount of adding nodes moves it; virtual nodes balance the <em>number of ranges per node</em>, not the traffic per key. The Cassandra fix for a hot key is the same trio: cache it, replicate it, or redesign the key.</li>
+      <li><strong>Kafka.</strong> A hot partition means one partition receives most messages for a topic — usually because the message key is low-cardinality or monotonic. That partition's consumer lags while others idle, and ordering guarantees (per-partition order) mean you cannot just move messages elsewhere. The fix is a better message key or more partitions <em>chosen before the topic's traffic pattern locks in</em> — repartitioning an ordered stream is painful.</li>
+      <li><strong>Redis Cluster.</strong> Keys hash into 16,384 slots spread across nodes. A single hot key (a viral session, a global counter) hammers one node, and a <em>big key</em> (a huge list or hash) makes it worse by blocking that node's single thread. Redis fixes: read replicas for hot keys, client-side caching, and splitting big keys — the same pattern, one level down.</li>
+      <li><strong>Spanner / CockroachDB.</strong> These split ranges by load automatically: a hot range gets split and its pieces move to less loaded nodes. Automatic splitting is the closest thing to a free fix in this lesson — and even it cannot split a single hot key, only a hot range. The single-key limit is universal; no system escapes it.</li>
+    </ul>
+    <div class="callout">
+      <h4>⚽ The universal rule, restated</h4>
+      <p>Every system in this section can split a hot <em>range</em>. No system can split a hot <em>key</em> — a key is, by definition, one place. So the question that separates the fixes is always the same: <strong>one key, or a range?</strong> If you answer that question first, the rest of the design falls out of the table in section 05.</p>
+    </div>
+  </section>
+
+  <section id="traps">
+    <div class="section-head"><span class="section-num">07</span><h2>Senior-depth traps</h2></div>
+    <p class="lede">Three places where confident-sounding answers fall apart. If you can navigate these, you own the topic.</p>
+    <ol>
+      <li><strong>"Add more shards" does not fix a hot key — it never has.</strong> Adding shards spreads <em>keys</em> across more partitions. A single hot key is still one key on one partition after the expansion; its load is unchanged, and you have paid a migration to learn that. The follow-up question is always: <em>is the heat on one key or across a range?</em> If one key, the fix is cache, replica, salt, or isolate — never "more shards".</li>
+      <li><strong>Aggregate metrics lie, and averages lie hardest.</strong> "The cluster is at 20% CPU, so we have headroom" is the sentence that precedes a hot-partition outage. Capacity, latency, and throttling must all be viewed per partition, and alerts must fire on the maximum partition, not the mean. If a design review shows you only cluster averages, ask for the per-partition view before approving anything.</li>
+      <li><strong>Every fix moves the cost; name where it went.</strong> Caching buys throughput with staleness. Salting buys write throughput with read amplification and fuzzy sums. Splitting buys balance with rebalancing work and, for a hot key, nothing at all. A candidate who names a fix without naming its price has described half a design. The full answer is always "fix X, paid for with Y, acceptable here because Z" — and Z is a property of the workload (a stats page tolerates staleness; a balance does not).</li>
+    </ol>
+  </section>
+
+  <section id="lab-skew">
+    <div class="section-head"><span class="section-num">08</span><h2>Interactive lab A: the skew simulator</h2></div>
+    <p class="lede">Ten partitions, one striker. Move the sliders and watch the cluster fail while its average looks healthy.</p>
+
+    <div class="lab">
+      <h3>⚽ Riverside FC stat partitions</h3>
+      <p class="howto"><strong>How to play:</strong> set total traffic and the share going to the hottest partition (the striker's). Each partition handles 1,500 req/s. Watch the hot partition's bar turn red, read the effective capacity — the total traffic the system can take before the hot partition saturates — and compare it with the 15,000 req/s the cluster was bought for.</p>
+      <div class="slider-row">
+        <label for="hp-total">Total traffic (req/s)</label>
+        <input type="range" id="hp-total" min="1000" max="20000" step="500" value="10000">
+        <output id="hp-total-out">10,000/s</output>
+      </div>
+      <div class="slider-row">
+        <label for="hp-share">Share on the hottest partition</label>
+        <input type="range" id="hp-share" min="10" max="95" step="5" value="80">
+        <output id="hp-share-out">80%</output>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="hp-run">Run the numbers</button>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Hottest partition</div><div class="score" id="hp-hot">–</div></div>
+        <div class="stat"><div class="node-name">Each other partition</div><div class="score" id="hp-other">–</div></div>
+        <div class="stat"><div class="node-name">Effective capacity</div><div class="score" id="hp-eff">–</div></div>
+        <div class="stat"><div class="node-name">Verdict</div><div style="margin-top:6px"><span class="badge warn" id="hp-badge">run the numbers</span></div></div>
+      </div>
+      <h4>Load per partition (red = over the 1,500 cap)</h4>
+      <div class="bars" id="hp-bars"></div>
+      <div class="log" id="hp-log"><div>Set the sliders, then run the numbers. The cluster average will look fine long after the hot partition has failed — that gap is the lesson.</div></div>
+    </div>
+
+    <div class="callout">
+      <h4>What the lab is teaching</h4>
+      <p>At 10,000 req/s and 80% skew, the hot partition takes 8,000 — more than five times its capacity — while the other nine take 222 each. The cluster average is a reassuring 67%, and the system is still failing: 6,500 requests a second are throttled. Drop the share to 10% and the same 10,000 sails through. The traffic did not change. Only the distribution did — and distribution, not total capacity, is what hot partitions are about.</p>
+    </div>
+  </section>
+
+  <section id="lab-fix">
+    <div class="section-head"><span class="section-num">09</span><h2>Interactive lab B: cool the hot partition</h2></div>
+    <p class="lede">The derby scenario, fixed four ways. The hot partition starts at 8,000 req/s against a 1,500 cap. Pick a fix and check whether it actually cools it — one of these fixes looks decisive and still fails.</p>
+
+    <div class="lab">
+      <h3>🧯 Cooling the striker's partition</h3>
+      <p class="howto"><strong>How to play:</strong> the scenario is fixed — 10,000 req/s total, 80% on the hot partition (8,000 req/s, cap 1,500). Try each fix: <strong>Split ×2</strong> divides the hot range in two; <strong>Split ×8</strong> divides it in eight; <strong>Cache 90%</strong> serves 90% of hot reads from memory; <strong>Replicas ×6</strong> spreads hot reads across six copies. Each button shows the load left on one hot piece and what the fix costs.</p>
+      <div class="controls">
+        <button class="btn" id="hp-fix-none">Do nothing</button>
+        <button class="btn" id="hp-fix-split2">Split the range ×2</button>
+        <button class="btn" id="hp-fix-split8">Split the range ×8</button>
+        <button class="btn" id="hp-fix-cache">Cache the hot key (90% hit)</button>
+        <button class="btn primary" id="hp-fix-rep">Replicas ×6</button>
+      </div>
+      <div class="stat-row">
+        <div class="stat"><div class="node-name">Load per hot piece</div><div class="score" id="hp-fix-load">–</div></div>
+        <div class="stat"><div class="node-name">Capacity per piece</div><div class="score">1,500<span style="font-size:1rem">/s</span></div></div>
+        <div class="stat"><div class="node-name">Verdict</div><div style="margin-top:6px"><span class="badge warn" id="hp-fix-badge">pick a fix</span></div></div>
+      </div>
+      <div class="log" id="hp-fix-log"><div>Pick a fix. Note which one still fails — and remember it only works if the heat is spread across the range, not locked to one key.</div></div>
+    </div>
+
+    <div class="warn-box">
+      <p><strong>The trap hidden in this lab:</strong> Split ×2 <em>feels</em> like progress — 8,000 becomes 4,000 — but 4,000 is still nearly three times the 1,500 cap, so the partition still throttles. And if the heat is a single hot key rather than a range, even Split ×8 does nothing: the key still sits on one piece at 8,000. Splitting is only a fix when the heat is divisible. Always ask "one key or a range?" before you split anything.</p>
+    </div>
+  </section>
+
+  <section id="qa">
+    <div class="section-head"><span class="section-num">10</span><h2>Q&amp;A with full model answers</h2></div>
+    <p class="lede">Four questions in the shape they get asked, each with the answer a senior is expected to give — including the numbers, the fix matched to the cause, and the price of the fix named out loud.</p>
+
+    <div class="question">
+      <div class="qnum">Q1 · Classic design</div>
+      <div class="qtext">Riverside FC's fan app shards player stats by player_id across 10 partitions. The star striker scores a hat-trick, his partition saturates, and fans see errors — while the cluster averages 20% CPU. Diagnose it and fix it.</div>
+      <div class="context">They want the diagnosis first, then a fix matched to read-hot, single-key heat.</div>
+      <div class="answer">
+        <p><strong>Diagnosis:</strong> a read-hot partition caused by a hot key. The striker's partition holds a disproportionate share of stat reads; the cluster average of 20% is meaningless because capacity is per-partition — the hot partition is the system, and it is saturated. The tell-tale paradox (timeouts at low average CPU) confirms it before any chart does.</p>
+        <p><strong>Math first:</strong> if total traffic is 10,000 req/s and 80% hits the striker, the hot partition takes 8,000 against a ~1,500 cap — more than 5× over — while the others take ~222 each. Effective system capacity is 1,500 ÷ 0.80 ≈ 1,875 req/s, not the 15,000 the cluster was bought for.</p>
+        <p><strong>The fix — cache, with two details:</strong> (1) serve the striker's stats from a cache (Redis/CDN) with a short TTL; at a 90% hit rate the partition sees 800 req/s and recovers. (2) Jitter the TTL and coalesce concurrent fills (single-flight), so the cache expiring under a flash crowd does not recreate the spike as a stampede of identical queries. Add a per-key read replica as a second layer if the stats must stay fresher than the TTL allows.</p>
+        <p><strong>What I would not do:</strong> add shards (a single key stays on one partition regardless of shard count), or reshard by a new key in the middle of the incident (a migration, not a firefight). And I would add per-partition alerting — fire on the maximum partition exceeding 70% of cap — so the next hat-trick is caught by a dashboard, not by fans.</p>
+        <p><strong>Handle the follow-up</strong> ("what if the stats must be real-time?"): then caching is capped at a very short TTL or dropped, and the fix becomes read replicas plus request coalescing — same shape, fresher data, higher cost. The workload's freshness requirement picks the fix; the diagnosis does not change.</p>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Q2 · Write-hot design</div>
+      <div class="qtext">Design a like counter for the derby goal video. It must absorb 5,000 likes a second, show a total, and never lose a like. One counter row is currently melting.</div>
+      <div class="context">The salted-counter question. The gather step on reads is the part most candidates forget.</div>
+      <div class="answer">
+        <p><strong>Frame it:</strong> "This is a write-hot single key: 5,000 increments a second all land on one row, one partition. Caching cannot help — every like is a write that must land. So I spread the writes."</p>
+        <p><strong>Design — write sharding (salting):</strong> instead of one row <code>likes:goal-89</code>, keep N bucket rows <code>likes:goal-89#0 … #9</code> (N = 10). Each like picks a bucket at random (or by hashing the user ID, which also gives idempotency: one like per user per bucket) and increments it. Write load per bucket: 5,000 ÷ 10 = 500/s — comfortably within a partition's capacity, and the buckets can live on different partitions so the writes genuinely spread.</p>
+        <p><strong>Reads — the gather step:</strong> the displayed total is the <em>sum of all 10 buckets</em>, read with a scatter-gather (10 reads, summed in the service). Reads now cost 10×, which is the price of the design — acceptable here because likes are written far more than the total is read, and the total can itself be cached for a few seconds to blunt the read cost.</p>
+        <p><strong>Correctness details:</strong> increments must be atomic per bucket (a single-row increment, not read-modify-write); a like is idempotent via the user ID (replayed like = no-op); and the summed total may be briefly fuzzy mid-write (a like counted in bucket 3 but not yet in the sum) — fine for a like count, unacceptable for a bank balance, which is why you never salt money.</p>
+        <p><strong>Close:</strong> "Write-hot → salt the writes, pay on reads. Read-hot → cache the reads, pay in staleness. Saying which direction the heat flows is the whole design."</p>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Q3 · Trade-off judgment</div>
+      <div class="qtext">Your team added 10× more shards to a throttling table. Throttling got worse — or at least no better. What happened, and what do you do next?</div>
+      <div class="context">The "more shards" trap. Name it, prove it with the math, then pivot to the real fix.</div>
+      <div class="answer">
+        <p><strong>What happened:</strong> the heat is on a single hot key, not spread across a range. Adding shards redistributes keys; it does not redistribute one key's traffic. The hot key still lives on exactly one partition, taking exactly the same load as before — and the resharding itself added migration load and, if the key ranges were re-cut, possibly moved the hot key onto a smaller or colder node. More shards, same fire.</p>
+        <p><strong>Prove it:</strong> "If the hot key takes share <em>s</em> of traffic and its partition caps at <em>C</em>, system capacity is <em>C ÷ s</em> no matter how many partitions exist. At 80% skew and a 1,500 cap, that is 1,875 req/s with 10 partitions and 1,875 with 100."</p>
+        <p><strong>What to do next, in order:</strong> (1) Confirm with the per-key ranking: is one key dominating, or a range? (2) If one key and read-hot: cache it (90% hit rate turns 8,000 into 800) with jittered TTL and coalescing; add read replicas if freshness forbids caching. (3) If one key and write-hot: salt it into buckets and gather on reads. (4) If a range: <em>then</em> split the range — by enough (×8, not ×2, for an 8,000 load against a 1,500 cap) — or isolate the range on dedicated capacity. (5) Add per-partition alerting on the maximum, so the next incident is a page, not a post-mortem.</p>
+        <p><strong>The senior close:</strong> "Shard count is a capacity lever for balanced traffic. Skew is a distribution problem, and distribution problems are fixed by moving, copying, or spreading the hot data — never by adding empty partitions next to it."</p>
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Q4 · Key design</div>
+      <div class="qtext">Choose a shard key for a fan-app feed: users post match reactions, and reads are mostly "show me the latest reactions to today's match". Defend your key against the hot-partition causes.</div>
+      <div class="context">They want the key choice argued against each cause in section 02, not just named.</div>
+      <div class="answer">
+        <p><strong>First, reject the tempting keys:</strong> sharding by <code>match_id</code> fails recency skew — today's match is the only hot match, so one partition takes the derby. Sharding by timestamp fails monotonicity — every new reaction lands on the newest partition, a permanent write hotspot. Sharding by <code>league</code> fails cardinality — a handful of values cannot fill 10 partitions.</p>
+        <p><strong>The choice: hash of <code>user_id</code> (or <code>post_id</code> with a random/UUID component).</strong> High cardinality (millions of users), non-monotonic (hashing breaks time ordering), and uncorrelated with match popularity — a derby surge spreads across all partitions because derby fans are spread across all user IDs. Writes stay balanced at any volume.</p>
+        <p><strong>The price, named honestly:</strong> the hot read pattern — "latest reactions to today's match" — now becomes a scatter-gather: the match's reactions live on every partition, so the feed query fans out to all partitions and merges. That is the correct trade: writes (the thing that must never throttle, since a lost reaction is a lost user action) stay balanced, and reads pay a fan-out that a cache absorbs — the match's reaction feed is a perfect cache candidate, since thousands of fans want the same list.</p>
+        <p><strong>The full design, in one breath:</strong> hash-partition by user for balanced writes; serve the per-match feed from a cache fed by an async fan-out job (the push/pull hybrid from the feed lesson), so the hot read never touches the partitions directly; and keep a per-partition dashboard so the day a single user's reactions go viral, the hot-key playbook (cache, isolate) is ready rather than improvised.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="drills">
+    <div class="section-head"><span class="section-num">11</span><h2>Practice drills (untimed)</h2></div>
+    <p class="lede">Work these on paper or a whiteboard. Each has a rubric — grade yourself honestly.</p>
+
+    <div class="question">
+      <div class="qnum">Drill 1 · Skew math</div>
+      <div class="qtext">A table has 8 partitions, each capped at 2,000 req/s. Total traffic is 12,000 req/s, with 60% landing on one partition. (a) What load does the hot partition take, and does it throttle? (b) What is the system's effective capacity? (c) A 90% cache hit rate is added for the hot key — what load reaches the partition now?</div>
+      <details class="reveal"><summary>Rubric — check your answer</summary><div class="body">
+        <ul>
+          <li>(a) Hot load = 12,000 × 0.60 = <strong>7,200 req/s</strong> against a 2,000 cap — yes, it throttles, by 5,200 req/s. The other 7 partitions take 4,800 ÷ 7 ≈ 686 each.</li>
+          <li>(b) Effective capacity = 2,000 ÷ 0.60 ≈ <strong>3,333 req/s</strong> — barely a fifth of the 16,000 cluster capacity. Full marks for showing the C ÷ s step.</li>
+          <li>(c) 7,200 × (1 − 0.90) = <strong>720 req/s</strong> — healthy, with headroom. Bonus for noting the cache must have a jittered TTL and coalesced fills, or the expiry recreates the spike.</li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Drill 2 · Incident autopsy</div>
+      <div class="qtext">Saturday, 15:00 — the derby kicks off. By 15:10 your player-stats service is timing out on striker pages only; other players are fine; cluster CPU averages 25%. The on-call engineer proposes adding 20 more shards. Write the diagnosis, the response to the proposal, and the fix you deploy in the next hour.</div>
+      <details class="reveal"><summary>Rubric — check your answer</summary><div class="body">
+        <ul>
+          <li><strong>Diagnosis:</strong> read-hot partition from a single hot key (the striker), proven by the symptom pattern (one player's pages only) and the paradox (timeouts at 25% average CPU). Full marks for naming both signals.</li>
+          <li><strong>Response to the proposal:</strong> more shards cannot move one key's traffic; the hot key stays on one partition at the same load. Resharding mid-incident adds migration load to a system already throttling.</li>
+          <li><strong>Fix in the hour:</strong> cache the striker's stats (short, jittered TTL, coalesced fills) and, if freshness matters, add read replicas; throttle per-key abusive clients; add a per-partition max alert. Bonus: pre-warm the cache for the next match's likely stars before kickoff.</li>
+        </ul>
+      </div></details>
+    </div>
+
+    <div class="question">
+      <div class="qnum">Drill 3 · Cross-lesson design</div>
+      <div class="qtext">Apply this lesson to <a href="twitter-feed.html">Lesson 16</a>'s feed design: a superstar with 100M followers posts, and the fan-out writes all hit the partitions holding that superstar's followers' inboxes. Where is the hot partition, and how do you redesign the fan-out so it cannot form?</div>
+      <details class="reveal"><summary>Rubric — check your answer</summary><div class="body">
+        <ul>
+          <li><strong>Where the heat is:</strong> the fan-out is a write burst concentrated by the celebrity's follower graph — if followers are sharded by user, the burst still spreads, but if any partition holds a dense block of the superstar's followers (or the superstar's own inbox structures), that partition takes the burst. Full marks for locating the heat in the fan-out write path, not the read path.</li>
+          <li><strong>Redesign:</strong> the hybrid fan-out from Lesson 16 already avoids materialising 100M inbox writes: celebrities skip push, and their posts are pulled at read time from the author's timeline (cached, coalesced) instead of written to every follower. That converts a write-hot burst into a read-hot key — which the cache then absorbs.</li>
+          <li>Bonus: shard follower inboxes by hashed user ID (not by followed celebrity), batch the fan-out queue in chunks with backpressure (<a href="backpressure.html">Lesson 23</a>), and monitor per-partition fan-out write rate so a celebrity post is a known, metered event rather than a surprise.</li>
+        </ul>
+      </div></details>
+    </div>
+  </section>
+
+  <section id="cheatsheet">
+    <div class="section-head"><span class="section-num">12</span><h2>Cheat sheet, 60-second framing &amp; talk-track</h2></div>
+    <p class="lede">The whole lesson on one screen. Read this the morning of.</p>
+
+    <div class="cheatsheet">
+      <h3>Hot partitions — six decisions</h3>
+      <ol>
+        <li><strong>Capacity is per-partition, not per-cluster.</strong> The hottest partition is the system. Size, monitor, and alert on the maximum — never the average.</li>
+        <li><strong>Ask "one key or a range?" before anything else.</strong> One key → cache, replicate, salt, or isolate. A range → split. Getting this wrong wastes the whole fix.</li>
+        <li><strong>Ask "read-hot or write-hot?" second.</strong> Caching fixes reads only; salting fixes writes only. A fix for the wrong direction is no fix.</li>
+        <li><strong>Know the skew math cold.</strong> Effective capacity = partition cap ÷ hot share. At 80% skew, a 15,000-capacity cluster fails at 1,875.</li>
+        <li><strong>Name the price of every fix.</strong> Cache = staleness. Replicas = lag. Salt = 10× reads. Split = rebalancing, and nothing for a single key. "Fix X, paid with Y, acceptable because Z."</li>
+        <li><strong>More shards is not a skew fix.</strong> Shard count spreads keys; it cannot spread one key's traffic. If someone proposes it for a hot key, the diagnosis is wrong, not the shard count.</li>
+      </ol>
+    </div>
+
+    <div class="framing">
+      <p><strong>60-second framing (say it verbatim to open):</strong> "A hot partition is a shard that takes a disproportionate share of traffic, so it saturates while its siblings idle — the system fails at a fraction of its nominal capacity because capacity is per-partition, not per-cluster. With 80% of traffic on one of ten partitions, a 15,000-request cluster saturates at 1,875. The causes are popularity skew, low-cardinality or monotonic keys, recency, flash crowds, and uneven partitions. The fixes depend on two questions: is it one key or a range, and is it read-hot or write-hot? Read-hot single keys get cached; write-hot counters get salted and gathered on reads; hot ranges get split; permanent celebrities get isolated. Every fix has a price — staleness, lag, read amplification — and naming that price is the design."</p>
+    </div>
+
+    <div class="callout">
+      <h4>🎙️ In-the-room talk-track</h4>
+      <p>1. <strong>State the skew:</strong> "One partition takes 80% — the system caps at cap ÷ share, 1,875, not 15,000." 2. <strong>Answer the two questions:</strong> "It's one key, and it's read-hot — so caching, not splitting." 3. <strong>Name the price:</strong> "We pay seconds of staleness, which a stats page affords." 4. <strong>Close with the guardrail:</strong> "And we alert on the maximum partition from now on, so the next spike is a page, not a post-mortem." Four sentences, senior signal in each one.</p>
+    </div>
+
+    <footer>
+      <p>Lesson 24 · Part of the daily system design series. <a href="../index.html">All lessons →</a></p>
+    </footer>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+  function $(id) { return document.getElementById(id); }
+  function fmt(n) { return Math.round(n).toLocaleString("en-US"); }
+  var CAP = 1500, N = 10;
+
+  /* Pure functions, exposed for smoke tests. */
+  function computeSkew(total, sharePct) {
+    var s = sharePct / 100;
+    var hot = total * s;
+    var other = (total - hot) / (N - 1);
+    var eff = CAP / s;
+    return { hot: hot, other: other, eff: eff, throttled: Math.max(0, hot - CAP) };
+  }
+  function applyFix(fix) {
+    /* Scenario: 10,000 total, 80% hot => 8,000 on the hot partition. */
+    var hot = 8000;
+    if (fix === "none") return { load: hot, note: "No fix: the hot partition takes all 8,000 req/s against a 1,500 cap — it throttles 6,500 req/s." };
+    if (fix === "split2") return { load: hot / 2, note: "Split ×2: 4,000 req/s per piece — still nearly 3× the cap. Splitting too little is still failing." };
+    if (fix === "split8") return { load: hot / 8, note: "Split ×8: 1,000 req/s per piece — healthy. But only if the heat is spread across the range; a single hot key cannot be split at all." };
+    if (fix === "cache") return { load: hot * 0.10, note: "Cache at 90% hit rate: only 800 req/s reach the partition — healthy. Price: reads may be stale up to the TTL; jitter it and coalesce fills." };
+    if (fix === "rep") return { load: hot / 6, note: "Replicas ×6: about 1,333 req/s per copy — just healthy. Price: replica lag, and replicas help reads only, never writes." };
+    return { load: hot, note: "Unknown fix." };
+  }
+
+  /* ---------- Lab A: skew simulator ---------- */
+  function runSkew() {
+    var total = +$("hp-total").value, share = +$("hp-share").value;
+    var r = computeSkew(total, share);
+    $("hp-hot").textContent = fmt(r.hot) + "/s";
+    $("hp-other").textContent = fmt(r.other) + "/s";
+    $("hp-eff").textContent = fmt(r.eff) + "/s";
+    var badge = $("hp-badge");
+    if (r.hot <= CAP) { badge.className = "badge ok"; badge.textContent = "balanced — healthy"; }
+    else if (r.hot <= CAP * 2) { badge.className = "badge warn"; badge.textContent = "hot — throttling soon"; }
+    else { badge.className = "badge bad"; badge.textContent = "melting — throttling"; }
+    var barsEl = $("hp-bars"); barsEl.innerHTML = "";
+    var loads = [];
+    for (var i = 0; i < N; i++) loads.push(i === 0 ? r.hot : r.other);
+    var maxBar = Math.max.apply(null, loads.concat([CAP]));
+    loads.forEach(function (v, i) {
+      var row = document.createElement("div"); row.className = "bar-row";
+      var lab = document.createElement("span"); lab.className = "bar-label";
+      lab.textContent = i === 0 ? "Partition 1 ★ striker" : "Partition " + (i + 1);
+      var track = document.createElement("div"); track.className = "bar-track";
+      var fill = document.createElement("div");
+      fill.className = "bar-fill" + (v > CAP ? " impolite" : "");
+      fill.style.width = Math.max(1, Math.round(v / maxBar * 100)) + "%";
+      track.appendChild(fill);
+      var val = document.createElement("span"); val.className = "bar-val";
+      val.textContent = fmt(v) + "/s" + (v > CAP ? " OVER CAP" : "");
+      row.appendChild(lab); row.appendChild(track); row.appendChild(val);
+      barsEl.appendChild(row);
+    });
+    var log = $("hp-log");
+    var d = document.createElement("div");
+    d.textContent = "[run] total=" + fmt(total) + "/s, hot share=" + share + "% → hot=" + fmt(r.hot) + "/s, others=" + fmt(r.other) + "/s, effective capacity=" + fmt(r.eff) + "/s, throttled=" + fmt(r.throttled) + "/s.";
+    log.appendChild(d); log.scrollTop = log.scrollHeight;
+  }
+  $("hp-total").addEventListener("input", function () { $("hp-total-out").textContent = fmt(+$("hp-total").value) + "/s"; });
+  $("hp-share").addEventListener("input", function () { $("hp-share-out").textContent = $("hp-share").value + "%"; });
+  $("hp-run").addEventListener("click", runSkew);
+
+  /* ---------- Lab B: cool the hot partition ---------- */
+  function runFix(fix) {
+    var r = applyFix(fix);
+    $("hp-fix-load").textContent = fmt(r.load) + "/s";
+    var badge = $("hp-fix-badge");
+    if (r.load <= CAP) { badge.className = "badge ok"; badge.textContent = "cooled — healthy"; }
+    else { badge.className = "badge bad"; badge.textContent = "still hot — throttling"; }
+    var log = $("hp-fix-log");
+    var d = document.createElement("div"); d.textContent = "[fix] " + r.note;
+    log.appendChild(d); log.scrollTop = log.scrollHeight;
+  }
+  $("hp-fix-none").addEventListener("click", function () { runFix("none"); });
+  $("hp-fix-split2").addEventListener("click", function () { runFix("split2"); });
+  $("hp-fix-split8").addEventListener("click", function () { runFix("split8"); });
+  $("hp-fix-cache").addEventListener("click", function () { runFix("cache"); });
+  $("hp-fix-rep").addEventListener("click", function () { runFix("rep"); });
+
+  if (typeof window !== "undefined") { window.__hp = { computeSkew: computeSkew, applyFix: applyFix }; }
+})();
+</script>
+</body>
+</html>
