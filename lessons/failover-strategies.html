@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Failover Strategies — What Happens When the Main Server Dies</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: 10px; padding: 1rem 1.2rem; margin: 1.2rem 0; }
+  .callout.blue { border-left-color: var(--blue); }
+  .callout.green { border-left-color: var(--green); }
+  .callout.amber { border-left-color: var(--amber); }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout strong:first-child { display: block; margin-bottom: 0.3rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: 0.95rem; }
+  th { text-align: left; background: var(--surface-2); }
+  th, td { border: 1px solid var(--line); padding: 0.55rem 0.7rem; vertical-align: top; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em; background: var(--surface-2); border-radius: 5px; padding: 0.1em 0.35em; }
+  .formula { background: var(--code); color: var(--code-ink); border-radius: 10px; padding: 1rem 1.2rem; margin: 1rem 0; font-size: 1.02rem; overflow-x: auto; }
+  .formula code { background: none; padding: 0; }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.3rem 1.4rem; margin: 1.4rem 0; }
+  .lab h3 { margin-top: 0; }
+  .lab .row { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; margin: 0.8rem 0; }
+  .lab label { display: block; font-size: 0.92rem; font-weight: 600; margin-bottom: 0.2rem; }
+  .lab label span { font-weight: 400; color: var(--muted); }
+  .lab input[type="range"] { width: 100%; max-width: 320px; }
+  .lab select { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 0.4rem 0.6rem; }
+  .lab .out { background: var(--surface-2); border-radius: 10px; padding: 0.9rem 1.1rem; margin-top: 0.9rem; }
+  .lab .out p { margin-bottom: 0.35rem; }
+  .lab .out p:last-child { margin-bottom: 0; }
+  .big { font-size: 1.25rem; font-weight: 700; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0.9rem 1.1rem; margin: 0.8rem 0; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p, details ul { margin-top: 0.6rem; }
+  details p:last-child { margin-bottom: 0; }
+  .drill { border-left: 5px solid var(--purple); }
+  .toc { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.2rem; margin: 1.4rem 0; }
+  .toc strong { display: block; margin-bottom: 0.4rem; }
+  .toc ol { margin-bottom: 0; }
+  .footer-nav { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.92rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> · Lesson 25</p>
+
+<header class="hero">
+  <span class="lesson-tag">Advanced trade-offs · Reliability</span>
+  <h1>Failover Strategies</h1>
+  <p class="whyline">Every server dies eventually. Failover is the plan for what happens in the seconds after it does — who notices, who takes over, what data is lost, and how you get back. A bad failover plan turns one dead server into a full outage; a good one makes the death boring.</p>
+  <div class="meta"><span>~25 min read</span><span>2 interactive labs</span><span>4 model answers</span><span>3 drills</span></div>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <strong>How this lesson flows</strong>
+  <ol>
+    <li>What failover is, from zero</li>
+    <li>Why failover is hard: the three hard problems</li>
+    <li>Detection: how anyone knows something died</li>
+    <li>The failover patterns: active–passive, active–active, and per-layer failover</li>
+    <li>The data side: RPO, replication lag, and fencing</li>
+    <li>Failback: getting home again without a second outage</li>
+    <li>Testing failover before reality does</li>
+    <li>Senior-depth traps, labs, model answers, drills, cheat sheet</li>
+  </ol>
+</nav>
+
+<h2>1. What is failover? Start from zero</h2>
+<p>Picture Riverside FC on cup-final day. The club's ticket app runs on one main server in a data centre in London. At 10:04, that server's disk dies. Fans are mid-checkout. What happens next is decided entirely by choices made <em>before</em> 10:04. Those choices, together, are the <strong>failover strategy</strong>.</p>
+<p><strong>Failover</strong> means: when the component doing the work fails, a standby component takes over the work, ideally so fast and so cleanly that users barely notice. The thing that failed is the <strong>primary</strong> (also called active, leader, or master). The thing waiting to take over is the <strong>standby</strong> (also called secondary, replica, or follower). The moment of switching is the <strong>failover</strong> itself. Switching back later, once the original is healthy, is <strong>failback</strong>.</p>
+<p>Two numbers define any failover plan, and you should name both before you design anything else:</p>
+<ul>
+  <li><strong>RTO — Recovery Time Objective.</strong> How long may the service be down? "RTO 60 seconds" means: from the moment of failure until the service is serving again, at most 60 seconds. RTO is a <em>target you choose</em>, not a measurement. Shorter RTO costs more: hotter standbys, faster detection, more automation.</li>
+  <li><strong>RPO — Recovery Point Objective.</strong> How much recent data may you lose? "RPO 0" means no committed write may ever be lost. "RPO 5 seconds" means the standby may be up to 5 seconds behind the primary, so the last 5 seconds of writes can vanish in a failover. RPO is governed by replication (covered in the replication lesson): synchronous replication gives RPO 0 but costs latency; asynchronous replication is fast but leaves a lag window.</li>
+</ul>
+<p>Two more terms you will meet in every reliability conversation:</p>
+<ul>
+  <li><strong>MTTR — Mean Time To Recovery.</strong> How long recovery actually takes on average, measured after the fact. Your RTO is the promise; your MTTR is the reality. If MTTR is routinely bigger than RTO, the plan is fiction.</li>
+  <li><strong>Availability.</strong> The fraction of time the service is up. One server at 99.9% ("three nines") is down about 43 minutes a month. Failover does not make components more reliable — it makes the <em>system</em> survive component failure. Two independent 99.9% servers where one can fully take over for the other fail together only about 0.001 × 0.001 = 0.000001 of the time — <em>if</em> the failover itself always works. That "if" is the whole lesson.</li>
+</ul>
+<div class="callout blue">
+  <strong>The one-sentence version</strong>
+  <p>Failover is not "have a backup." It is four answered questions: how do we <em>detect</em> failure, who <em>decides</em> to switch, how does traffic <em>reach</em> the standby, and what happens to the <em>data</em> that was in flight? Every pattern below is a different set of answers to those four questions.</p>
+</div>
+
+<h2>2. Why failover is hard: the three hard problems</h2>
+<p>If failover were just "keep a spare," nobody would get paged. Three problems make it genuinely hard.</p>
+<h3>Problem 1: Dead or just slow?</h3>
+<p>A server that stops answering could have crashed — or it could be alive but slow: a garbage-collection pause, a saturated disk, a network blip. This is the same trap as the distributed-locks lesson's TTL problem. Declare death too eagerly and you fail over a healthy server, doubling the chaos; wait too long and your RTO blows up. There is no message a dead server can send saying "I am dead," so every detector is really guessing from silence. All detection is therefore a trade-off between <em>false positives</em> (declaring a live server dead) and <em>detection delay</em>.</p>
+<h3>Problem 2: Two primaries is worse than zero</h3>
+<p>The nightmare scenario is <strong>split brain</strong>: the old primary is actually still alive (it was just cut off from the network — a <strong>network partition</strong>, a split in connectivity so two groups of servers cannot talk to each other), the standby gets promoted, and now two servers both believe they are the primary, both accepting writes. When the partition heals, their data disagrees and there is no clean truth. Preventing split brain — by <strong>fencing</strong>, covered in section 5 — matters more than failing over quickly. A slow correct failover beats a fast wrong one.</p>
+<h3>Problem 3: The standby is not the primary</h3>
+<p>A standby that has never served real traffic is an untested hypothesis. It may be undersized, running an older version, missing a config value, or holding stale data. Failover day is the worst day to discover any of that — and, perversely, it is the only day it gets discovered if you never practise. This is why section 7 (testing) is not optional garnish; it is part of the strategy.</p>
+<div class="callout amber">
+  <strong>The soccer version</strong>
+  <p>Failover is the substitute bench. Detection is the physio deciding the striker is actually injured, not just winded. Split brain is two strikers both thinking they are the number 9 and both running onto the same through-ball. And a standby who never plays a minute all season is not match-fit for a cup final — you find that out at the worst possible moment.</p>
+</div>
+
+<h2>3. Detection: how anyone knows something died</h2>
+<p>Detection always has the same shape: something probes something else on a schedule, and after enough missed answers, failure is declared. The knobs are the probe interval and the miss threshold, and they set your detection time directly:</p>
+<div class="formula">detection time ≈ probe interval × misses allowed before declaring death</div>
+<p>Probe every 10 seconds and allow 3 misses, and you detect in roughly 20–30 seconds (the first miss starts the count; in practice teams quote interval × misses, 30 seconds, as the conservative bound). Probe every 1 second and allow 2 misses and you detect in ~2 seconds — but you also pay for 10× the probe traffic and risk false positives on every small hiccup.</p>
+<h3>The four detection mechanisms</h3>
+<ul>
+  <li><strong>Health checks.</strong> A load balancer or orchestrator asks "are you OK?" — usually an HTTP endpoint. Two flavours matter, and confusing them causes outages: a <strong>liveness</strong> check ("is the process alive?") versus a <strong>readiness</strong> check ("are you ready to take traffic?"). A server starting up is alive but not ready; a server whose database just died may be alive but should stop receiving traffic. Kubernetes, for example, keeps them separate for exactly this reason.</li>
+  <li><strong>Heartbeats.</strong> The reverse direction: the server actively sends "I'm alive" messages on a schedule to a watcher (or to its peers). Missed heartbeats mean death or partition. Heartbeats are what cluster managers like ZooKeeper sessions and Raft leader leases are built on: a <strong>lease</strong> here means a time-boxed grant of authority ("you are leader until 10:05 unless you renew"), so authority expires by itself if the holder goes silent.</li>
+  <li><strong>Gossip.</strong> In large clusters, every node periodically swaps "who I have heard from lately" with a few random peers (the <strong>gossip protocol</strong>). Information spreads like rumour: after a few rounds, everyone knows who is missing, without any central watcher. Cassandra and Consul use this. It scales, but detection is probabilistic and slower than a direct check.</li>
+  <li><strong>Quorum-based decision.</strong> For the highest-stakes decision — promoting a new database primary — a single watcher is not trusted. Instead a majority (<strong>quorum</strong>) of nodes must agree the old primary is gone, exactly as in the Raft lesson: in a 3-node cluster, 2 nodes must agree. This is slower but it is what stops split brain, because a partitioned minority (1 of 3) can never form a quorum and therefore can never promote itself.</li>
+</ul>
+<h3>Flapping: when detection oscillates</h3>
+<p>A server that is borderline — up, down, up, down — triggers repeated failovers. This is called <strong>flapping</strong> (or failover thrashing). Each switch costs a disruption, and the system can end up down more than if it had stayed on the sick server. The standard fixes: require a longer observation window before declaring death, add <strong>hysteresis</strong> (a gap between the "declare dead" threshold and the "declare healthy again" threshold, so a node must be clearly healthy for a while before it is trusted), and dampen repeated switches with a cooldown. The surge-pricing lesson used the same hysteresis idea for a different reason — the pattern is general.</p>
+
+<h2>4. The failover patterns</h2>
+<h3>Active–passive: one works, one waits</h3>
+<p>In <strong>active–passive</strong>, the standby takes no traffic until failover. Three temperatures of standby:</p>
+<table>
+<thead><tr><th>Standby</th><th>What is running</th><th>Typical RTO</th><th>Cost / catch</th></tr></thead>
+<tbody>
+<tr><td><strong>Cold standby</strong></td><td>Nothing running; backups and scripts on a shelf</td><td>Minutes to hours</td><td>Cheapest. You pay in downtime and in the hope the restore script still works.</td></tr>
+<tr><td><strong>Warm standby</strong></td><td>Servers up, data replicated, but scaled down and taking no traffic</td><td>Minutes</td><td>Middle ground. Needs a scale-up step during failover — which is exactly when scaling is hardest.</td></tr>
+<tr><td><strong>Hot standby</strong></td><td>Fully running, fully replicated, full size — just no traffic</td><td>Seconds to ~a minute</td><td>Most expensive (you pay for two of everything). The only honest way to promise a short RTO.</td></tr>
+</tbody></table>
+<p>Active–passive is simple and therefore popular for databases, where having two writers would be dangerous. Its weakness is the standby-fitness problem from section 2: a hot standby that never serves traffic can hide a broken config for months.</p>
+<h3>Active–active: everyone works, everyone can absorb</h3>
+<p>In <strong>active–active</strong>, all nodes serve traffic all the time, and when one dies its share spreads across the survivors. This is the normal shape for stateless app servers behind a load balancer (the load-balancing lesson): the load balancer's health checks simply stop sending traffic to the dead node. Failover here is nearly free — there is no promotion, no decision, just removal from rotation.</p>
+<p>The catch is capacity: if three servers each run at 70% and one dies, the survivors must absorb 150% of their previous load between them — they go to ~105% and start failing too. That is a <strong>cascading failure</strong> (one failure causing the next, covered in the backpressure lesson). The rule: in active–active, size each node so the cluster survives losing one node at peak — <strong>N+1 capacity</strong>. Lab B below lets you feel this arithmetic. Active–active also only works where state allows it: it is natural for stateless servers, hard for a single-writer database, and the subject of careful conflict handling for multi-writer stores.</p>
+<h3>Failover at each layer (this is where the marks are)</h3>
+<p>A strong answer names failover <em>per layer</em>, because each layer fails over differently:</p>
+<ul>
+  <li><strong>DNS failover.</strong> The domain's DNS record points at the healthy region's IP; on failure it is repointed. Cheap and global — but slow and leaky: clients and resolvers cache DNS answers for the record's <strong>TTL</strong> (time to live, how long a cached answer may be reused), and some resolvers ignore short TTLs entirely. Worst-case switch time ≈ TTL, and you cannot force a client to re-ask. Use DNS failover for region-level switches where minutes are acceptable, never for second-level RTOs.</li>
+  <li><strong>Load-balancer failover.</strong> The load balancer itself is a single point of failure unless it is redundant: run it as an active–passive pair sharing a virtual IP (via <strong>VRRP</strong>, a protocol where two machines share one IP address and the standby claims it if the active stops announcing itself), or as an anycast fleet. Traffic then fails over in seconds, not DNS-minutes.</li>
+  <li><strong>Database failover.</strong> Promote a replica to primary. This is the highest-stakes switch in the system: it needs quorum agreement, replication-lag awareness (section 5), and fencing of the old primary. Managed tools exist for exactly this — Patroni for Postgres, Orchestrator for MySQL — because hand-rolled promotion scripts are where split brains are born.</li>
+  <li><strong>Region failover.</strong> The whole deployment in one region (or cloud availability zone) fails and traffic moves to another region. Two shapes: active–passive regions (cheap, RTO in minutes, data lag across regions) versus active–active regions (traffic split across regions always, RTO near zero, but cross-region data conflicts and double the operating cost). Most teams run active–passive regions with active–active <em>inside</em> each region — the pragmatic middle.</li>
+  <li><strong>Client-side failover.</strong> The client itself retries another endpoint when one fails (gRPC and many SDKs support this). Powerful, but it moves retry-storm risk onto the client fleet: a thousand clients all retrying at once is its own outage, so client failover must be paired with backoff, jitter, and retry budgets from the backpressure lesson.</li>
+</ul>
+<div class="callout green">
+  <strong>How to answer "design failover for X" in the room</strong>
+  <p>Walk the layers top to bottom: client → DNS → load balancer → app servers → database → region. For each layer say: what detects failure, who decides, how traffic moves, and what the RTO/RPO is. Then name the one layer whose failure hurts most, and spend your remaining time there. Examiners reward the layer walk far more than a single clever mechanism.</p>
+</div>
+
+<h2>5. The data side: RPO, replication lag, and fencing</h2>
+<p>Moving traffic is the easy half. The data is where failovers are won or lost.</p>
+<h3>Replication lag sets your RPO</h3>
+<p>If the standby replicates asynchronously (the primary acknowledges a write before the standby has it), then at any moment the standby is behind by the <strong>replication lag</strong>. Promote it, and every write inside the lag window is lost. The loss arithmetic is simple and worth doing out loud:</p>
+<div class="formula">writes lost ≈ replication lag × write rate</div>
+<p>Lag of 2 seconds at 5,000 writes per second means up to ~10,000 lost ticket orders. Lag of 0 (synchronous replication — the primary waits until the standby confirms) means RPO 0, but every write now pays a cross-server round trip, and if the standby stalls, the primary stalls too. This is the same sync/async dial from the replication lesson, now expressed as an RPO choice. There is no free setting; there is only the setting whose price you prefer to pay.</p>
+<h3>Fencing: making sure the old primary stays dead</h3>
+<p><strong>Fencing</strong> (also called <strong>STONITH</strong> — "Shoot The Other Node In The Head," the industry's grim joke name) means forcibly preventing the old primary from acting as primary after it has been replaced: revoking its credentials, blocking its network access, powering it off, or — the elegant version — requiring every write to carry a monotonically increasing <strong>fencing token</strong> (a generation number, exactly as in the distributed-locks lesson) that the storage layer checks and rejects when stale. A fencing token works even when the old primary is alive but partitioned: it can shout writes all day, and storage will refuse them because its token is from an older generation.</p>
+<p>The ordering rule is absolute and is a favourite trap question: <strong>fence first, then promote</strong> — or at minimum, promote only where the promotion path guarantees the old primary cannot still write. Promoting first and fencing "as soon as possible" leaves a window in which two primaries both write, which is precisely the split brain you built the whole system to avoid.</p>
+<h3>Read-your-own-write after failover</h3>
+<p>One subtle casualty: a fan who bought a ticket, got a confirmation, then hits the standby during failover and sees "no order found" — because their write was inside the lag window. The honest design answers are: keep the RPO small enough that this is rare, route recently-active users carefully (session stickiness to the primary while it lives), or show an explicit "your order is being confirmed" state rather than a false "not found." Never silently show stale emptiness as if it were truth.</p>
+
+<h2>6. Failback: getting home again without a second outage</h2>
+<p>Failback is the neglected half of every failover plan, and it causes a surprising share of real incidents. The original primary comes back — now it holds older data than the promoted standby, and the roles must reverse without losing the writes that happened during the outage.</p>
+<ul>
+  <li><strong>Re-sync before re-promotion.</strong> The returning node must catch up as a replica first (replication in reverse) and prove it is current before it takes traffic again. Promoting it while stale reintroduces the data loss you just avoided.</li>
+  <li><strong>Fail back on your schedule, not the machine's.</strong> Automatic failback the instant the old primary answers one health check invites flapping. Standard practice: fail over automatically (speed matters in an outage), fail back manually or on a delay — after the node has been healthy for a sustained period, during a quiet window, with an engineer watching.</li>
+  <li><strong>Drain, don't cut.</strong> Move traffic gradually (a <strong>drain</strong> means letting in-flight requests finish while sending new ones elsewhere) rather than flipping 100% of traffic at once, so a still-sick node reveals itself under 5% of traffic instead of 100%.</li>
+  <li><strong>Test the reverse direction.</strong> A failover plan tested only one way is half a plan. Game days (section 7) should fail over <em>and back</em>.</li>
+</ul>
+
+<h2>7. Testing failover before reality does</h2>
+<p>An untested failover plan is a rumour. The industry's testing ladder:</p>
+<ul>
+  <li><strong>Runbooks.</strong> A written, step-by-step procedure for each failure ("primary DB down: 1. confirm quorum, 2. fence, 3. promote replica B, 4. verify writes, 5. repoint app config"). If the procedure lives only in one engineer's head, the plan fails on their holiday.</li>
+  <li><strong>Game days.</strong> Scheduled exercises where a failure is deliberately injected — kill a server, blackhole a region, corrupt a replica — and the team practises the response. The point is not to pass; it is to find the step that does not work while nobody is actually losing money.</li>
+  <li><strong>Chaos engineering.</strong> The automated, continuous version: tools like Chaos Monkey randomly terminate production instances during business hours. This only works <em>after</em> the basics (redundancy, health checks, runbooks) exist; chaos on a system with no redundancy is just vandalism.</li>
+  <li><strong>Measure, then tighten.</strong> Every real failover and every game day produces a measured RTO and RPO. If measured RTO exceeds target RTO, something in detection, decision, or propagation is too slow — the labs below show which knob to turn.</li>
+</ul>
+
+<h2>8. Three senior-depth traps</h2>
+<div class="callout">
+  <strong>Trap 1 — The failover that finishes the outage.</strong>
+  <p>Failing over to a standby sized at 50% of peak traffic does not halve your outage; it converts it. The standby saturates, its own health checks start failing, and it gets declared dead too — a cascade. Size the standby for the load it will actually receive, including the retry surge that arrives with an outage (Lab B).</p>
+</div>
+<div class="callout">
+  <strong>Trap 2 — Automatic failover with manual detection, or vice versa.</strong>
+  <p>Half-automated failover is often worse than either extreme. Auto-promotion with a human in the detection loop means the decision waits on a pager at 3am. Human promotion with automatic detection means the system knows it is broken and waits politely while users leave. Decide per layer which steps are automatic, and make sure the automatic steps cannot fire without fencing.</p>
+</div>
+<div class="callout">
+  <strong>Trap 3 — DNS TTL as a failover mechanism for seconds-level RTO.</strong>
+  <p>"We set TTL to 60 seconds, so failover takes 60 seconds" is wrong twice over: some resolvers and clients ignore low TTLs, and already-connected clients (long-lived connections, app sessions) never re-resolve at all. DNS failover is a minutes-scale tool. If your RTO is seconds, the traffic must move at the load-balancer or client layer, where you control the switch.</p>
+</div>
+
+<h2>9. Lab A: The failover clock — where do the seconds go?</h2>
+<p>How to use this lab: each slider is one stage of a database failover. <strong>Probe interval</strong> is how often the watcher checks the primary. <strong>Missed probes</strong> is how many silent answers it takes before death is declared. <strong>Promotion time</strong> is how long promoting the replica takes. <strong>DNS TTL</strong> is how long cached DNS answers keep sending clients to the dead address — set it to 0 if traffic moves at the load balancer instead of DNS, so this stage costs nothing. <strong>Replication lag</strong> is how far behind the standby is, and the lab assumes 2,000 writes per second to turn lag into lost writes. Watch which stage dominates: most teams are shocked by how much of their RTO is DNS.</p>
+<div class="lab" id="lab-a">
+  <h3>Lab A · Failover clock</h3>
+  <div class="row">
+    <div><label for="la-interval">Probe interval: <span id="la-interval-v"></span></label><input type="range" id="la-interval" min="1" max="30" step="1" value="10"></div>
+    <div><label for="la-misses">Missed probes to declare death: <span id="la-misses-v"></span></label><input type="range" id="la-misses" min="1" max="5" step="1" value="3"></div>
+    <div><label for="la-promotion">Promotion time: <span id="la-promotion-v"></span></label><input type="range" id="la-promotion" min="5" max="120" step="5" value="15"></div>
+    <div><label for="la-ttl">DNS TTL: <span id="la-ttl-v"></span></label><input type="range" id="la-ttl" min="0" max="600" step="60" value="300"></div>
+    <div><label for="la-lag">Replication lag: <span id="la-lag-v"></span></label><input type="range" id="la-lag" min="0" max="10" step="1" value="2"></div>
+  </div>
+  <div class="out">
+    <p>Detection time: <span class="big" id="la-detection"></span></p>
+    <p>Total RTO (detection + promotion + DNS): <span class="big" id="la-rto"></span></p>
+    <p>RPO data loss at 2,000 writes/sec: <span class="big" id="la-loss"></span></p>
+    <p id="la-verdict"></p>
+  </div>
+</div>
+
+<h2>10. Lab B: Will the standby survive the surge?</h2>
+<p>How to use this lab: <strong>Peak traffic</strong> is what the primary serves at its busiest. <strong>Standby size</strong> is the standby's capacity as a percentage of the primary's. <strong>Retry surge</strong> is the extra traffic that arrives during an outage, because users hammer refresh and clients retry — 20% is a calm estimate, 100% is a bad day. The lab computes the load the standby actually faces and what fraction of requests it can serve. If it cannot serve everything, the honest statement is not "failover works" but "failover sheds this much traffic" — and shedding must be a deliberate choice (which requests to drop, per the backpressure lesson), not a surprise.</p>
+<div class="lab" id="lab-b">
+  <h3>Lab B · Standby survival</h3>
+  <div class="row">
+    <div><label for="lb-traffic">Peak traffic (req/sec): <span id="lb-traffic-v"></span></label><input type="range" id="lb-traffic" min="1000" max="50000" step="1000" value="10000"></div>
+    <div><label for="lb-size">Standby size (% of primary): <span id="lb-size-v"></span></label><input type="range" id="lb-size" min="25" max="150" step="25" value="50"></div>
+    <div><label for="lb-surge">Retry surge on failover (%): <span id="lb-surge-v"></span></label><input type="range" id="lb-surge" min="0" max="100" step="10" value="20"></div>
+  </div>
+  <div class="out">
+    <p>Standby capacity: <span class="big" id="lb-capacity"></span></p>
+    <p>Load arriving at failover: <span class="big" id="lb-load"></span></p>
+    <p>Requests served: <span class="big" id="lb-served"></span></p>
+    <p id="lb-verdict"></p>
+  </div>
+</div>
+
+<script>
+function el(id) { return document.getElementById(id); }
+function num(id) { var v = el(id); return v ? Number(v.value) : 0; }
+function setText(id, t) { var v = el(id); if (v) v.textContent = t; }
+function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+
+function renderLabA() {
+  var interval = num('la-interval'), misses = num('la-misses');
+  var promotion = num('la-promotion'), ttl = num('la-ttl'), lag = num('la-lag');
+  var detection = interval * misses;
+  var rto = detection + promotion + ttl;
+  var loss = lag * 2000;
+  setText('la-interval-v', interval + 's');
+  setText('la-misses-v', misses);
+  setText('la-promotion-v', promotion + 's');
+  setText('la-ttl-v', ttl === 0 ? '0s (load-balancer switch)' : ttl + 's');
+  setText('la-lag-v', lag + 's');
+  setText('la-detection', detection + 's');
+  setText('la-rto', rto + 's (' + (rto / 60).toFixed(1) + ' min)');
+  setText('la-loss', lag === 0 ? '0 writes (RPO 0)' : '~' + fmt(loss) + ' writes');
+  var verdict;
+  if (rto <= 60) verdict = 'Verdict: RTO under a minute — this is a hot-standby, load-balancer-switched design. Plausible, and expensive.';
+  else if (ttl >= detection + promotion) verdict = 'Verdict: DNS TTL dominates your RTO. Cutting detection or promotion further barely helps — move the switch to the load balancer or accept minutes of downtime.';
+  else verdict = 'Verdict: detection dominates. Shorter probes or fewer misses cut RTO fastest — but each step raises false-positive risk.';
+  setText('la-verdict', verdict);
+}
+
+function renderLabB() {
+  var traffic = num('lb-traffic'), size = num('lb-size'), surge = num('lb-surge');
+  var capacity = traffic * size / 100;
+  var load = traffic * (1 + surge / 100);
+  var served = Math.min(100, capacity / load * 100);
+  setText('lb-traffic-v', fmt(traffic) + ' req/s');
+  setText('lb-size-v', size + '%');
+  setText('lb-surge-v', '+' + surge + '%');
+  setText('lb-capacity', fmt(capacity) + ' req/s');
+  setText('lb-load', fmt(load) + ' req/s');
+  setText('lb-served', served.toFixed(1) + '% of requests');
+  var verdict;
+  if (served >= 100) verdict = 'Verdict: the standby holds. Note the margin: if the surge grows, this flips fast — check what happens at +100%.';
+  else if (served >= 80) verdict = 'Verdict: the standby sheds ' + (100 - served).toFixed(1) + '% of traffic. Decide in advance which requests get shed (reads before writes, free tier before paying fans) instead of letting overload choose.';
+  else verdict = 'Verdict: the standby collapses under ' + (100 - served).toFixed(1) + '% overload — this failover converts an outage into a cascade. Size up, or shed deliberately at the edge before traffic reaches it.';
+  setText('lb-verdict', verdict);
+}
+
+['la-interval', 'la-misses', 'la-promotion', 'la-ttl', 'la-lag'].forEach(function(id) {
+  var e = el(id); if (e && e.addEventListener) e.addEventListener('input', renderLabA);
+});
+['lb-traffic', 'lb-size', 'lb-surge'].forEach(function(id) {
+  var e = el(id); if (e && e.addEventListener) e.addEventListener('input', renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+
+<h2>11. Questions with full model answers</h2>
+<p>Each question first, then the model answer. Read the question, answer it in your head, then open the answer and compare — the comparison is the learning.</p>
+
+<details>
+  <summary>Q1. "Design failover for a single-region ticket checkout. RTO 2 minutes, RPO 0. What do you build?"</summary>
+  <p><strong>Model answer.</strong> Start with the constraints: RPO 0 forces synchronous replication — the primary must not acknowledge a checkout until a standby confirms it — so every write pays a round trip, and I accept that latency cost because a lost paid order is worse than a slower checkout. RTO 2 minutes forces a hot standby (fully running, same size) and a load-balancer-level switch, not DNS: DNS TTL alone could eat the whole budget. Detection: health checks every 5 seconds, dead after 3 misses, so ~15 seconds detection. Promotion: a cluster manager (Patroni-style) with quorum agreement promotes the standby, after fencing the old primary via revoked credentials and a fencing token so a partitioned old primary cannot write. Promotion ~15–30 seconds. Total: ~15 + ~30 = ~45 seconds, inside 2 minutes, with the remaining budget as margin. Failback is manual, after the old node re-syncs as a replica and stays healthy for 30 minutes. The one thing I would <em>not</em> do: asynchronous replication with "we will reconcile later" — reconciliation after taking money is a customer-support incident, not an engineering plan.</p>
+</details>
+
+<details>
+  <summary>Q2. "Your database failed over and the new primary is missing the last 3 seconds of orders. What happened, and what do you change?"</summary>
+  <p><strong>Model answer.</strong> What happened is asynchronous replication with ~3 seconds of lag at failover time: the primary acknowledged those orders before the standby received them, so promotion discarded them. Nothing is corrupt — the system behaved exactly as an async design behaves; the RPO was 3 seconds and nobody had written it down. What I change depends on what the business values: if lost orders are unacceptable, move to synchronous replication (RPO 0) and accept the write-latency cost, or at least semi-synchronous replication (wait for one standby) to shrink the window. If async stays, I make the RPO explicit, add replication-lag alerting (page when lag exceeds the RPO budget, not when a failover happens), and add a reconciliation path — the payment provider's record as the source of truth for re-creating lost orders — because "async" without a reconciliation story is just data loss with extra steps.</p>
+</details>
+
+<details>
+  <summary>Q3. "During a network partition, both sides of your cluster elect a leader. What went wrong?"</summary>
+  <p><strong>Model answer.</strong> The election rule allowed a minority to elect. A correct design requires a quorum — a majority of nodes — to elect or promote: in a 5-node cluster, 3 votes. A partition that splits 5 nodes into 3 and 2 can only elect on the 3-side; the 2-side stalls, which is the correct, boring outcome (that side is unavailable, not wrong). If both sides elected, either the cluster was really two independent clusters with no shared membership, or promotion was driven by a single watcher (one load balancer, one script, one human) that could see only one side and acted without quorum. The fix is quorum-gated promotion plus fencing: the minority side's old leader must be fenced (token revoked) before the majority side's new leader accepts writes, so even a confused old leader cannot corrupt data when the partition heals.</p>
+</details>
+
+<details>
+  <summary>Q4. "Traffic doubles during the cup final. Your active–passive failover is tested at normal load. Why might it still fail on the night?"</summary>
+  <p><strong>Model answer.</strong> Because failover was tested against the wrong load. Three things change at peak: (1) the standby, sized for normal load or scaled down as a warm standby, faces 2× traffic plus a retry surge from users refreshing — Lab B's arithmetic — and saturates; (2) detection gets noisier under load, because slow responses look like dead servers, so you risk false-positive failover on top of peak load; (3) replication lag grows under write load, so the RPO at peak is worse than the RPO measured on a quiet afternoon. The fix: test failover at peak load (or at a load-tested equivalent), size the standby for peak-plus-surge, load-shed deliberately at the edge (queue non-critical traffic first), and alert on replication lag as a fraction of the RPO budget during peaks, not just on average.</p>
+</details>
+
+<h2>12. Practice drills (untimed — depth over speed)</h2>
+<div class="callout drill">
+  <strong>Drill 1 — Write the failover plan for the Riverside FC live-score service.</strong>
+  <p>One primary score writer, two replicas, fans reading via a load balancer. Write: detection mechanism and numbers, who decides promotion, fencing method, RTO and RPO targets, and the failback procedure. <em>Rubric:</em> full marks name detection numbers (interval × misses), a quorum or manager-based decision (not "someone notices"), fencing <em>before</em> promotion, explicit RTO/RPO numbers, and a manual, delayed failback. Lose marks for DNS-based switching with a seconds-level RTO, or for a plan with no fencing.</p>
+</div>
+<div class="callout drill">
+  <strong>Drill 2 — Price the RPO.</strong>
+  <p>A checkout service does 8,000 writes/sec with 4 seconds of replication lag. (a) How many writes are at risk in a failover? (b) If each lost order costs ~$40 in refunds and support, what is the expected cost of one failover? (c) At what failover frequency does synchronous replication (say, +15 ms per write) become the cheaper choice? <em>Rubric:</em> (a) 32,000 writes. (b) ~$1.28M — the point is the order of magnitude, not the exact figure. (c) Any answer that frames it as expected-loss-per-year versus latency cost, rather than a single magic number, earns full marks; a number with no frequency reasoning does not.</p>
+</div>
+<div class="callout drill">
+  <strong>Drill 3 — Spot the split brain.</strong>
+  <p>A team proposes: "Two database servers, each with a monitoring script. If a server cannot reach its peer for 10 seconds, it promotes itself to primary." Find the three flaws. <em>Rubric:</em> (1) A 2-node setup has no majority — a partition gives each side 1 of 2, so both sides can "win" and both promote: classic split brain. (2) No fencing — the old primary is never stopped from writing. (3) Detection by a single peer is symmetric confusion: each side's evidence is identical, so the rule cannot distinguish "peer dead" from "I am partitioned." The fix is a third node (or an external witness) for quorum, plus fencing.</p>
+</div>
+
+<h2>13. The six-decision cheat sheet</h2>
+<table>
+<thead><tr><th>#</th><th>Decision</th><th>Rule of thumb</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Detection numbers</td><td>Detection ≈ interval × misses. Faster detection = more false positives. Say both numbers, not "fast detection."</td></tr>
+<tr><td>2</td><td>Who decides</td><td>Single watcher for stateless tiers; quorum for anything with a primary. Never let a minority promote itself.</td></tr>
+<tr><td>3</td><td>Standby temperature</td><td>Hot for seconds-level RTO, warm for minutes, cold only when hours of downtime are acceptable and written down.</td></tr>
+<tr><td>4</td><td>Traffic switch layer</td><td>Load balancer or client for seconds; DNS for minutes; never DNS for seconds.</td></tr>
+<tr><td>5</td><td>RPO via replication</td><td>Sync = RPO 0 at latency cost; async = lag × write rate of loss. Alert on lag against the RPO budget.</td></tr>
+<tr><td>6</td><td>Failback discipline</td><td>Fail over fast and automatically; fail back slowly, manually, drained, and only after sustained health.</td></tr>
+</tbody></table>
+
+<h2>14. The 60-second framing + talk track</h2>
+<p><strong>60-second framing (say this first):</strong> "Failover has four parts: detection, decision, traffic movement, and data. I'd set an RTO and an RPO first, because they choose everything else. For a checkout I'd take a hot standby with synchronous replication — RPO zero — health checks at 5 seconds with 3 misses, quorum-based promotion with fencing before the switch, and traffic moved at the load balancer, not DNS, so the RTO lands under a minute. Failback would be manual, after the old node re-syncs."</p>
+<p><strong>Talk track (then walk the layers):</strong> client → DNS → load balancer → app servers → database → region, one detection story and one switch story per layer, lingering on the database because that is where data loss and split brain live. Close with the testing story: runbooks, game days, and the measured RTO from the last drill versus the target. "Our last game day measured 52 seconds against a 60-second RTO" beats any architecture diagram.</p>
+
+<h2>15. Where this shows up in real systems</h2>
+<ul>
+  <li><strong>Patroni (Postgres) / Orchestrator (MySQL):</strong> quorum-aware promotion managers — they exist because hand-rolled promotion scripts cause split brains.</li>
+  <li><strong>Kubernetes:</strong> liveness vs readiness probes, and rescheduling pods — active–active failover for stateless services, done by the platform.</li>
+  <li><strong>Route 53 / Cloudflare:</strong> DNS health checks with failover routing — region-level, minutes-scale, exactly the DNS caveats in section 4.</li>
+  <li><strong>DynamoDB global tables / Spanner:</strong> multi-region replication where failover is built into the data layer, with the RPO and conflict trade-offs priced in.</li>
+  <li><strong>etcd / Consul:</strong> Raft-based leader election — the quorum mechanism from the consensus lesson, reused as the failover decider.</li>
+</ul>
+<div class="callout blue">
+  <strong>How this connects to what you already know</strong>
+  <p>Failover is where the earlier lessons meet: replication sets the RPO, Raft gives you the quorum decider, distributed locks gave you the fencing token, load balancing gives you the stateless failover, backpressure gives you the shedding story when the standby is too small, and hot partitions remind you that the standby's hottest shard is the one that will break first. If a failover design never mentions replication lag or fencing, it is incomplete — that is the fastest review check you can apply to anyone's answer, including your own.</p>
+</div>
+
+<div class="footer-nav">
+  <p><a href="../index.html">← Back to all lessons</a> · Lesson 25 · Previous: <a href="hot-partitions.html">Hot Partitions</a></p>
+</div>
+
+</div>
+</body>
+</html>
