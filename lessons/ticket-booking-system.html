@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design a Ticket Booking System — One Seat, a Hundred Thousand Fans</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: 10px; padding: 1rem 1.2rem; margin: 1.2rem 0; }
+  .callout.blue { border-left-color: var(--blue); }
+  .callout.green { border-left-color: var(--green); }
+  .callout.amber { border-left-color: var(--amber); }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout strong:first-child { display: block; margin-bottom: 0.3rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: 0.95rem; }
+  th { text-align: left; background: var(--surface-2); }
+  th, td { border: 1px solid var(--line); padding: 0.55rem 0.7rem; vertical-align: top; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em; background: var(--surface-2); border-radius: 5px; padding: 0.1em 0.35em; }
+  .formula { background: var(--code); color: var(--code-ink); border-radius: 10px; padding: 1rem 1.2rem; margin: 1rem 0; font-size: 1.02rem; overflow-x: auto; }
+  .formula code { background: none; padding: 0; }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.3rem 1.4rem; margin: 1.4rem 0; }
+  .lab h3 { margin-top: 0; }
+  .lab .row { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; margin: 0.8rem 0; }
+  .lab label { display: block; font-size: 0.92rem; font-weight: 600; margin-bottom: 0.2rem; }
+  .lab label span { font-weight: 400; color: var(--muted); }
+  .lab input[type="range"] { width: 100%; max-width: 320px; }
+  .lab select { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 0.4rem 0.6rem; }
+  .lab .out { background: var(--surface-2); border-radius: 10px; padding: 0.9rem 1.1rem; margin-top: 0.9rem; }
+  .lab .out p { margin-bottom: 0.35rem; }
+  .lab .out p:last-child { margin-bottom: 0; }
+  .big { font-size: 1.25rem; font-weight: 700; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0.9rem 1.1rem; margin: 0.8rem 0; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p, details ul { margin-top: 0.6rem; }
+  details p:last-child { margin-bottom: 0; }
+  .drill { border-left: 5px solid var(--purple); }
+  .toc { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.2rem; margin: 1.4rem 0; }
+  .toc strong { display: block; margin-bottom: 0.4rem; }
+  .toc ol { margin-bottom: 0; }
+  .footer-nav { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.92rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> · Lesson 26</p>
+
+<header class="hero">
+  <span class="lesson-tag">Classic design · Concurrency</span>
+  <h1>Design a Ticket Booking System</h1>
+  <p class="whyline">One seat, a hundred thousand fans, and a promise that must never break: the same seat cannot be sold twice. Ticket booking is the design problem where concurrency stops being theory — a race lasting milliseconds becomes two families arriving at the same seat.</p>
+  <div class="meta"><span>~25 min read</span><span>2 interactive labs</span><span>4 model answers</span><span>3 drills</span></div>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <strong>How this lesson flows</strong>
+  <ol>
+    <li>What ticket booking is, from zero</li>
+    <li>Requirements and back-of-the-envelope math</li>
+    <li>API and data model</li>
+    <li>The heart: the seat-hold state machine</li>
+    <li>Concurrency strategies — and why check-then-act fails</li>
+    <li>Payment, idempotency, and the crash in the middle</li>
+    <li>The waiting room: surviving the on-sale minute</li>
+    <li>Failure modes, senior-depth traps, labs, model answers, drills, cheat sheet</li>
+  </ol>
+</nav>
+
+<h2>1. What is ticket booking? Start from zero</h2>
+<p>Picture Riverside FC's cup final. The stadium holds 60,000 seats. Tickets go on sale at 10:00. By 10:01, 400,000 fans are trying to buy. Every fan wants a specific seat — or at least a seat in a specific stand — and every seat can be sold to exactly one person. That last sentence is the whole problem. Everything else in this lesson is machinery for keeping it true under a stampede.</p>
+<p>The vocabulary, defined before it is used:</p>
+<ul>
+  <li><strong>Inventory</strong> is the set of sellable seats for one event: each seat is one unit that exists once. <strong>Overselling</strong> means selling more units than exist — selling seat 42, row F, to two people. It is the one failure this system may never have. A slow site is embarrassing; an oversold seat is a person turned away at the gate.</li>
+  <li><strong>General admission (GA)</strong> is the opposite shape: no assigned seats, just a capacity number ("10,000 standing tickets"). GA only needs a counter; assigned seating needs a per-seat state machine. This lesson covers assigned seating, and notes where GA is simpler.</li>
+  <li><strong>A hold</strong> (also called a soft reservation) is a temporary claim: "this seat is yours for 10 minutes while you check out." It is not a sale yet. If you pay in time, the hold becomes a sale; if you do not, the hold <strong>expires</strong> and the seat returns to sale. Without holds, whoever pays first wins and everyone else's checkout is a lottery ticket that fails at the payment step.</li>
+  <li><strong>A booking (order)</strong> is the completed sale: a seat, a buyer, a price, a payment reference. A booking is permanent in a way a hold is not — cancelling one is a refund, not an expiry.</li>
+  <li><strong>Idempotency</strong> means: doing the same operation twice has the same effect as doing it once. If a fan taps "Pay" twice, or their phone retries a request that actually succeeded, they must get one booking and one charge, not two. An <strong>idempotency key</strong> is a unique token the client sends with a request ("this exact checkout attempt is #8472") so the server can recognise a retry and return the original result instead of running the sale again.</li>
+</ul>
+<div class="callout blue">
+  <strong>The one-sentence version</strong>
+  <p>Ticket booking is an inventory problem with a human deadline: give each buyer a short, exclusive hold on a seat, make the hold-to-sale transition atomic (all-or-nothing, in one indivisible step), expire unpaid holds automatically, and never let the payment step be the thing that discovers a seat was already sold.</p>
+</div>
+
+<h2>2. Requirements and back-of-the-envelope math</h2>
+<p>Before any architecture, pin the numbers. A strong answer states its assumptions out loud, because every design choice below is priced against them.</p>
+<h3>Functional requirements</h3>
+<ul>
+  <li>Browse events and see a seat map with live availability.</li>
+  <li>Select seats, hold them for a fixed window (say 10 minutes), and complete payment inside that window.</li>
+  <li>Never oversell a seat. Never double-charge a buyer.</li>
+  <li>Support cancellations and refunds, returning seats to sale.</li>
+  <li>Survive the on-sale spike without falling over — and degrade gracefully if it does get overloaded.</li>
+</ul>
+<h3>Non-functional requirements</h3>
+<ul>
+  <li><strong>Correctness over speed.</strong> The hold and the sale must be strongly consistent (everyone sees the same seat state, immediately) — this is a place where eventual consistency, the "everyone catches up later" model from the CAP lesson, is unacceptable. A seat that looks available to two people at once is an oversell waiting to happen.</li>
+  <li><strong>Availability during the spike.</strong> Browsing the seat map can be served from a cache; holding and paying cannot. The system must separate the two, or the browsing stampede drowns the buying path.</li>
+  <li><strong>Fairness, roughly.</strong> Perfect fairness is impossible at this scale, but bots grabbing blocks of seats and one fan holding 40 seats hostage must both be prevented.</li>
+</ul>
+<h3>Back-of-the-envelope math</h3>
+<p>Assume one cup final: 60,000 seats, 500,000 fans trying in the first 10 minutes, average order 2 seats.</p>
+<ul>
+  <li><strong>Reads dominate.</strong> Seat-map views: 500,000 fans × several refreshes ≈ 2–3 million reads in 10 minutes ≈ 3,000–5,000 reads/second. Reads can be cached and served from replicas; they are not the hard problem.</li>
+  <li><strong>Writes are the bottleneck.</strong> Holds: at most 60,000 seats can be held at once, but attempts run far higher — say 200,000 hold attempts in 10 minutes ≈ 330/second, spiking much higher in the first minute. Each hold attempt is a contested write on a small set of hot rows (the best seats), which is exactly the hot-partition problem from Lesson 24.</li>
+  <li><strong>Storage is tiny.</strong> 60,000 seats × ~200 bytes of state ≈ 12 MB per event. Even a million events is manageable. Ticket booking is never a storage problem; it is a concurrency problem wearing a storage costume.</li>
+  <li><strong>Payment is the slowest step.</strong> A payment-provider call takes 1–3 seconds. At 330 holds/second, you cannot do payment synchronously inside the hold transaction — it would hold database locks for seconds and serialize the whole stadium. Payment must happen <em>after</em> the hold, outside the lock. This is why the hold exists at all.</li>
+</ul>
+
+<h2>3. API and data model</h2>
+<h3>API (the surface fans touch)</h3>
+<ul>
+  <li><code>GET /events/{id}/seats</code> — seat map with availability. Cached, read from replicas. Stale by a few seconds is acceptable here: the hold step, not the map, is the source of truth.</li>
+  <li><code>POST /events/{id}/holds</code> with seat IDs — creates a hold, returns a <code>hold_id</code> and an expiry time, or a clean "seat already held" error. This is the contested write; it must be atomic.</li>
+  <li><code>POST /holds/{id}/checkout</code> with payment details and an idempotency key — converts a live hold into a booking. Fails cleanly if the hold expired.</li>
+  <li><code>POST /bookings/{id}/cancel</code> — refunds and releases the seat.</li>
+</ul>
+<h3>Data model</h3>
+<table>
+<thead><tr><th>Table</th><th>Key fields</th><th>Why it is shaped this way</th></tr></thead>
+<tbody>
+<tr><td><strong>Events</strong></td><td>event_id, name, date, venue</td><td>One row per match. Small, rarely written.</td></tr>
+<tr><td><strong>Seats</strong></td><td>seat_id, event_id, section, row, number, price, status, version</td><td>One row per seat per event. <code>status</code> is available / held / sold. <code>version</code> is a counter bumped on every change — the optimistic-concurrency token in section 5.</td></tr>
+<tr><td><strong>Holds</strong></td><td>hold_id, seat_id, user_id, expires_at</td><td>One row per hold. Expiry is a timestamp, not a background job's opinion — any reader can tell an expired hold is dead by comparing <code>expires_at</code> with now.</td></tr>
+<tr><td><strong>Orders</strong></td><td>order_id, hold_id, user_id, amount, payment_ref, idempotency_key (unique)</td><td>The unique idempotency key is what makes a retried checkout return the original order instead of a second charge.</td></tr>
+</tbody></table>
+<p><strong>Sharding (splitting the database across machines).</strong> Shard by <code>event_id</code>: all seats for one event live on one shard. A fan's transaction touches one event's seats, so it never needs a cross-shard transaction (the expensive, saga-shaped problem from Lesson 21). The price: one blockbuster event is one hot shard — the best seats in one stand are a hot partition inside it, which is why the per-seat concurrency mechanism in section 5 matters more than the shard choice.</p>
+<div class="callout amber">
+  <strong>The soccer version</strong>
+  <p>The seat map is the stadium plan on the wall. The hold is a steward standing next to your seat for 10 minutes saying "this one is taken, for now." The sale is the turnstile scanning your ticket. And the payment provider is the card machine at the kiosk — slow, outside the steward's control, and the reason the steward exists: you cannot ask 60,000 people to queue at one card machine while holding the whole stadium still.</p>
+</div>
+
+<h2>4. The heart: the seat-hold state machine</h2>
+<p>Every seat lives in exactly one state at a time, and moves only along these arrows:</p>
+<div class="formula">AVAILABLE → HELD → SOLD<br>AVAILABLE → HELD → AVAILABLE (hold expires, or buyer releases it)<br>SOLD → AVAILABLE (cancellation + refund only)</div>
+<p>There is no arrow from AVAILABLE straight to SOLD, and that absence is deliberate: skipping the hold means the payment step discovers contention, which is the worst place to discover it. There is also no arrow from HELD to HELD for a different buyer — a held seat cannot be re-held until it expires or is released.</p>
+<p>Walk one purchase through it, with the clock running:</p>
+<ol>
+  <li><strong>Select (t = 0).</strong> Fan A taps seat 42. The server runs one atomic update: set status to HELD <em>only if</em> status is still AVAILABLE, and stamp <code>expires_at = now + 10 minutes</code>. If another fan got there first, the condition fails and Fan A gets "already held" — immediately, honestly, before entering card details.</li>
+  <li><strong>Checkout (t = 0 to 10 min).</strong> Fan A enters payment details at leisure. The seat is theirs alone for the window. Nobody else can hold it; the seat map shows it as held.</li>
+  <li><strong>Pay (t = 4 min).</strong> Payment succeeds. A second atomic update flips HELD → SOLD, but only if the hold is still live (not expired) and still belongs to Fan A. The order row is written with the idempotency key in the same transaction, so a retried checkout finds the existing order instead of creating a second one.</li>
+  <li><strong>Expire (t = 10 min, if unpaid).</strong> A sweeper — a background job, or lazy expiry checked on every read — flips expired HELD seats back to AVAILABLE. Lazy expiry (check <code>expires_at</code> whenever a seat is read or held) is cheaper than a sweeper scanning all seats, and the two are often combined: lazy for correctness, sweeper for tidying the seat map.</li>
+</ol>
+<p>Two design details that separate senior answers from junior ones. First, <strong>the hold window is a product decision with a systems price</strong>: a 30-minute hold feels generous but locks 60,000 seats behind 60,000 slow checkouts, so a stadium can look "sold out" while half its seats are merely held by people who will never pay (Lab B prices this). Ten minutes is the industry norm for exactly this reason. Second, <strong>hold limits per buyer</strong> (say 4–8 seats) stop one account — or one bot — from holding a whole stand hostage. Without a per-buyer cap, holds become a denial-of-service tool: hold everything, pay for nothing, and the event "sells out" to nobody.</p>
+
+<h2>5. Concurrency strategies — and why check-then-act fails</h2>
+<p>The naive implementation is the one every engineer writes first, and it is wrong in a way that only shows up under load — which is to say, on the night it matters:</p>
+<div class="formula">READ seat status → if AVAILABLE, WRITE status = SOLD<br>(two fans can both READ "available" before either WRITEs)</div>
+<p>This is <strong>check-then-act</strong>: a read and a write separated by a gap, and in that gap another buyer slips through. At t = 0, Fan A and Fan B both read "available." At t = 1 ms, both write "sold." The database now holds two sales for one seat, and the second write silently overwrote the first. No error, no warning — the oversell is discovered at the gate, by a human, in a queue. Lab A shows the arithmetic.</p>
+<p>Four correct strategies, with their prices:</p>
+<table>
+<thead><tr><th>Strategy</th><th>How it works</th><th>Price / when to use it</th></tr></thead>
+<tbody>
+<tr><td><strong>Atomic conditional update</strong></td><td>One statement: <code>UPDATE seats SET status='HELD' WHERE seat_id=X AND status='AVAILABLE'</code>. The database checks and writes in a single step; only one buyer wins, the rest get "0 rows updated." This is the default answer for ticket booking.</td><td>Requires the seat row to be the unit of contention. Works beautifully at stadium scale; the database serialises per-row writes, which is cheap because different seats are different rows.</td></tr>
+<tr><td><strong>Pessimistic lock</strong></td><td><code>SELECT … FOR UPDATE</code> locks the seat row for the whole transaction; other buyers wait, then see the new state.</td><td>Simple and correct, but a slow transaction (a payment call inside the lock) blocks everyone behind it. Use only for the short hold step, never spanning payment.</td></tr>
+<tr><td><strong>Optimistic concurrency</strong></td><td>Read the seat's <code>version</code> number, then update only if the version is unchanged: <code>… WHERE version = 7</code>, bumping it to 8. A loser retries or reports "already taken."</td><td>No locks held, so throughput is high — but under a stampede, most attempts fail and retry, which is its own load. Good when contention is occasional; noisy when it is constant.</td></tr>
+<tr><td><strong>Queue serialisation</strong></td><td>All hold requests for one event go through a single queue (or a single-writer service), processed one at a time in order.</td><td>Perfectly correct and perfectly fair — and a hard throughput ceiling, since one queue can only process so many holds per second. Use it for the very hottest events (a final with 10× oversubscription), or per-section queues to raise the ceiling.</td></tr>
+</tbody></table>
+<p>The strong answer combines them: atomic conditional updates for the hold (the contested step), optimistic versioning where a read-modify-write spans services, and a queue in front of the whole thing during the on-sale spike (section 7) — not because any one mechanism is clever, but because each covers the step where the others are expensive. And the mechanism from the distributed-locks lesson — a Redis lock per seat — is a legitimate alternative for the hold step, but it is a second system to keep consistent with the database; the conditional update keeps the truth in one place, which is usually the right call when the database can already do it atomically.</p>
+<div class="callout green">
+  <strong>The rule to say out loud</strong>
+  <p>"Any design where two steps — a check and a write — are separated by time, network, or a service boundary will oversell under concurrency. The fix is never 'check faster.' The fix is to make the check and the write the same indivisible step, at the place that owns the truth."</p>
+</div>
+
+<h2>6. Payment, idempotency, and the crash in the middle</h2>
+<p>Payment is where money meets the state machine, and every crash lands in the worst spot. Walk the failure cases, because naming them is the senior move:</p>
+<ul>
+  <li><strong>Payment succeeds, response lost.</strong> The provider charged the card, but the reply never reached your server (timeout, crash, network cut). Without idempotency, the retry charges twice. With an idempotency key, the retry returns the original order. And the reconciliation backstop: on any ambiguous payment, query the provider by payment reference before deciding — the provider's ledger, not yours, is the truth about whether money moved.</li>
+  <li><strong>Payment fails, hold still live.</strong> The fan retries inside the window — fine. The hold must not be consumed by a failed payment; only a successful payment flips HELD → SOLD.</li>
+  <li><strong>Hold expires mid-payment.</strong> The fan started paying at minute 9, the provider answers at minute 11. The hold is gone; the seat may be sold to someone else. The correct outcome is painful but honest: refund (or never capture) the late payment and tell the fan plainly. The wrong outcome is capturing payment for a seat you no longer hold. Mitigation: re-check the hold <em>after</em> payment succeeds and before capturing, and keep the hold window comfortably longer than the payment provider's slowest plausible response.</li>
+  <li><strong>Server crashes between charge and booking.</strong> The charge exists, the order row does not. This is the transactional-outbox shape from the saga lesson: record the payment result durably first, then complete the booking from that record, with a reconciler that sweeps "charged but unbooked" rows. A crash must delay a booking, never duplicate or lose a charge.</li>
+</ul>
+<p>One more ordering rule, worth memorising: <strong>reserve inventory before charging, and charge only for inventory you still hold.</strong> Charging first and then discovering the seat is gone turns a technical failure into a refund-and-apology incident. The hold exists precisely so the charge step never has to discover anything.</p>
+
+<h2>7. The waiting room: surviving the on-sale minute</h2>
+<p>Even a correct hold mechanism falls over if 500,000 fans hit it in the same second. The standard answer is a <strong>virtual waiting room</strong> (also called a virtual queue): at on-sale time, fans are placed in a queue and admitted to the booking flow at a controlled rate — say, a few thousand at a time — while the rest see a queue position and an estimated wait. The queue is not a gimmick; it is backpressure (Lesson 23) with a human face: shed load by delaying it, in an order fans perceive as fair.</p>
+<ul>
+  <li><strong>Admission rate matches the bottleneck.</strong> If the hold path handles 500 holds/second, admit ~500 fans/second (times average seats per order). Admitting faster just moves the queue from the waiting room to the database, where it hurts more.</li>
+  <li><strong>Randomised entry, not first-click-wins.</strong> Pure first-come-first-served rewards bots and the fastest connection, not the keenest fan. Most systems randomise the queue order at on-sale time (a lottery within the first minutes), then process in that order. Say this explicitly: it is a fairness choice, and examiners notice when it is named.</li>
+  <li><strong>Bot defences are part of the design, not an afterthought.</strong> Per-account hold caps (section 4), per-IP rate limits (the rate-limiting lesson), CAPTCHA-style challenges at queue entry, and device fingerprinting. No single defence works; the stack is the defence. And note the honesty constraint: a bot that holds seats and never pays is indistinguishable from a slow human until the hold expires — which is why hold expiry plus per-buyer caps matter more than any single bot filter.</li>
+  <li><strong>Separate the read path from the write path.</strong> The seat map is served from a cache and replicas; the hold path talks to the primary database. If both share one pool, the browsing stampede starves the buyers — the classic "site is up, checkout is down" failure. The backpressure lesson's shedding order applies here too: shed seat-map refreshes before shedding checkouts.</li>
+</ul>
+
+<h2>8. Failure modes (the rest of the list)</h2>
+<ul>
+  <li><strong>Hold hoarding.</strong> Covered in section 4: per-buyer caps, short windows, and expiry are the defences. Watch for the same account cycling holds (release, re-hold) to keep a seat forever — fix by capping re-holds per seat per account.</li>
+  <li><strong>Group seating.</strong> A family wants 4 seats together. Holding 4 specific seats atomically is a multi-row transaction; holding them one at a time risks 3 seats and a split family. The practical answer: hold the group in one transaction (all-or-nothing across the rows), and offer "best available together" as a server-side search so the client never assembles a group by hand.</li>
+  <li><strong>Hot events, hot sections.</strong> The front rows of the main stand are one hot partition. Mitigations from Lesson 24 apply: the conditional update already spreads contention across rows, and per-section queues cap the stampede on any one section. What does <em>not</em> work is caching availability as truth — a cached "available" that is actually held is how oversells sneak back in through the read path.</li>
+  <li><strong>Clock skew on expiry.</strong> If the server that wrote the hold and the server that checks expiry disagree about the time by a minute, seats expire early or late. Keep expiry comparisons on one clock source (database time, or a single time service), and give the checkout path a small grace window rather than a hard cutoff at the exact second.</li>
+  <li><strong>Cancellation cascades.</strong> A star player is injured, 5,000 fans cancel at once, and the refund path — which touches payment, inventory, and notifications — becomes the new bottleneck. Cancellations go through a queue (they are not latency-critical), and released seats re-enter sale through the same hold path, never by direct edit.</li>
+</ul>
+
+<h2>9. Three senior-depth traps</h2>
+<div class="callout">
+  <strong>Trap 1 — "We use a distributed lock, so we are safe."</strong>
+  <p>A lock around the hold step is safe only if every path that changes a seat takes the same lock — including expiry, cancellation, and admin overrides. One path that edits seat state without the lock (a sweeper script, a support tool) reintroduces the race the lock was bought to kill. The conditional update wins here precisely because it lives in the database, where every writer must go through it.</p>
+</div>
+<div class="callout">
+  <strong>Trap 2 — Treating the seat map as the source of truth.</strong>
+  <p>The map is a cache of seat state, minutes or seconds old, shown to humans. The hold step is the truth. Any design where "the map said available" is treated as a promise — a reservation, a price lock, a queue position — will oversell. Say it in the room: "the map is a hint; the hold is the commitment."</p>
+</div>
+<div class="callout">
+  <strong>Trap 3 — A hold window chosen for kindness, not arithmetic.</strong>
+  <p>A 30-minute hold with 60,000 seats and 200,000 buyers means the stadium "sells out" in minutes to holders, most of whom never pay, while real buyers wait for expiries that trickle back one by one. Lab B makes this concrete: long holds do not make buying easier, they make <em>available</em> seats scarcer. Short holds, clear countdowns, and a visible "seats freeing up" signal serve fans better than a generous window.</p>
+</div>
+
+<h2>10. Lab A: The seat race — check-then-act vs atomic hold</h2>
+<p>How to use this lab: <strong>Seats</strong> is how many identical popular seats are on sale. <strong>Buyers</strong> is how many fans race for them at the same instant. The model assumes the worst case for the naive design: every buyer's check reads "available" before any write lands, so every buyer sails through the check. The atomic design runs the check and the write as one step, so exactly one buyer per seat wins. Watch what happens to the oversell count as buyers grow — the naive oversell is not a rounding error, it scales with demand.</p>
+<div class="lab" id="lab-a">
+  <h3>Lab A · Seat race</h3>
+  <div class="row">
+    <div><label for="la-seats">Popular seats on sale: <span id="la-seats-v"></span></label><input type="range" id="la-seats" min="1" max="50" step="1" value="10"></div>
+    <div><label for="la-buyers">Fans racing at once: <span id="la-buyers-v"></span></label><input type="range" id="la-buyers" min="10" max="500" step="10" value="100"></div>
+  </div>
+  <div class="out">
+    <p>Naive check-then-act: <span class="big" id="la-naive"></span></p>
+    <p>Atomic conditional hold: <span class="big" id="la-atomic"></span></p>
+    <p id="la-verdict"></p>
+  </div>
+</div>
+
+<h2>11. Lab B: The hold-window planner — when "sold out" means "held, not sold"</h2>
+<p>How to use this lab: <strong>Seats</strong> is the stadium size. <strong>New buyers per minute</strong> is the arrival rate during the on-sale rush. <strong>Hold window</strong> is how long a hold lasts. <strong>Checkout completion</strong> is the share of holders who actually pay. The lab computes the steady-state picture: how many seats are tied up in live holds at any moment (arrivals × hold window), how many of those become sales per minute, and how many expire per minute and return to sale. If live holds exceed the stadium, new buyers see "sold out" even though many seats will come back — that gap is the waiting room's job.</p>
+<div class="lab" id="lab-b">
+  <h3>Lab B · Hold-window planner</h3>
+  <div class="row">
+    <div><label for="lb-seats">Seats in the stadium: <span id="lb-seats-v"></span></label><input type="range" id="lb-seats" min="10000" max="80000" step="5000" value="60000"></div>
+    <div><label for="lb-arrivals">New buyers per minute: <span id="lb-arrivals-v"></span></label><input type="range" id="lb-arrivals" min="1000" max="20000" step="1000" value="5000"></div>
+    <div><label for="lb-hold">Hold window (minutes): <span id="lb-hold-v"></span></label><input type="range" id="lb-hold" min="2" max="30" step="2" value="10"></div>
+    <div><label for="lb-conv">Checkout completion (%): <span id="lb-conv-v"></span></label><input type="range" id="lb-conv" min="10" max="90" step="10" value="50"></div>
+  </div>
+  <div class="out">
+    <p>Seats tied up in live holds: <span class="big" id="lb-locked"></span></p>
+    <p>Sales per minute / expiries per minute: <span class="big" id="lb-flow"></span></p>
+    <p id="lb-verdict"></p>
+  </div>
+</div>
+
+<script>
+function el(id) { return document.getElementById(id); }
+function num(id) { var v = el(id); return v ? Number(v.value) : 0; }
+function setText(id, t) { var v = el(id); if (v) v.textContent = t; }
+function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+
+function renderLabA() {
+  var seats = num('la-seats'), buyers = num('la-buyers');
+  var naiveSold = buyers;
+  var naiveOversold = Math.max(0, buyers - seats);
+  var atomicSold = Math.min(buyers, seats);
+  var atomicRejected = Math.max(0, buyers - seats);
+  setText('la-seats-v', fmt(seats));
+  setText('la-buyers-v', fmt(buyers));
+  setText('la-naive', fmt(naiveSold) + ' "sales" — ' + fmt(naiveOversold) + ' oversold (fans with a ticket to a seat someone else also bought)');
+  setText('la-atomic', fmt(atomicSold) + ' sales, 0 oversold, ' + fmt(atomicRejected) + ' fans told "already held" immediately');
+  var verdict;
+  if (naiveOversold === 0) verdict = 'Verdict: with this few buyers the race barely shows — raise buyers past seats to see the oversell appear.';
+  else verdict = 'Verdict: the naive oversell grows with demand, not with bad luck. At a cup final it is not an edge case, it is the expected outcome of check-then-act.';
+  setText('la-verdict', verdict);
+}
+
+function renderLabB() {
+  var seats = num('lb-seats'), arrivals = num('lb-arrivals');
+  var hold = num('lb-hold'), conv = num('lb-conv');
+  var locked = arrivals * hold;
+  var soldPerMin = arrivals * conv / 100;
+  var expiredPerMin = arrivals * (1 - conv / 100);
+  setText('lb-seats-v', fmt(seats));
+  setText('lb-arrivals-v', fmt(arrivals) + '/min');
+  setText('lb-hold-v', hold + ' min');
+  setText('lb-conv-v', conv + '%');
+  setText('lb-locked', fmt(locked) + ' of ' + fmt(seats) + ' seats (' + Math.round(locked / seats * 100) + '% of the stadium)');
+  setText('lb-flow', fmt(soldPerMin) + ' sold / ' + fmt(expiredPerMin) + ' expiring back to sale');
+  var verdict;
+  if (locked >= seats) verdict = 'Verdict: holds alone fill the stadium — new buyers see "sold out" while ' + fmt(expiredPerMin) + ' seats a minute quietly come back. Shorten the hold window, cap holds per buyer, or admit buyers through a waiting room at the rate seats actually free up.';
+  else if (locked >= seats * 0.8) verdict = 'Verdict: nearly full on holds alone. The stadium looks almost sold out, but a fifth of it is just slow checkouts — expect angry fans and a wave of expiries.';
+  else verdict = 'Verdict: holds leave headroom. At this arrival rate the window is affordable — but check what happens if arrivals double in the first minute, or if the window stretches to 30 minutes.';
+  setText('lb-verdict', verdict);
+}
+
+['la-seats', 'la-buyers'].forEach(function(id) {
+  var e = el(id); if (e && e.addEventListener) e.addEventListener('input', renderLabA);
+});
+['lb-seats', 'lb-arrivals', 'lb-hold', 'lb-conv'].forEach(function(id) {
+  var e = el(id); if (e && e.addEventListener) e.addEventListener('input', renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+
+<h2>12. Questions with full model answers</h2>
+<p>Each question first, then the model answer. Read the question, answer it in your head, then open the answer and compare — the comparison is the learning.</p>
+
+<details>
+  <summary>Q1. "Design ticket booking for a 60,000-seat stadium final. The one requirement: never oversell. Where do you start?"</summary>
+  <p><strong>Model answer.</strong> I start with the invariant, not the architecture: one seat, one sale, enforced where the truth lives. So: a seat row per seat per event, sharded by event_id, with a status state machine (available → held → sold, plus expiry back to available). The hold is a single atomic conditional update — set to held only where status is still available — so the check and the write cannot be separated by a race. Payment happens only inside a live hold, and the held-to-sold flip is a second conditional update that also checks the hold is unexpired and owned by this buyer. Browsing is cached and separated from the hold path, so the read stampede cannot starve buyers. A waiting room admits fans at the rate the hold path can actually serve, with randomised order and per-buyer hold caps to blunt bots. If I had to cut scope, I would cut the waiting room's polish before I cut the atomic hold — a slow sale is recoverable, an oversold seat is not.</p>
+</details>
+
+<details>
+  <summary>Q2. "Two users both see seat 42 as available and both pay. What went wrong, and what is the smallest fix?"</summary>
+  <p><strong>Model answer.</strong> What went wrong is check-then-act: both users read "available," both passed the check, and the payment step — not the seat step — was the first place contention was discovered, by which time money had moved. The smallest fix is to move the contention decision before payment, into one atomic step: an UPDATE that sets the seat to held only where it is still available. One buyer gets the hold, the other gets "already held" in milliseconds, before entering card details. Payment then runs only for the holder. The deeper fix, if this pattern recurs, is the rule: never let two steps separated by a network call decide ownership of a single unit of inventory — ownership changes happen in exactly one indivisible step, at the store that owns the row.</p>
+</details>
+
+<details>
+  <summary>Q3. "Your stadium 'sells out' in 3 minutes, but 20,000 seats are later released unclaimed. What happened?"</summary>
+  <p><strong>Model answer.</strong> The sell-out was holds, not sales: with a long hold window and a huge arrival spike, live holds filled the stadium before checkouts completed, and most holders never paid. The seats then trickled back as holds expired, one expiry at a time, while fans who had been told "sold out" had already left. Three fixes, in order: shorten the hold window (10 minutes is the norm — Lab B shows why 30 minutes is a different system), cap holds per buyer so one account cannot park a block, and admit buyers through a waiting room at the rate seats genuinely free up, showing a real queue position instead of a false "sold out." And the seat map should distinguish held from sold — "held, may free up" is honest information that keeps fans waiting instead of leaving.</p>
+</details>
+
+<details>
+  <summary>Q4. "A fan is charged twice for one seat. Walk me through the cause and the prevention."</summary>
+  <p><strong>Model answer.</strong> The likely cause: the first checkout succeeded at the payment provider, but its response was lost (timeout or crash), so the client retried and the retry ran the whole sale again — a second charge, and possibly a second order. Prevention has three layers. First, an idempotency key on the checkout request, stored unique on the order row, so a retry returns the original order instead of creating a new one. Second, a reconciliation rule for ambiguous payments: before deciding a payment failed, query the provider by payment reference — their ledger is the truth about money moved. Third, a durable record of the payment result before the booking completes (the outbox shape from the saga lesson), plus a sweeper for "charged but unbooked" rows, so a crash delays a booking but never duplicates a charge. If a double charge still slips through, the refund path must be able to find both charges by idempotency key — which is why the key is stored, not just checked.</p>
+</details>
+
+<h2>13. Practice drills (untimed — depth over speed)</h2>
+<div class="callout drill">
+  <strong>Drill 1 — Write the hold API contract.</strong>
+  <p>Specify <code>POST /holds</code> precisely: request fields, the atomic condition, every error case (seat held, seat sold, hold limit reached, event not on sale), and what the response contains (hold_id, expiry timestamp, countdown guidance). <em>Rubric:</em> full marks require the atomic condition stated as "only where status = available," expiry as a timestamp, a per-buyer cap, and an error for each case that names what the fan should do next (pick another seat vs wait for expiry). Lose marks for a design where the client checks availability and then "confirms" — that is check-then-act with extra steps.</p>
+</div>
+<div class="callout drill">
+  <strong>Drill 2 — Price a hold window with Lab B.</strong>
+  <p>A 40,000-seat arena, 8,000 new buyers per minute, 40% checkout completion. (a) With a 10-minute hold, how many seats are tied up in live holds? (b) With a 30-minute hold? (c) Which window would you ship, and what do you tell the product team that asked for 30 minutes? <em>Rubric:</em> (a) 80,000 — more than the arena, so the arena shows "sold out" on holds alone. (b) 240,000 — six times the arena. (c) Ship 10 minutes (or shorter, with a waiting room); the argument to product is Lab B's arithmetic plus the fan-experience point: a short window with a visible queue beats a long window with a false sell-out.</p>
+</div>
+<div class="callout drill">
+  <strong>Drill 3 — Spot the oversell.</strong>
+  <p>A team proposes: "Cache the seat map in Redis. When a fan picks a seat, check Redis; if free, mark it held in Redis, then write to the database asynchronously." Find the three flaws. <em>Rubric:</em> (1) The cache is not the truth — two servers with stale caches both see "free," and the async database write discovers the conflict after the fan was told they hold the seat. (2) The Redis write and the database write can disagree (crash between them), leaving a seat held in one system and free in the other. (3) Expiry and cancellation must update both systems or they drift permanently. The fix: the database conditional update is the hold; Redis may cache the map for display only, never for the hold decision.</p>
+</div>
+
+<h2>14. The six-decision cheat sheet</h2>
+<table>
+<thead><tr><th>#</th><th>Decision</th><th>Rule of thumb</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Source of truth</td><td>The seat row in the database, changed by conditional update. The seat map is a hint, never a promise.</td></tr>
+<tr><td>2</td><td>Hold, don't sell directly</td><td>Available → held → sold. Payment happens only inside a live hold, so contention is decided before money moves.</td></tr>
+<tr><td>3</td><td>Atomicity of the hold</td><td>Check and write in one statement. Any gap between them is an oversell waiting for load.</td></tr>
+<tr><td>4</td><td>Hold window</td><td>~10 minutes. Longer windows manufacture false sell-outs (Lab B); shorter windows rush real buyers.</td></tr>
+<tr><td>5</td><td>Idempotency</td><td>Unique key per checkout attempt, stored on the order. Retry returns the original order; ambiguous payments are reconciled against the provider.</td></tr>
+<tr><td>6</td><td>Surviving the spike</td><td>Waiting room at the bottleneck's rate, randomised order, per-buyer caps, and a read path that cannot starve the write path.</td></tr>
+</tbody></table>
+
+<h2>15. The 60-second framing + talk track</h2>
+<p><strong>60-second framing (say this first):</strong> "The invariant is one seat, one sale, so I shard by event and give every seat a state machine: available, held, sold. A fan holds a seat with one atomic conditional update — held only where still available — for 10 minutes, then pays inside that hold, and a second conditional update flips it to sold. Checkout carries an idempotency key, so a retry never double-charges. A waiting room admits fans at the rate the hold path can serve, and the seat map is cached for browsing but never trusted for the hold decision."</p>
+<p><strong>Talk track (then walk the purchase):</strong> select → hold → pay → confirm, naming the atomic step at each transition and the failure that step prevents. Then the spike story: waiting room, per-buyer caps, read/write separation. Close with the one line that shows senior judgement: "The map is a hint; the hold is the commitment — and the hold window is priced in Lab B, not chosen by feel."</p>
+
+<h2>16. Where this shows up in real systems</h2>
+<ul>
+  <li><strong>Ticketmaster / AXS / BookMyShow:</strong> seat holds with countdown timers, virtual queues at on-sale, and per-buyer limits — the waiting room and hold window in production, at stadium scale.</li>
+  <li><strong>Airline seat selection:</strong> the same state machine with a different inventory: a seat on a flight is held during booking and released on expiry, which is why a "held" seat can reappear minutes later.</li>
+  <li><strong>Hotel and rental booking:</strong> room-nights are the inventory, and the hold is the "reserved while you complete booking" step — same race, same fix, longer window because the purchase is slower.</li>
+  <li><strong>Flash-sale and sneaker-drop systems:</strong> the waiting-room-plus-hold shape, where the queue is the product's fairness story and the hold window is what stops bots from parking the entire drop.</li>
+  <li><strong>Databases themselves:</strong> the conditional update is <code>UPDATE … WHERE status = 'AVAILABLE'</code>, or optimistic versioning with a version column — the same two mechanisms, one row at a time.</li>
+</ul>
+<div class="callout blue">
+  <strong>How this connects to what you already know</strong>
+  <p>Ticket booking is where the earlier lessons cash out: distributed locks taught you why the check and the write must be one step; queues and backpressure gave you the waiting room; the saga lesson gave you the payment-reconciliation shape; hot partitions explained why the best seats are the hottest rows; and failover is what keeps the hold path alive when the primary database dies mid-sale. If a booking design never names its atomic step, it has not answered the question yet — that is the fastest review check you can apply to anyone's answer, including your own.</p>
+</div>
+
+<div class="footer-nav">
+  <p><a href="../index.html">← Back to all lessons</a> · Lesson 26 · Previous: <a href="failover-strategies.html">Failover Strategies</a></p>
+</div>
+
+</div>
+</body>
+</html>
