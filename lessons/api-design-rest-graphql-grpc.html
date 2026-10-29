@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>API Design — REST vs GraphQL vs gRPC</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: 10px; padding: 1rem 1.2rem; margin: 1.2rem 0; }
+  .callout.blue { border-left-color: var(--blue); }
+  .callout.green { border-left-color: var(--green); }
+  .callout.amber { border-left-color: var(--amber); }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout strong:first-child { display: block; margin-bottom: 0.3rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: 0.95rem; }
+  th { text-align: left; background: var(--surface-2); }
+  th, td { border: 1px solid var(--line); padding: 0.55rem 0.7rem; vertical-align: top; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em; background: var(--surface-2); border-radius: 5px; padding: 0.1em 0.35em; }
+  pre { background: var(--code); color: var(--code-ink); border-radius: 10px; padding: 1rem 1.2rem; margin: 1rem 0; font-size: 0.9rem; overflow-x: auto; line-height: 1.5; }
+  pre code { background: none; padding: 0; }
+  .formula { background: var(--code); color: var(--code-ink); border-radius: 10px; padding: 1rem 1.2rem; margin: 1rem 0; font-size: 1.02rem; overflow-x: auto; }
+  .formula code { background: none; padding: 0; }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.3rem 1.4rem; margin: 1.4rem 0; }
+  .lab h3 { margin-top: 0; }
+  .lab .row { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; margin: 0.8rem 0; }
+  .lab label { display: block; font-size: 0.92rem; font-weight: 600; margin-bottom: 0.2rem; }
+  .lab label span { font-weight: 400; color: var(--muted); }
+  .lab input[type="range"] { width: 100%; max-width: 320px; }
+  .lab select { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 0.4rem 0.6rem; }
+  .lab .out { background: var(--surface-2); border-radius: 10px; padding: 0.9rem 1.1rem; margin-top: 0.9rem; }
+  .lab .out p { margin-bottom: 0.35rem; }
+  .lab .out p:last-child { margin-bottom: 0; }
+  .big { font-size: 1.25rem; font-weight: 700; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0.9rem 1.1rem; margin: 0.8rem 0; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p, details ul { margin-top: 0.6rem; }
+  details p:last-child { margin-bottom: 0; }
+  .drill { border-left: 5px solid var(--purple); }
+  .toc { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.2rem; margin: 1.4rem 0; }
+  .toc strong { display: block; margin-bottom: 0.4rem; }
+  .toc ol { margin-bottom: 0; }
+  .footer-nav { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.92rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> · Lesson 27</p>
+
+<header class="hero">
+  <span class="lesson-tag">Foundations · API design</span>
+  <h1>API Design: REST vs GraphQL vs gRPC</h1>
+  <p class="whyline">Every system you have designed so far talks to something else — the app talks to the server, services talk to each other. The contract they speak is the API, and picking the wrong one is how a fast system gets slow, chatty, or impossible to change. This lesson gives you the three contracts, the math behind their costs, and a decision rule you can defend.</p>
+  <div class="meta"><span>~25 min read</span><span>2 interactive labs</span><span>4 model answers</span><span>3 drills</span></div>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <strong>How this lesson flows</strong>
+  <ol>
+    <li>What an API is, from zero</li>
+    <li>The running example: Riverside FC's match-day data</li>
+    <li>REST, in full</li>
+    <li>GraphQL, in full</li>
+    <li>gRPC, in full</li>
+    <li>Head-to-head: the comparison table and the decision rule</li>
+    <li>Cross-cutting: versioning, pagination, errors, idempotency, caching</li>
+    <li>Senior-depth traps, labs, model answers, drills, cheat sheet</li>
+  </ol>
+</nav>
+
+<h2>1. What is an API? Start from zero</h2>
+<p>Picture Riverside FC on match day. The club has one vault of facts: fixtures, live scores, player stats, ticket availability. Three different consumers want those facts: the club's phone app, the club website, and a broadcaster's graphics system that puts live scores on TV. None of them is allowed to reach into the vault directly. Instead, each one talks to a counter at the front of the vault, hands over a written request in an agreed format, and gets an answer back in an agreed format. That counter, and the agreed formats, are the <strong>API</strong> — short for Application Programming Interface, which is just a fancy name for "the agreed way two pieces of software talk."</p>
+<p>The vocabulary, defined before it is used:</p>
+<ul>
+  <li><strong>Client</strong> is whoever asks — the phone app, the website, another service. <strong>Server</strong> is whoever answers. The client never touches the server's database; it only sees what the API shows it. That separation is the whole point: the server team can rebuild the vault behind the counter without breaking every client, as long as the counter's format stays the same.</li>
+  <li><strong>Request</strong> is the question; <strong>response</strong> is the answer. A request names <em>what</em> it wants and sometimes carries a <strong>payload</strong> — the data attached to the request or response, like the JSON body of a match result.</li>
+  <li><strong>Endpoint</strong> is one specific counter window: one address that does one job, for example "give me match 42." A whole API is a set of endpoints, or — as you will see with GraphQL — sometimes just one.</li>
+  <li><strong>Schema</strong> is the written contract for the data's shape: which fields exist, what type each one is (a number, a string of text, a date), and which are required. If the schema says a player has a <code>goals</code> number, every client can rely on that. Schemas are what make APIs changeable without chaos: change the schema carelessly and every client breaks at once.</li>
+  <li><strong>Serialization</strong> is turning in-memory data into bytes that can travel over a network, and back again. JSON (JavaScript Object Notation — human-readable text like <code>{"team": "Riverside", "goals": 2}</code>) is the common one. <strong>Protocol Buffers</strong> (protobuf) is the compact binary alternative you will meet in the gRPC section: smaller and faster, but not human-readable.</li>
+</ul>
+<div class="callout blue"><strong>The one-sentence framing to carry through this lesson</strong>
+<p>REST, GraphQL, and gRPC are not three versions of the same idea getting progressively better. They are three different answers to three different questions: REST answers "how do we expose resources over the web's own rules?", GraphQL answers "how does a fast-moving frontend get exactly the data it needs?", and gRPC answers "how do services inside one company talk to each other as fast as possible?" Most bad API decisions come from answering one question with another question's tool.</p></div>
+
+<h2>2. The running example: one club, three consumers</h2>
+<p>Keep this picture in mind for every section. Riverside FC serves:</p>
+<ul>
+  <li><strong>The phone app</strong> — used by fans on stadium Wi-Fi and patchy mobile data. It shows one match screen: the score, the two teams, the scorers, and the next fixture. It needs a <em>small, exact</em> set of fields, and every extra kilobyte costs battery and waiting time.</li>
+  <li><strong>The website</strong> — built by a web team that changes screens every week. Last week the match screen gained a "form guide" (last five results); this week it gains player ratings. The frontend team wants to change what data a screen shows <em>without</em> waiting for the backend team to ship a new endpoint.</li>
+  <li><strong>The broadcaster's graphics engine</strong> — a service, not a human, that pulls live match events (goals, cards, substitutions) dozens of times a second and must never miss one. It is written by a different company, but it runs inside a trusted, high-throughput pipeline.</li>
+  <li><strong>Internal services</strong> — the ticket service asking the seat service "is seat 42 free?", the notification service asking the user service for a fan's language preference. These calls happen thousands of times a second, machine to machine, inside Riverside's own network.</li>
+</ul>
+<p>One club, four very different consumers. Watch how each API style fits some of them beautifully and others badly — that fit, not fashion, is the decision.</p>
+
+<h2>3. REST, in full</h2>
+<p><strong>REST</strong> (Representational State Transfer) is the web's home-grown style. Its core idea is disarmingly simple: everything the API exposes is a <strong>resource</strong> — a noun, like a match, a team, or a player — and you act on resources with the standard verbs the web already has. It is not a protocol with a rulebook; it is a set of conventions on top of HTTP, the protocol browsers already speak.</p>
+<h3>3.1 Resources, verbs, and status codes</h3>
+<p>A REST endpoint is a URL naming a resource, plus an HTTP verb saying what to do with it:</p>
+<pre><code>GET    /matches/42            — read match 42
+GET    /matches/42/scorers    — read match 42's scorers
+POST   /matches               — create a new match
+PUT    /matches/42            — replace match 42 entirely
+PATCH  /matches/42            — change part of match 42
+DELETE /matches/42            — delete match 42</code></pre>
+<p>The verbs, defined precisely because interviewers probe them:</p>
+<ul>
+  <li><strong>GET</strong> reads and never changes anything. It is <strong>safe</strong> (no side effects) and <strong>idempotent</strong> — a word that will recur all lesson: doing it twice has the same effect as doing it once. Refreshing a score page a hundred times changes nothing.</li>
+  <li><strong>POST</strong> creates something new. It is <em>not</em> idempotent by default: sending "create a ticket order" twice creates two orders — unless you add an <strong>idempotency key</strong> (a client-chosen unique token sent with the request; the server remembers it and returns the original result for a repeat, covered again in section 7).</li>
+  <li><strong>PUT</strong> replaces a whole resource and <em>is</em> idempotent: replacing match 42 with the same body ten times leaves the same match. <strong>PATCH</strong> changes only the fields you send; <strong>DELETE</strong> removes, and is idempotent too (deleting an already-deleted match still leaves it deleted).</li>
+</ul>
+<p>Responses carry <strong>status codes</strong> — three-digit numbers that say what happened before you even read the body: <code>200</code> OK, <code>201</code> created, <code>204</code> no content, <code>400</code> your request was malformed, <code>401</code> you are not authenticated (we do not know who you are), <code>403</code> you are authenticated but not allowed, <code>404</code> no such resource, <code>409</code> conflict (for example, the seat is already taken), <code>429</code> too many requests (rate limited — see Lesson 11), <code>500</code> the server failed. A good REST API uses these consistently, so a client can branch on the code alone: 2xx means "it worked," 4xx means "the client must fix its request," 5xx means "the server must fix itself." Never return <code>200</code> with an error hidden inside the body — that forces every client to parse bodies just to learn something failed.</p>
+<h3>3.2 REST's two classic costs: over-fetching and under-fetching</h3>
+<p>Here is REST's structural weakness, and it is worth stating as plainly as possible. A REST endpoint returns a <em>fixed shape</em>: the server decides what <code>GET /matches/42</code> contains, and every client gets the same shape. The phone app needs 6 fields; the endpoint returns 40 (full team sheets, referee details, weather, broadcast notes). The 34 unneeded fields are <strong>over-fetching</strong> — data shipped, paid for in bytes and battery, and thrown away.</p>
+<p>The mirror problem is <strong>under-fetching</strong>: one endpoint never has quite enough. The match screen needs the match, both teams, and the scorers — three endpoints, three round trips. Each round trip on a mobile network costs 50–200 milliseconds before a single byte of data moves, so three sequential trips can cost half a second of pure waiting. Clients work around this with tricks — <strong>field selection</strong> (<code>?fields=score,teams</code>), <strong>embedding</strong> (<code>?include=scorers</code>) — but every trick is a custom dialect the server team must build and document, and it quietly reinvents half of GraphQL. Lab A below lets you feel both costs in numbers.</p>
+<h3>3.3 Where REST wins</h3>
+<p>REST wins wherever the web's own machinery helps you: responses are <strong>cacheable</strong> by URL (a CDN or browser cache can serve <code>GET /matches/42</code> without ever reaching the server — this is why Lesson 3's caching patterns fit REST so naturally), it is trivially debuggable (paste a URL into a browser, read JSON), every language and tool speaks HTTP, and its statelessness — each request carries everything the server needs, no server-side session memory — lets any server instance answer any request, which is exactly what load balancers (Lesson 2) want. For a public, long-lived API consumed by many unknown clients, REST is still the default answer, and saying so is not old-fashioned — it is the boring, correct choice.</p>
+
+<h2>4. GraphQL, in full</h2>
+<p><strong>GraphQL</strong> is a query language for APIs, invented at Facebook for exactly the phone-app problem above. Its radical idea: there is <em>one</em> endpoint, usually <code>/graphql</code>, and the <em>client</em> writes the query describing exactly what it wants. The server answers with exactly that shape — no more, no less.</p>
+<pre><code>query {
+  match(id: 42) {
+    score
+    homeTeam { name formGuide }
+    scorers { player { name } minute }
+  }
+}</code></pre>
+<p>Read that query as a shopping list: "give me the score, the home team's name and form guide, and each scorer's name and minute — nothing else." If next week the screen adds player ratings, the frontend team edits the query. No backend change, no new endpoint, no waiting for a release train. That shift — <em>the client defines the response shape</em> — is GraphQL's entire pitch, and it is a genuine superpower for fast-moving frontends with many screens.</p>
+<h3>4.1 How it works under the hood (just enough)</h3>
+<p>Three pieces, each defined once:</p>
+<ul>
+  <li><strong>Schema</strong> — the server publishes a typed contract of everything queryable: types like <code>Match</code> and <code>Player</code>, their fields, and the entry points (<code>Query</code> for reads, <code>Mutation</code> for writes, <code>Subscription</code> for live streams). Clients can introspect the schema — ask the server to describe itself — so tooling can autocomplete queries and catch typos before runtime.</li>
+  <li><strong>Resolvers</strong> — small functions, one per field, that fetch that field's data. The <code>scorers</code> resolver queries the database; the <code>player.name</code> resolver reads a row. Resolvers are the source of GraphQL's famous trap, next.</li>
+  <li><strong>One endpoint, POST only (usually)</strong> — every query, read or write, goes to the same URL as a POST body. That is a feature for flexibility and a cost for caching: HTTP caches key on URLs, and one URL for everything means the URL-based caching REST gets for free largely disappears. GraphQL answers with its own caching (persisted queries, per-field cache hints, and client-side normalized caches like Apollo's, which store each object once by ID and reuse it across screens) — but you must build it deliberately; it is not inherited from the web.</li>
+</ul>
+<h3>4.2 The N+1 problem, explained with a team sheet</h3>
+<p>Ask for 11 players and each player's club. A naive server runs one query for the 11 players, then <em>one query per player</em> for their club: 1 + 11 = 12 queries. Ask for 11 players × their last 5 matches × each match's stadium and you are suddenly at hundreds. That is the <strong>N+1 problem</strong>: N items each triggering one extra fetch, turning one client request into N+1 database hits. The standard fix is a <strong>DataLoader</strong> — a batching layer that collects all the club lookups from one request tick, fires them as a single <code>WHERE club_id IN (...)</code> query, and hands results back to the right resolvers. Name DataLoader in a design discussion and you have shown you know GraphQL's cost, not just its pitch. The second cost is <strong>query complexity</strong>: a client can ask for a deeply nested query ("every player, every match they ever played, every other player in those matches…") that costs the server enormously. Production GraphQL APIs cap query depth and total complexity, and charge or reject queries above the budget — the same rate-limiting instinct as Lesson 11, applied to query shape instead of request count.</p>
+<h3>4.3 Where GraphQL wins — and where it does not</h3>
+<p>GraphQL wins when one backend serves many fast-changing frontend screens (the website team above), when mobile clients on slow networks pay per byte, and when a team wants strongly typed, self-documenting contracts without versioning every change (adding a field is backwards-compatible; clients simply do not ask for it until they want it). It loses, or at least adds needless machinery, when clients are few and stable, when responses are naturally cacheable by URL, when the API is consumed by simple scripts or third parties who would rather read a list of endpoints, and when the workload is file uploads or simple CRUD that REST already expresses cleanly. "GraphQL everywhere" is a fashion statement, not an architecture.</p>
+
+<h2>5. gRPC, in full</h2>
+<p><strong>gRPC</strong> (Google's Remote Procedure Call framework) is the style for machines talking to machines. Forget resources and URLs: you define <em>procedures</em> — functions a client can call on a server as if they were local — in a <code>.proto</code> file, and gRPC generates the client and server code for you in every major language.</p>
+<pre><code>service SeatService {
+  rpc CheckSeat (SeatRequest) returns (SeatResponse);
+  rpc StreamMatchEvents (MatchRequest) returns (stream MatchEvent);
+}
+message SeatRequest { string seat_id = 1; }
+message SeatResponse { bool available = 1; }</code></pre>
+<p>Three pieces, each defined once:</p>
+<ul>
+  <li><strong>Protocol Buffers (protobuf)</strong> — the schema language above and the binary wire format. Fields are numbered (<code>= 1</code>), values are encoded as compact binary instead of JSON text, and unknown fields are skipped, which is what makes protobuf evolution safe: adding field 3 does not break a client that only knows fields 1 and 2. Roughly speaking, protobuf payloads run 3–10× smaller than equivalent JSON and encode/decode faster — which matters when two services exchange millions of calls a day, and barely matters when a human waits on one.</li>
+  <li><strong>HTTP/2</strong> — the transport underneath. Where HTTP/1.1 handles one request at a time per connection (or a handful of parallel connections), HTTP/2 <strong>multiplexes</strong> — many requests share one connection simultaneously, each in its own <strong>stream</strong> — and supports server-push-style streaming. That is what makes gRPC's four call patterns possible.</li>
+  <li><strong>Streaming</strong> — the four patterns: <em>unary</em> (one request, one response — the normal case), <em>server streaming</em> (one request, a stream of responses — the broadcaster's live match events, delivered as they happen instead of polled), <em>client streaming</em> (many requests, one response — a phone uploading GPS pings), and <em>bidirectional streaming</em> (both sides stream — a live chat or a game session). REST can approximate streaming with long-polling or websockets, but gRPC has it as a first-class pattern with backpressure built in.</li>
+</ul>
+<p>Where gRPC wins: internal service-to-service traffic at high volume, polyglot teams (the generated clients keep Java, Go, and Python in lockstep with one schema), and streaming workloads. Where it loses: browsers. Browsers do not speak raw gRPC — they need <strong>gRPC-Web</strong>, a proxy translation layer — and its binary payloads cannot be pasted into a browser bar and read, so debugging needs dedicated tools. A public API for unknown third parties is almost never gRPC; an internal mesh of services almost always benefits from it. Many real companies run both: gRPC inside, REST (or GraphQL) at the edge.</p>
+
+<h2>6. Head-to-head: the comparison and the decision rule</h2>
+<table>
+  <tr><th>Dimension</th><th>REST</th><th>GraphQL</th><th>gRPC</th></tr>
+  <tr><td>Core idea</td><td>Resources + HTTP verbs</td><td>Client-shaped queries, one endpoint</td><td>Typed procedures + binary messages</td></tr>
+  <tr><td>Response shape</td><td>Fixed by the server</td><td>Chosen by the client per query</td><td>Fixed by the .proto schema</td></tr>
+  <tr><td>Over-fetching</td><td>Common (fixed shapes)</td><td>Eliminated by construction</td><td>Small payloads anyway (binary)</td></tr>
+  <tr><td>Under-fetching / round trips</td><td>Common (one endpoint per resource)</td><td>One round trip per screen</td><td>One call per procedure; streaming avoids polling</td></tr>
+  <tr><td>Caching</td><td>Excellent (URL-keyed, CDN-friendly)</td><td>Must be built deliberately</td><td>Poor fit for HTTP caches; service mesh instead</td></tr>
+  <tr><td>Payload</td><td>JSON text</td><td>JSON text</td><td>Protobuf binary, ~3–10× smaller</td></tr>
+  <tr><td>Browser-friendly</td><td>Yes, natively</td><td>Yes, natively</td><td>Only via gRPC-Web proxy</td></tr>
+  <tr><td>Best for</td><td>Public, stable, cacheable APIs</td><td>Many fast-changing frontend screens</td><td>Internal services, high throughput, streaming</td></tr>
+  <tr><td>Signature trap</td><td>Endpoint sprawl + over-fetching</td><td>N+1 queries, unbounded query cost</td><td>Browser incompatibility, tooling opacity</td></tr>
+</table>
+<div class="callout green"><strong>The decision rule — say this out loud in the room</strong>
+<p>Ask three questions, in order. (1) <em>Who is the client?</em> Browser or public third party → REST first. Your own fast-moving frontend team → GraphQL earns its place. Your own services → gRPC. (2) <em>What hurts more: bytes, round trips, or change?</em> Bytes on mobile → GraphQL or gRPC's compactness. Round trips → GraphQL's single query or gRPC streaming. Change velocity → GraphQL's client-shaped queries. (3) <em>What does caching need to be?</em> If a CDN must serve it, REST's URL-keyed caching is hard to beat. If you cannot answer question 1, you do not have an API decision yet — you have a requirements question, and naming that is the senior move.</p></div>
+<p>One more honest note: these styles mix in real systems all the time. Riverside FC could expose REST to the public, GraphQL to its own app and website teams, and gRPC between its ticket, seat, and notification services — with an <strong>API gateway</strong> (a single front door that routes, authenticates, and rate-limits requests before they reach individual services) sitting in front of all of it. "Pick one for everything" is the beginner answer; "pick per boundary, and name the boundary" is the senior one.</p>
+
+<h2>7. Cross-cutting: the five things every API needs, whatever its style</h2>
+<h3>7.1 Versioning — how to change without breaking everyone</h3>
+<p>APIs are promises, and promises change. REST versions most plainly in the URL (<code>/v1/matches</code> → <code>/v2/matches</code>) or a header; GraphQL mostly avoids versions by only ever <em>adding</em> fields and deprecating old ones (marking them "do not use, removal planned") — clients migrate field by field instead of all at once; gRPC versions through protobuf field numbers, where old clients ignore unknown fields. The rule underneath all three: <strong>never break a field a client already relies on</strong>. Rename a field and you have broken every client that reads it; add a new field alongside it and nothing breaks. When a breaking change is unavoidable, ship the new version, run both side by side, and give clients a dated sunset window — never a surprise.</p>
+<h3>7.2 Pagination — how to return a list without returning the world</h3>
+<p>A list endpoint for "all Riverside players" cannot return all of them in one response. <strong>Offset pagination</strong> (<code>?page=3&amp;limit=20</code>) is simple but drifts: if a player is added while a client pages through, items shift and the client sees duplicates or skips one. <strong>Cursor pagination</strong> (the server returns an opaque <code>next_cursor</code> token marking "you stopped here"; the client sends it back for the next page) is stable under inserts, because the cursor points at a position in an ordering, not a page number. Use offset for admin screens with stable data; use cursor for feeds and anything a user scrolls through while the world changes. Both need a maximum page size enforced server-side, or one client can ask for a million rows and become an accidental denial-of-service attack on your own database.</p>
+<h3>7.3 Errors — one contract, everywhere</h3>
+<p>Pick one error shape and use it on every endpoint: a machine-readable code (<code>SEAT_TAKEN</code>), a human-readable message, and — for validation failures — which field failed and why. Clients then write one error handler, not one per endpoint. Pair it with <strong>retry guidance</strong>: 5xx errors are retryable (the server may recover), most 4xx are not (retrying a malformed request just fails again), and <code>429</code> must come with a <code>Retry-After</code> header saying how long to wait — otherwise clients retry immediately and turn a small overload into a retry storm (Lesson 23).</p>
+<h3>7.4 Idempotency — making "send again" safe</h3>
+<p>Networks fail after the server acted but before the client heard the answer — the ticket-order ambiguity from Lesson 26. The fix, repeated because it matters: the client generates a unique <strong>idempotency key</strong> per logical operation and sends it with the request; the server stores the key with the result, and a repeat of the same key returns the stored result instead of acting again. Keys must be scoped per operation (a new order gets a new key; retrying the same order reuses its key) and stored long enough to outlive realistic retries. This is a property of the operation, not of the API style: REST, GraphQL mutations, and gRPC calls all need it wherever money or inventory moves.</p>
+<h3>7.5 Caching and authentication, briefly but correctly</h3>
+<p>Caching: REST responses cache by URL with <code>Cache-Control</code> headers (how long a response may be reused) and <strong>ETags</strong> (a version fingerprint: the client asks "has this changed since this fingerprint?" and gets a tiny <code>304 Not Modified</code> instead of the full body when it has not). Private, per-user data must be marked non-cacheable by shared caches, or one fan sees another's tickets. Authentication — proving <em>who</em> you are — and <strong>authorization</strong> — proving you are <em>allowed</em> — deserve their own lesson; the one line to carry now is that APIs should accept short-lived <strong>tokens</strong> (a bearer token in the <code>Authorization</code> header, or a signed <strong>JWT</strong> — a JSON Web Token, a tamper-evident token whose contents the server can verify without a database lookup) rather than raw passwords, and that a token proves identity, not permission: the server must still check, per request, that this fan may touch this resource.</p>
+
+<h2>8. Senior-depth traps</h2>
+<ul>
+  <li><strong>"GraphQL fixes over-fetching, so it is always faster."</strong> Not on a slow network with a naive server: one GraphQL query can hide N+1 database hits and an unbounded nested traversal behind a single round trip. Count the database queries a query causes, not just the HTTP requests. If you cannot bound query complexity, GraphQL's flexibility is a loaded gun pointed at your database.</li>
+  <li><strong>"REST is stateless, so it scales infinitely."</strong> Stateless means any server can answer any request — true, and valuable. It does not mean the database behind those servers scales. A REST API that fans every request into an unindexed query still falls over; statelessness removes one bottleneck, not all of them.</li>
+  <li><strong>"gRPC is faster, so expose it to the browser."</strong> Browsers cannot speak raw gRPC, and the gRPC-Web proxy you would add erases part of the streaming story and all of the "just paste the URL" debuggability. Faster on the wire is not faster for the team that has to debug it at 2 a.m. through a proxy.</li>
+</ul>
+
+<div class="lab">
+  <h3>Lab A — The fetch-cost calculator: over-fetching and under-fetching in numbers</h3>
+  <p>This lab prices one match screen three ways. The screen needs a certain number of fields. REST returns a fixed 40 fields per endpoint across 3 endpoints (match, teams, scorers). GraphQL returns exactly the fields asked for in 1 request. gRPC returns exactly the fields asked for in 1 request, but in compact binary at roughly 35 bytes per field instead of JSON's 60. Move the slider and watch which cost dominates: REST's waste is over-fetching, GraphQL's win is exactness, gRPC's win is compactness.</p>
+  <div class="row">
+    <div><label for="labAFields">Fields the screen actually needs: <span id="labAFieldsVal">12</span></label>
+    <input type="range" id="labAFields" min="5" max="40" value="12" /></div>
+  </div>
+  <div class="out" id="labAOut"><p>Move the slider to price the screen.</p></div>
+  <p><small>Assumptions, stated so you can argue with them: JSON field ≈ 60 bytes (name + value + punctuation), protobuf field ≈ 35 bytes, one round trip ≈ 100 ms on a mobile network. Real numbers vary; the shape of the comparison does not.</small></p>
+</div>
+
+<div class="lab">
+  <h3>Lab B — Which API wins? A scenario chooser</h3>
+  <p>Pick a situation. The lab answers with the recommended style, the reason in one line, and the trap to watch for — the same three-part shape (recommendation, reason, trap) that makes a design answer sound senior rather than memorized.</p>
+  <div class="row">
+    <div><label for="labBScenario">Situation</label>
+    <select id="labBScenario">
+      <option value="public">Public API for unknown third-party developers</option>
+      <option value="mobile">Phone app on patchy mobile data, screens changing weekly</option>
+      <option value="internal">Internal services calling each other thousands of times a second</option>
+      <option value="live">Live match events streamed to a broadcaster's graphics engine</option>
+      <option value="cache">Match results that a CDN should serve to millions of fans</option>
+    </select></div>
+  </div>
+  <div class="out" id="labBOut"><p>Pick a situation to see the recommendation.</p></div>
+</div>
+
+<h2>9. Questions with full model answers</h2>
+<p>Tap each question to reveal a complete model answer — the kind of answer that names the decision, the reason, and the trade-off, in that order.</p>
+
+<details><summary>Q1. "Design the API for a match-day app." Where do you start, and which style do you pick?</summary>
+<p><strong>Model answer.</strong> Start with the consumers, not the style: the app is your own fast-moving frontend on patchy mobile data, showing one screen per match. That points to GraphQL: one query per screen returns exactly the fields that screen needs, so a screen that needs 12 fields does not download 120, and when the screen gains player ratings next week the frontend edits its query without a backend release. Back it with query-depth and complexity limits (so no client can ask for every player, every match, every stadium in one query) and DataLoader batching (so one query does not become hundreds of database hits). If the same backend also serves a public developer API, expose REST alongside it — public third parties want stable, cacheable, browsable endpoints, not your internal query schema. The senior line: one backend, two front doors, each chosen for its consumer.</p></details>
+
+<details><summary>Q2. "Your REST API is slow on mobile. What is actually wrong, and what do you change?"</summary>
+<p><strong>Model answer.</strong> Diagnose before prescribing: measure whether the cost is round trips (under-fetching: the screen calls match, then teams, then scorers sequentially) or payload (over-fetching: each endpoint returns 40 fields the screen ignores). If it is round trips, first fix cheaply — parallelize independent calls, or add an aggregate endpoint (or <code>?include=</code> embedding) that returns the screen's data in one trip — and only switch styles if the screens keep changing faster than the backend can ship endpoints, which is the point where GraphQL's client-shaped queries earn their complexity budget. If it is payload, add field selection (<code>?fields=</code>) or trim endpoint shapes. "Switch to GraphQL" without saying which of the two costs dominates is a guess dressed as an answer; naming the measured cost first is what makes it a diagnosis.</p></details>
+
+<details><summary>Q3. "Two of your services exchange 50,000 messages a second. REST over JSON is struggling. What do you propose?"</summary>
+<p><strong>Model answer.</strong> Propose gRPC, and say why each piece helps: protobuf's binary encoding cuts payload roughly 3–10× versus JSON and encodes faster, HTTP/2 multiplexing lets thousands of calls share connections instead of paying per-call connection costs, and the generated clients from one .proto schema keep both services in lockstep as fields evolve (old clients ignore unknown fields). Add the boundary honestly: keep gRPC internal — browsers cannot speak it natively, so the public edge stays REST — and if the traffic is event-shaped rather than request-shaped (a stream of match events, not "is seat 42 free?"), consider a message queue or log (Lessons 9 and 12) instead of any RPC style, because a queue survives a consumer being down and RPC does not.</p></details>
+
+<details><summary>Q4. "A client paged through your player list and saw the same player twice. What happened, and how do you fix it?"</summary>
+<p><strong>Model answer.</strong> That is offset pagination drifting under inserts: the client asked for page 1 (players 1–20), a new player was inserted near the top, and page 2 (players 21–40 by the new ordering) now overlaps what page 1 showed. The fix is cursor pagination: the server returns an opaque cursor marking the last item seen in a stable ordering (for example, "after player id 847, ordered by created date then id"), and the next request resumes from that position regardless of inserts. Keep offset pagination only for stable, admin-style lists, enforce a server-side maximum page size so no client can request a million rows, and note the same class of bug anywhere a client assumes a list is frozen while the world changes.</p></details>
+
+<h2>10. Practice drills (untimed — depth over speed)</h2>
+<div class="callout drill"><strong>Drill 1 — Price a screen.</strong>
+<p>Your match screen needs 8 fields. A REST endpoint returns 45 fields per call and the screen needs 3 calls; a GraphQL query returns exactly 8 fields in 1 call. At 60 bytes per JSON field and 100 ms per round trip, compute the bytes and the round-trip waiting time for each approach, then say which cost matters more on a stadium's congested mobile network — and why.</p>
+<p><em>Rubric:</em> REST = 3 × 45 × 60 = 8,100 bytes and 300 ms of round-trip waiting (if sequential); GraphQL = 8 × 60 = 480 bytes and 100 ms. Full marks for naming that both costs shrink, and that on congested mobile the round trips usually hurt more than the bytes — latency, not bandwidth, is the binding constraint.</p></div>
+<div class="callout drill"><strong>Drill 2 — Defend a mixed API.</strong>
+<p>Riverside FC exposes REST publicly, GraphQL to its app team, and gRPC internally. A reviewer calls this "three APIs to maintain" and proposes standardizing on GraphQL everywhere. Write the three-sentence rebuttal.</p>
+<p><em>Rubric:</em> One sentence per boundary: public third parties need stable, cacheable, browsable endpoints (REST); internal services need compact binary throughput and generated clients (gRPC); browsers cannot speak raw gRPC and public caching does not work through a single GraphQL endpoint. Full marks for framing it as per-boundary choice, not fashion.</p></div>
+<div class="callout drill"><strong>Drill 3 — Spot the N+1.</strong>
+<p>A GraphQL query asks for 20 matches, each match's scorers, and each scorer's club. Sketch the naive resolver behavior, count the database queries, and name the fix.</p>
+<p><em>Rubric:</em> Naive: 1 (matches) + up to 20 scorer queries + one club query per scorer — well over 100 queries for one client request. Fix: DataLoader batching (collect scorer lookups into one <code>IN (...)</code> query, same for clubs) plus a query-complexity budget so nesting depth cannot grow without bound.</p></div>
+
+<h2>11. Cheat sheet: six decisions to carry into the room</h2>
+<ol>
+  <li><strong>Consumer first.</strong> Public/third-party → REST. Own fast-moving frontend → GraphQL. Own services → gRPC.</li>
+  <li><strong>Name the cost.</strong> Over-fetching (fixed shapes) vs under-fetching (round trips) vs payload size — measure which one hurts before switching styles.</li>
+  <li><strong>Caching follows the URL.</strong> If a CDN must serve it, REST's URL-keyed caching is the strongest default.</li>
+  <li><strong>Bound GraphQL.</strong> DataLoader for N+1, depth and complexity caps for unbounded queries — flexibility without a budget is a vulnerability.</li>
+  <li><strong>Never break a field.</strong> Add, deprecate, sunset on a date — never rename or remove under a live client.</li>
+  <li><strong>Idempotency is per operation.</strong> Money or inventory moving? The request needs an idempotency key, whatever the style.</li>
+</ol>
+<div class="callout"><strong>60-second framing — say this to open the topic</strong>
+<p>"An API is the contract between a client and a server. REST exposes resources over HTTP verbs — simple, cacheable, and the right default for public APIs, but its fixed shapes over-fetch and under-fetch. GraphQL lets the client shape each response, which is perfect for fast-moving frontends on mobile, at the cost of N+1 queries and query-complexity budgets you must build. gRPC uses compact binary protobuf over HTTP/2 with streaming, which is ideal for internal services, but browsers cannot speak it. So I choose per boundary: REST at the public edge, GraphQL for our own app, gRPC between services — and I make every money-moving call idempotent whichever style it uses."</p></div>
+
+<p class="footer-nav"><a href="../index.html">← All lessons</a> · Lesson 27 of the daily series. Next lesson lands tomorrow morning.</p>
+</div>
+<script>
+function labACompute(fields) {
+  var restBytes = 3 * 40 * 60;
+  var gqlBytes = fields * 60;
+  var grpcBytes = fields * 35;
+  var restMs = 3 * 100;
+  var gqlMs = 100;
+  var overFetchPct = Math.round((1 - fields / 40) * 100);
+  return { restBytes: restBytes, gqlBytes: gqlBytes, grpcBytes: grpcBytes, restMs: restMs, gqlMs: gqlMs, overFetchPct: overFetchPct };
+}
+function labARender(fields) {
+  var r = labACompute(fields);
+  var el = document.getElementById('labAOut');
+  if (!el) return r;
+  el.innerHTML = '<p><span class="big">REST:</span> 3 requests · ' + r.restBytes + ' bytes · ~' + r.restMs + ' ms of round-trip waiting · ' + r.overFetchPct + '% of each endpoint wasted (you need ' + fields + ' of 40 fields)</p>'
+    + '<p><span class="big">GraphQL:</span> 1 request · ' + r.gqlBytes + ' bytes · ~' + r.gqlMs + ' ms · 0% waste — exactly the ' + fields + ' fields asked for</p>'
+    + '<p><span class="big">gRPC:</span> 1 request · ' + r.grpcBytes + ' bytes (binary) · ~' + r.gqlMs + ' ms · the smallest payload, but not browser-native</p>';
+  return r;
+}
+var LAB_B = {
+  public: { style: 'REST', why: 'Unknown third parties need stable, browsable endpoints and docs they can read without your tooling.', trap: 'Version carefully — a renamed field breaks every client at once. Add, deprecate, sunset on a date.' },
+  mobile: { style: 'GraphQL', why: 'One query per screen returns exactly the fields that screen needs, and the frontend can change screens without a backend release.', trap: 'Bound it: DataLoader for N+1, and depth/complexity caps so one query cannot cost the database hundreds of hits.' },
+  internal: { style: 'gRPC', why: 'Protobuf binary payloads and generated clients keep high-volume service calls small, fast, and in lockstep.', trap: 'Keep it internal — browsers cannot speak raw gRPC, so the public edge stays REST.' },
+  live: { style: 'gRPC server streaming', why: 'A stream delivers each match event as it happens instead of polling for it — no missed events, no wasted polls.', trap: 'If the consumer can be down, prefer a queue/log (Lessons 9 and 12) so events wait instead of being lost.' },
+  cache: { style: 'REST', why: 'URL-keyed responses are exactly what CDNs cache: GET /matches/42 can be served from the edge without touching your servers.', trap: 'Mark per-user data non-cacheable by shared caches, or one fan sees another fan\u2019s tickets.' }
+};
+function labBRender(key) {
+  var r = LAB_B[key];
+  var el = document.getElementById('labBOut');
+  if (!el) return r;
+  if (!r) { el.innerHTML = '<p>Unknown situation.</p>'; return null; }
+  el.innerHTML = '<p><span class="big">' + r.style + '</span></p><p><strong>Why:</strong> ' + r.why + '</p><p><strong>Watch out:</strong> ' + r.trap + '</p>';
+  return r;
+}
+(function init() {
+  var f = document.getElementById('labAFields');
+  var fv = document.getElementById('labAFieldsVal');
+  if (f) {
+    var update = function () { if (fv) fv.textContent = f.value; labARender(parseInt(f.value, 10)); };
+    if (f.addEventListener) f.addEventListener('input', update);
+    update();
+  }
+  var s = document.getElementById('labBScenario');
+  if (s) {
+    if (s.addEventListener) s.addEventListener('change', function () { labBRender(s.value); });
+    labBRender(s.value);
+  }
+})();
+</script>
+</body>
+</html>
