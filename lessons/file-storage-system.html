@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design a Distributed File Storage System</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: 10px; padding: 1rem 1.2rem; margin: 1.2rem 0; }
+  .callout.blue { border-left-color: var(--blue); }
+  .callout.green { border-left-color: var(--green); }
+  .callout.amber { border-left-color: var(--amber); }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout strong:first-child { display: block; margin-bottom: 0.3rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: 0.95rem; }
+  th { text-align: left; background: var(--surface-2); }
+  th, td { border: 1px solid var(--line); padding: 0.55rem 0.7rem; vertical-align: top; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em; background: var(--surface-2); border-radius: 5px; padding: 0.1em 0.35em; }
+  pre { background: var(--code); color: var(--code-ink); border-radius: 10px; padding: 1rem 1.2rem; margin: 1rem 0; font-size: 0.9rem; overflow-x: auto; line-height: 1.5; }
+  pre code { background: none; padding: 0; }
+  .formula { background: var(--code); color: var(--code-ink); border-radius: 10px; padding: 1rem 1.2rem; margin: 1rem 0; font-size: 1.02rem; overflow-x: auto; }
+  .formula code { background: none; padding: 0; }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.3rem 1.4rem; margin: 1.4rem 0; }
+  .lab h3 { margin-top: 0; }
+  .lab .row { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; margin: 0.8rem 0; }
+  .lab label { display: block; font-size: 0.92rem; font-weight: 600; margin-bottom: 0.2rem; }
+  .lab label span { font-weight: 400; color: var(--muted); }
+  .lab input[type="range"] { width: 100%; max-width: 320px; }
+  .lab select { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 0.4rem 0.6rem; }
+  .lab .out { background: var(--surface-2); border-radius: 10px; padding: 0.9rem 1.1rem; margin-top: 0.9rem; }
+  .lab .out p { margin-bottom: 0.35rem; }
+  .lab .out p:last-child { margin-bottom: 0; }
+  .big { font-size: 1.25rem; font-weight: 700; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0.9rem 1.1rem; margin: 0.8rem 0; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p, details ul { margin-top: 0.6rem; }
+  details p:last-child { margin-bottom: 0; }
+  .drill { border-left: 5px solid var(--purple); }
+  .toc { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.2rem; margin: 1.4rem 0; }
+  .toc strong { display: block; margin-bottom: 0.4rem; }
+  .toc ol { margin-bottom: 0; }
+  .footer-nav { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.92rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> · Lesson 28</p>
+
+<header class="hero">
+  <span class="lesson-tag">Classic design · Storage &amp; sync</span>
+  <h1>Design a Distributed File Storage System</h1>
+  <p class="whyline">Dropbox, Google Drive, OneDrive: a folder on your laptop that is also a folder on your phone, your coach's tablet, and a server farm — even when the team bus has no signal. This lesson is the design behind that magic: chunked uploads, content-hash deduplication, a metadata service that is the real bottleneck, and the sync protocol that decides whose edit wins when two people change the same file offline.</p>
+  <div class="meta"><span>~25 min read</span><span>2 interactive labs</span><span>4 model answers</span><span>3 drills</span></div>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <strong>How this lesson flows</strong>
+  <ol>
+    <li>What a file storage system is, from zero</li>
+    <li>The running example: Riverside FC's shared drive</li>
+    <li>Requirements and back-of-the-envelope math</li>
+    <li>The two halves: metadata vs blobs</li>
+    <li>Upload path: chunking, hashing, deduplication, resumability</li>
+    <li>Download path and the hot-file problem</li>
+    <li>Sync: the change log, delta sync, and conflict resolution</li>
+    <li>Sharing, permissions, and versioning</li>
+    <li>Failure modes, senior-depth traps, labs, model answers, drills, cheat sheet</li>
+  </ol>
+</nav>
+
+<h2>1. What is a file storage system? Start from zero</h2>
+<p>Picture a filing cabinet in the Riverside FC clubhouse. Every drawer holds folders, every folder holds documents: scouting reports, player contracts, physio notes, match videos. A file storage system is that cabinet, stretched across the internet: you drop a file into a folder on your laptop, and the same file appears in the same folder on your phone, your colleague's tablet, and a web page — without you emailing it to yourself or carrying a USB stick.</p>
+<p>The vocabulary, defined before it is used:</p>
+<ul>
+  <li><strong>File</strong> is a named bag of bytes — a document, a photo, a video. <strong>Folder</strong> (or directory) is a container that groups files and other folders into a tree, like <code>/Scouting/2026/Striker targets.pdf</code>.</li>
+  <li><strong>Blob</strong> (Binary Large Object) is the system's word for "the raw bytes of a file, stored as one anonymous lump." The blob store does not know or care that a blob is a scouting report; it just stores bytes and hands them back when asked by an ID. Lesson 18's video platform used exactly this idea for video files.</li>
+  <li><strong>Metadata</strong> is "data about data": a file's name, size, owner, folder, creation time, modification time, and permissions. Crucially, metadata is <em>not</em> the file's bytes — it is the card in the library catalogue that tells you where the book is. Keeping metadata separate from blobs is the single most important architectural decision in this whole lesson.</li>
+  <li><strong>Chunk</strong> (or block) is a fixed-size slice of a file. Instead of storing a 2&nbsp;GB match video as one lump, the system cuts it into, say, 4&nbsp;MB chunks. Chunking is what makes uploads resumable, deduplication possible, and sync cheap — you will see all three below.</li>
+  <li><strong>Sync</strong> (synchronization) is the act of making two copies of the same folder agree: if a file changed on your laptop, sync copies that change to the server and then down to your phone. <strong>Offline</strong> means a device that cannot reach the server right now; its changes wait in a queue until it reconnects.</li>
+  <li><strong>Version</strong> is one saved state of a file over time. Edit a contract three times and the system can keep all three versions, so a bad edit (or ransomware encrypting everything) can be undone by restoring an older one.</li>
+  <li><strong>Deduplication</strong> (dedup) is storing one physical copy of bytes that many files share. If all 30 squad members have the same 500&nbsp;MB pre-season fitness video, dedup stores it once, not 30 times.</li>
+</ul>
+<div class="callout blue"><strong>The one-sentence framing to carry through this lesson</strong>
+<p>A file storage system is two systems pretending to be one: a small, hot, strongly consistent <em>metadata</em> service that answers "what files exist, where, and who may touch them?" and a huge, dumb, cheap <em>blob</em> store that answers "give me these bytes." Almost every hard problem in the design lives in the first system or in the gap between the two — never in the blob store itself.</p></div>
+
+<h2>2. The running example: Riverside FC's shared drive</h2>
+<p>Keep this picture in mind for every section. Riverside FC runs its whole club off one shared drive:</p>
+<ul>
+  <li><strong>The head coach</strong> edits the team sheet on his laptop on the team bus, with no Wi-Fi. It must sync when the bus reaches the stadium.</li>
+  <li><strong>The chief scout</strong> uploads a 2&nbsp;GB video of a striker target from a hotel with flaky Wi-Fi that drops every few minutes. The upload must survive the drops.</li>
+  <li><strong>Thirty players</strong> each receive the same 500&nbsp;MB pre-season fitness program. The system must not store or transfer it 30 times.</li>
+  <li><strong>The physio and the coach</strong> both edit the same injury report offline, on different devices, before a cup final. Somebody's edit must not silently vanish.</li>
+  <li><strong>The media team</strong> shares one match-highlight clip publicly, and it gets downloaded a million times in an hour after a cup win.</li>
+</ul>
+<p>Five people, five different pressures. Watch how one design answers all five — and where it has to say "we cannot have both, so we choose this."</p>
+
+<h2>3. Requirements and back-of-the-envelope math</h2>
+<p>State the requirements before drawing boxes — interviewers reward this discipline, and it stops you designing for a problem nobody stated.</p>
+<h3>3.1 Functional requirements (what it must do)</h3>
+<ul>
+  <li>Upload, download, rename, move, and delete files and folders, from phone, laptop, and web.</li>
+  <li>Sync automatically across a user's devices, including changes made offline.</li>
+  <li>Share a file or folder with specific people, or by link, with read or edit permission.</li>
+  <li>Keep old versions so a file can be restored after a bad edit or deletion.</li>
+  <li>Show the same folder tree everywhere, quickly, even with thousands of files.</li>
+</ul>
+<h3>3.2 Non-functional requirements (how well it must do it)</h3>
+<ul>
+  <li><strong>Durability:</strong> a stored file must effectively never be lost — the standard target is 11 nines (99.999999999%) per year, which blob stores achieve with replication or erasure coding (defined in section 5.4).</li>
+  <li><strong>Availability:</strong> reading your files should work even if one data centre is down.</li>
+  <li><strong>Consistency, scoped honestly:</strong> metadata (names, folders, permissions) needs strong consistency — two people must not both believe they own the same filename. File <em>contents</em> can be eventually consistent across devices; your phone may show yesterday's team sheet for a minute, but it must never show a half-written one.</li>
+  <li><strong>Scale:</strong> the numbers below. <strong>Latency:</strong> listing a folder and starting a download should feel instant; a full upload may take minutes, but it must never restart from zero.</li>
+</ul>
+<h3>3.3 The math (show your working — interviewers check it)</h3>
+<div class="formula"><code>Users: 10M · files per user: 100 · total files: 1B<br/>
+Average file size: 2 MB → raw bytes: 1B × 2 MB = 2 PB<br/>
+Blob replication ×3 → 6 PB of blob storage<br/>
+Metadata per file ≈ 500 bytes → 1B × 500 B = 500 GB of metadata<br/>
+Daily uploads: 20M files/day → 20M ÷ 86,400 ≈ 230 files/sec average, ~1,150/sec at 5× peak<br/>
+Daily ingest bytes: 20M × 2 MB = 40 TB/day ≈ 460 MB/s average</code></div>
+<p>Read those numbers as design guidance, not trivia. 6&nbsp;PB of blobs is big but cheap and dumb — object storage handles it. 500&nbsp;GB of metadata is <em>small</em> but hot: every list, rename, share, and sync decision touches it, millions of times a second, and it must be consistent. That asymmetry — huge dumb storage, small smart index — is why the architecture splits in two. Also notice the upload rate: ~1,150 files/sec at peak is entirely manageable for a metadata service if each upload is a handful of small database writes, but it would crush a design that did one database transaction per chunk.</p>
+
+<h2>4. The two halves: metadata vs blobs</h2>
+<p>Draw this split first in any design discussion, before any other box:</p>
+<table>
+  <tr><th></th><th>Metadata service</th><th>Blob store</th></tr>
+  <tr><td>Stores</td><td>File records, folder tree, chunk lists, versions, sharing rules</td><td>Raw chunk bytes, addressed by content hash</td></tr>
+  <tr><td>Size</td><td>~500 GB in our math — small</td><td>~6 PB — enormous</td></tr>
+  <tr><td>Access pattern</td><td>Many small reads/writes, latency-sensitive</td><td>Few large reads/writes, throughput-sensitive</td></tr>
+  <tr><td>Consistency</td><td>Strong (names and permissions must agree)</td><td>Immutable chunks: a chunk never changes, so no consistency problem</td></tr>
+  <tr><td>Typical technology</td><td>Sharded relational database (see below)</td><td>Object storage (S3-style) or a distributed filesystem</td></tr>
+</table>
+<p><strong>Sharding the metadata.</strong> One database cannot hold a billion file records with headroom, so shard it — Lesson 6's sharding, applied here. The natural shard key is <code>user_id</code> (or the shared folder's owner): all of one user's files live on one shard, so listing a folder, renaming, and syncing are single-shard operations with no cross-shard transaction. The price: a shared folder's files live on the <em>owner's</em> shard, so a collaborator's access crosses shards on read — acceptable, because reads are cheap and sharing is rarer than listing your own drive. Never shard metadata by <code>file_id</code> hash alone: then one folder listing scatters across every shard (Lesson 6's scatter-gather cost, paid on the most common operation).</p>
+<p><strong>The core tables</strong> (one row per concept, nothing more): <code>users</code>, <code>files</code> (file_id, owner_id, parent_folder_id, name, size, latest version, created/modified time), <code>chunks</code> (file_version_id, chunk index, chunk hash, size), <code>versions</code> (file_id, version number, chunk list pointer, timestamp, editor), <code>shares</code> (file/folder_id, grantee, permission). Notice what is <em>not</em> in the database: bytes. The database says "version 7 of this file is chunks [A, B, C]"; the blob store holds A, B, and C. That indirection is what makes chunk-level deduplication and delta sync possible at all.</p>
+<div class="callout amber"><strong>Why the metadata service is the bottleneck (say this out loud)</strong>
+<p>Every user action — open a folder, rename a file, share a link, sync a change — is a metadata operation, and there are billions of files but only thousands of blob operations per second of real pain. If your design scales the blob store beautifully and leaves metadata on one database, you have scaled the easy half. Interviewers listen for which half you worry about first.</p></div>
+
+<h2>5. Upload path: chunking, hashing, deduplication, resumability</h2>
+<p>Uploading a file is a four-step dance, and the order matters:</p>
+<ol>
+  <li><strong>Chunk on the client.</strong> The client splits the file into fixed-size chunks — 4&nbsp;MB is the industry-standard starting point (Dropbox uses 4&nbsp;MB). Fixed size, not content-defined, keeps the manifest simple: chunk <em>i</em> is bytes <code>[i×4MB, (i+1)×4MB)</code>. The last chunk is smaller, and that is fine.</li>
+  <li><strong>Hash each chunk.</strong> The client computes a <strong>cryptographic hash</strong> of each chunk — SHA-256, a function that turns any bytes into a fixed 256-bit fingerprint. Change one byte of the chunk and the fingerprint changes completely; two different chunks essentially never share a fingerprint (a <strong>collision</strong> — two inputs with the same hash — is so unlikely for SHA-256 that systems treat it as impossible, while still verifying chunk size as a cheap second check).</li>
+  <li><strong>Ask what is missing.</strong> The client sends the list of chunk hashes to the server, which replies with the subset it does <em>not</em> already have. Chunks it already has are skipped entirely — no bytes cross the network.</li>
+  <li><strong>Upload only the missing chunks, in parallel, then commit.</strong> Missing chunks go up over separate connections (parallelism beats one long connection on flaky Wi-Fi), each to blob storage, and the client retries any failed chunk individually. Only when all chunks are stored does the client send a final <em>commit</em>: one metadata write recording the new file version and its chunk list. Until that commit lands, the file's old version is untouched — readers never see a half-uploaded file.</li>
+</ol>
+<p>That one flow buys three features that look like magic:</p>
+<ul>
+  <li><strong>Deduplication, free.</strong> The 30 players' identical fitness video produces identical chunk hashes. The first upload stores the chunks; the other 29 uploads send only hashes, get told "already have them," and commit a metadata record pointing at the same chunks. Storage saved: 29 × 500&nbsp;MB. The same trick works <em>across users</em> (everyone's copy of a popular installer) and <em>within a file</em> (a video with repeated black frames). A <strong>reference count</strong> per chunk — how many file versions point at it — tells garbage collection when a chunk is truly orphaned and safe to delete: only when the count hits zero.</li>
+  <li><strong>Resumability, free.</strong> The scout's hotel Wi-Fi drops mid-upload of a 2&nbsp;GB video. On reconnect, the client re-sends the hash list; the server reports only the chunks still missing. Nothing already uploaded is re-sent. The 4&nbsp;MB chunk size is the trade-off here: smaller chunks mean less re-sent work after a drop, but more manifest entries and more per-chunk request overhead. 4&nbsp;MB is the sweet spot most systems land on.</li>
+  <li><strong>Delta sync, nearly free.</strong> Edit one paragraph of a 100&nbsp;MB scouting document and only the chunks containing changed bytes get new hashes — usually one or two chunks. The sync uploads those chunks only, not the whole file. (A pedantic note for the senior room: fixed-size chunking has a weakness — inserting one byte at the top of a file shifts every later byte, changing <em>every</em> chunk's hash. Content-defined chunking, which cuts at data-dependent boundaries, fixes this; Dropbox's later designs use it. Name it as the refinement, not the starting point.)</li>
+</ul>
+<h3>5.1 A privacy caveat you must name honestly</h3>
+<p>Cross-user deduplication has a sharp edge: if the server tells your client "we already have this chunk," it has confirmed that <em>someone</em> already uploaded those exact bytes — a so-called confirmation-of-file attack. Real systems handle this by only deduplicating within a user or a shared folder by default, requiring proof of full-file knowledge before confirming, or encrypting chunks per user (which kills cross-user dedup entirely — a real trade-off, not a free lunch). Saying "dedup everything globally" without naming this is the beginner answer.</p>
+<h3>5.2 Durability: replication vs erasure coding</h3>
+<p>Blob chunks must survive disk failures. <strong>Replication</strong> (store 3 copies, our math above) is simple and fast to read — any copy serves a download — but costs 3× storage. <strong>Erasure coding</strong> splits a chunk into, say, 10 data fragments plus 4 parity fragments spread across drives, so any 10 of 14 reconstruct it: ~1.4× storage instead of 3×, at the cost of a reconstruction step on read and slower small writes. The standard production answer is both: replicate hot, recently uploaded chunks for fast reads, then erasure-code them into cold storage as they age — the same hot/cold tiering idea as Lesson 18's video storage.</p>
+
+<h2>6. Download path and the hot-file problem</h2>
+<p>Download is the upload path in reverse, with one extra trick. The client asks the metadata service for the file's chunk list, then fetches chunks from the blob store — in parallel, from the nearest replica or through a <strong>CDN</strong> (Content Delivery Network: edge servers near the user that cache popular bytes, from Lesson 3). Chunks are verified against their hashes on arrival, so a corrupted chunk is detected and re-fetched, never silently served.</p>
+<p>Then the cup-final problem: the media team's highlight clip is downloaded a million times in an hour. The metadata lookup is trivial (one chunk list, cached), but a million clients asking the blob store for the same chunks is a <strong>hot key</strong> problem (Lesson 24). The fixes stack: serve through the CDN so edge caches absorb nearly all of it, set long cache lifetimes on immutable chunks (a chunk's bytes never change, so caching it is always safe — immutability is a superpower here), and pre-warm the CDN in the regions where the audience lives before the clip goes public. Immutable chunks plus CDN caching is why viral files are a solved problem for storage systems and a crisis for mutable databases.</p>
+
+<h2>7. Sync: the change log, delta sync, and conflict resolution</h2>
+<p>Sync is where file storage earns its reputation for being hard, because it is a distributed-systems problem wearing a folder icon. The design that works:</p>
+<ul>
+  <li><strong>Every device keeps a local copy and a cursor.</strong> The client stores files locally, watches the local folder for changes (the operating system's file-watcher API reports "file X changed"), and remembers a <strong>cursor</strong> — a bookmark in the server's change log saying "I have applied every change up to here."</li>
+  <li><strong>The server keeps an append-only change log.</strong> Every metadata change (upload, rename, move, delete, share) appends one entry to a per-user (or per-shared-folder) log, each with a monotonically increasing sequence number. Sync is then beautifully simple: the client asks "give me every change after my cursor," applies them in order, and advances its cursor. No scanning the whole tree, no diffing thousands of files — just "what changed since I last asked." This is the same log idea as Lesson 9's message logs, applied to folders.</li>
+  <li><strong>Local changes upload through the chunk flow, then append to the log.</strong> Edit a file offline on the bus: the client chunks it, and when connectivity returns it uploads the changed chunks and commits a new version, which appends to the change log. Other devices pick it up on their next poll (or via a push notification saying "new changes exist" — the poll itself stays cheap because usually the answer is "nothing new").</li>
+  <li><strong>Deletes are tombstones, not erasures.</strong> Deleting a file appends a "deleted" entry rather than removing the record, so a device that was offline for a month does not resurrect a deleted file on reconnect — it reads the tombstone and deletes its local copy. (This is the same tombstone idea as Lesson 16's feed deletes.)</li>
+</ul>
+<h3>7.1 Conflicts: when two offline edits collide</h3>
+<p>Here is the case that separates a good design answer from a hand-wave. The physio edits the injury report on her tablet offline; the coach edits the same report on his laptop offline. Both reconnect. Both uploads are individually valid. The system cannot merge two edited documents it does not understand — it is not a word processor, it stores bytes. So it must pick a resolution policy, and the policy must be stated, not discovered:</p>
+<table>
+  <tr><th>Policy</th><th>What happens</th><th>Cost</th></tr>
+  <tr><td><strong>Last-writer-wins (LWW)</strong></td><td>The later commit overwrites; the earlier edit is kept only as an old version</td><td>Simple, but silently discards someone's work — unacceptable for documents people care about</td></tr>
+  <tr><td><strong>Conflicted copy (Dropbox's answer)</strong></td><td>Both versions are kept: the first to sync keeps the original name, the second becomes <code>injury-report (Coach's conflicted copy).docx</code></td><td>No data loss, but a human must merge them — honest about the limit</td></tr>
+  <tr><td><strong>Operational transformation / CRDTs</strong></td><td>Edits merge automatically at the character or operation level</td><td>Real merging, but only works for editors that understand the document format (Google Docs does this; a generic file store cannot)</td></tr>
+</table>
+<p>The senior line: a generic file store picks conflicted copies, because it cannot merge arbitrary bytes, and it preserves the loser's version in history so nothing is ever truly lost. Rename-vs-edit and delete-vs-edit are the same story with different endings: a rename plus an edit produces the renamed file with both changes' metadata applied in log order; an edit to a file another device deleted produces the file resurrected with a note, or kept in the deleter's trash — pick one, document it, and never silently drop the edit. Lab B below walks through these cases.</p>
+<h3>7.2 Why sync is eventually consistent — and why that is fine</h3>
+<p>Two devices can disagree about a file's contents for minutes (one offline, one updated). That is <strong>eventual consistency</strong> (Lesson 7): given connectivity and no new edits, all copies converge to the same state. It is acceptable here because the alternative — refusing offline edits until the server agrees — would make the product useless on the team bus. The non-negotiable part is what eventual consistency must <em>never</em> do: show a half-written file, lose a committed version, or disagree about permissions. Metadata stays strongly consistent; contents converge. That split is the same consistency scoping from section 3.2, and naming it explicitly is what makes the answer sound senior.</p>
+
+<h2>8. Sharing, permissions, and versioning</h2>
+<ul>
+  <li><strong>Sharing model.</strong> A share is a metadata row, not a copy: granting the physio access to <code>/Medical</code> adds a row to <code>shares</code>, and her client can then list that folder from the owner's shard. Permissions are read or edit, inherited down the folder tree unless overridden, and checked on every metadata operation — never cached in a way that survives a revocation for long. Revocation must propagate fast: a revoked collaborator's next sync must fail, not finish "one last sync."</li>
+  <li><strong>Link sharing.</strong> A public link is a capability: a long, unguessable token in the URL that grants read access to one file without an account. It is convenient and it is a security decision — anyone with the link has the file, and links leak through forwarded emails. Production systems add expiry dates, passwords, and download counts on links, and let owners see who opened what.</li>
+  <li><strong>Versioning and trash.</strong> Every commit creates a new version row pointing at a chunk list; old versions' chunks stay alive while their reference count is above zero. Deleting a file moves it to trash for 30 days (metadata flag + tombstone), then garbage collection sweeps unreferenced chunks. Versioning is also the ransomware answer: encrypting every file just creates new versions, and the owner restores the pre-attack versions in bulk.</li>
+  <li><strong>Encryption.</strong> Chunks are encrypted at rest on the blob store (server-side encryption, keys managed by the provider). End-to-end encryption — where only the user's devices hold the keys — is stronger but kills server-side dedup, preview, and search, because the server sees only ciphertext. Another real trade-off to name rather than gloss over.</li>
+</ul>
+
+<h2>9. Failure modes</h2>
+<ul>
+  <li><strong>Metadata shard down:</strong> that shard's users cannot list, upload, or sync — but downloads of already-known chunk lists can continue from the blob store and CDN. This is why metadata and blob failures are decoupled: losing one half degrades, not destroys, the product.</li>
+  <li><strong>Partial upload, then client never returns:</strong> orphan chunks accumulate. The sweeper deletes chunks with a zero reference count older than a grace period (the grace period matters: a commit in flight may not have bumped the count yet).</li>
+  <li><strong>Clock skew across devices:</strong> never order versions by device wall-clock time — a laptop with a clock set an hour fast would "win" every conflict. Order by the server's log sequence number, assigned at commit time. Device timestamps are display hints, never ordering authority.</li>
+  <li><strong>Small-file overhead:</strong> a million 1&nbsp;KB files each cost a metadata row, a chunk entry, and a blob request — the overhead dwarfs the bytes. Mitigations: pack tiny files' chunks, batch metadata writes, and cache folder listings aggressively. Interviewers love this one because it punishes designs that only think about big videos.</li>
+  <li><strong>Sync loops and rename storms:</strong> renaming a folder with 10,000 files must append one log entry ("folder renamed"), not 10,000 file entries — otherwise every rename re-syncs the world. Folder renames are metadata-only operations; chunks never move.</li>
+</ul>
+
+<h2>10. Senior-depth traps</h2>
+<ul>
+  <li><strong>"Store the file as one blob."</strong> One blob means re-uploading 2&nbsp;GB when one byte changes, no dedup, no resumability, and no delta sync. The moment an interviewer hears "chunk," they are listening for the chunk size trade-off (section 5) and the hash-list protocol — not just the word.</li>
+  <li><strong>"Sync by scanning and comparing whole trees."</strong> That is O(all files) per sync and falls over at a thousand files. The change log plus cursor is O(changes since last sync) — the difference between a product that feels instant and one that spins for minutes on every laptop wake.</li>
+  <li><strong>"Resolve conflicts by last-writer-wins."</strong> Fast, simple, and it deletes someone's cup-final injury report without telling them. A file store that cannot merge bytes must preserve both versions and let a human merge — data loss disguised as simplicity is the most expensive bug in this design.</li>
+</ul>
+
+<div class="lab">
+  <h3>Lab A — The dedup &amp; chunk planner: what chunking actually saves</h3>
+  <p>Model a team drive: a set of files of an average size, some fraction of which are duplicates (the same fitness video handed to every player), cut into chunks of a chosen size. The lab computes raw storage, storage after dedup, bytes saved, and the manifest cost — the number of chunk entries the metadata service must track. Watch the trade-off: smaller chunks deduplicate better (a changed file shares more unchanged chunks) but inflate the manifest.</p>
+  <div class="row">
+    <div><label for="labAFiles">Files on the drive: <span id="labAFilesVal">1000</span></label>
+    <input type="range" id="labAFiles" min="100" max="10000" step="100" value="1000" /></div>
+    <div><label for="labAAvgMB">Average file size (MB): <span id="labAAvgMBVal">50</span></label>
+    <input type="range" id="labAAvgMB" min="1" max="500" value="50" /></div>
+    <div><label for="labADedup">Share of bytes duplicated (%): <span id="labADedupVal">40</span></label>
+    <input type="range" id="labADedup" min="0" max="90" value="40" /></div>
+    <div><label for="labAChunk">Chunk size (MB): <span id="labAChunkVal">4</span></label>
+    <input type="range" id="labAChunk" min="1" max="16" value="4" /></div>
+  </div>
+  <div class="out" id="labAOut"><p>Move a slider to price the drive.</p></div>
+  <p><small>Assumptions, stated so you can argue with them: replication ×3 applied after dedup; manifest entry ≈ 64 bytes per chunk; duplicate bytes are stored once. Real dedup depends on chunk alignment, but the shape of the saving does not.</small></p>
+</div>
+
+<div class="lab">
+  <h3>Lab B — Whose edit survives? A conflict simulator</h3>
+  <p>Two devices edit while offline, then both reconnect. Pick what each device did to the same file. The lab answers with what each device sees after sync, and the rule behind it — the same "state the policy, show the outcome" shape that makes a sync answer sound senior.</p>
+  <div class="row">
+    <div><label for="labBDevA">Device A (coach's laptop)</label>
+    <select id="labBDevA">
+      <option value="edit">Edited the file</option>
+      <option value="rename">Renamed the file</option>
+      <option value="delete">Deleted the file</option>
+    </select></div>
+    <div><label for="labBDevB">Device B (physio's tablet)</label>
+    <select id="labBDevB">
+      <option value="edit">Edited the file</option>
+      <option value="rename">Renamed the file</option>
+      <option value="delete">Deleted the file</option>
+    </select></div>
+  </div>
+  <div class="out" id="labBOut"><p>Pick both actions to see the outcome.</p></div>
+</div>
+
+<h2>11. Questions with full model answers</h2>
+<p>Tap each question to reveal a complete model answer — the kind of answer that names the decision, the reason, and the trade-off, in that order.</p>
+
+<details><summary>Q1. "Design Dropbox." Where do you start?</summary>
+<p><strong>Model answer.</strong> Start with the split: a metadata service and a blob store, because the workload splits that way — a small, hot, strongly consistent index of names, folders, and permissions, and a huge, dumb store of immutable bytes. Then the upload protocol: client-side chunking into 4&nbsp;MB chunks, SHA-256 hashes, a hash-list round trip so already-stored chunks are never re-sent (that is dedup and resumability in one mechanism), parallel chunk uploads, and a single metadata commit that publishes the new version atomically. Then sync: a per-user append-only change log plus client cursors, so sync costs O(changes since last sync), not O(all files), with tombstones for deletes and conflicted copies when two offline edits collide — because a file store cannot merge arbitrary bytes, so it must preserve both versions and let a human merge. Close with the numbers: 1B files at 2&nbsp;MB is 2&nbsp;PB raw, 6&nbsp;PB at 3× replication, and 500&nbsp;GB of metadata — the metadata is the bottleneck to shard, by user_id so a folder listing stays on one shard.</p></details>
+
+<details><summary>Q2. "A user uploads a 2 GB video on flaky Wi-Fi. How does it ever finish?"</summary>
+<p><strong>Model answer.</strong> Three mechanisms, all from chunking. First, the file is cut into 4&nbsp;MB chunks, so a dropped connection loses at most one in-flight chunk, not the whole upload. Second, the client sends the chunk hash list before any bytes, and the server replies with only the missing chunks — on reconnect, already-uploaded chunks are skipped, so progress is never lost. Third, chunks upload in parallel over separate connections, so one stalled connection does not block the rest, and each failed chunk retries independently with backoff. The final commit is a single metadata write that only happens once every chunk is stored, so readers never see a half-uploaded video. If you want the senior extra: content-defined chunking would additionally survive a byte inserted at the top of the file, which fixed-size chunking does not.</p></details>
+
+<details><summary>Q3. "Two users edit the same file offline. Whose edit wins?"</summary>
+<p><strong>Model answer.</strong> Neither, silently. Last-writer-wins would discard one person's work without telling them, which is unacceptable for documents people care about, and a generic file store cannot merge arbitrary bytes the way Google Docs merges text — it does not understand the format. So the system keeps both: the first version to sync keeps the original name, the second becomes a conflicted copy with the editor's name in the filename, and both remain in version history. The user merges by hand. Ordering comes from the server's change-log sequence number, never from device clocks, which can be skewed. The senior line is the honesty: state the policy up front, preserve both versions, and never present data loss as a feature.</p></details>
+
+<details><summary>Q4. "Your storage bill tripled after a viral file. What happened, and what do you change?"</summary>
+<p><strong>Model answer.</strong> Diagnose first: if the bill is storage, someone is storing duplicates — check whether dedup is actually engaged (per-user encryption, if enabled, disables cross-user dedup by design, so a viral file gets stored once per user). If the bill is egress bandwidth, the viral file is being served from the origin instead of the CDN — check cache lifetimes on immutable chunks, which should be long because chunk bytes never change, and pre-warm edge caches for predictable virality like a cup-final clip. If the bill is request count, the culprit is usually small files or per-chunk request overhead — batch metadata writes and pack tiny files. "The file went viral" is not a diagnosis; storage, egress, and request costs have different fixes, and naming which one tripled is the answer.</p></details>
+
+<h2>12. Practice drills (untimed — depth over speed)</h2>
+<div class="callout drill"><strong>Drill 1 — Price the drive.</strong>
+<p>A club drive holds 2,000 files averaging 25&nbsp;MB, with 50% of bytes duplicated across users. At 3× replication, how much blob storage does dedup save versus storing every copy? What does the metadata service store for the chunk lists at 4&nbsp;MB chunks?</p>
+<p><em>Rubric:</em> Raw = 2,000 × 25&nbsp;MB = 50&nbsp;GB; after dedup = 25&nbsp;GB; at 3× replication, 150&nbsp;GB vs 75&nbsp;GB — dedup saves 75&nbsp;GB. Chunk entries ≈ 2,000 × (25 ÷ 4, rounded up to 7) = 14,000 entries ≈ 900&nbsp;KB of manifest at 64 bytes each. Full marks for doing dedup before replication (replication multiplies whatever dedup leaves behind).</p></div>
+<div class="callout drill"><strong>Drill 2 — Write the sync protocol.</strong>
+<p>A laptop wakes after a week offline. It changed 3 files, renamed a folder of 500 files, and deleted 2 files. Sketch the exact sync exchange — what it sends, what the server sends back, and in what order — and say why the folder rename costs one log entry, not 500.</p>
+<p><em>Rubric:</em> Client sends its cursor + local change batch (chunk hash lists for the 3 changed files, one rename entry, 2 tombstones); server replies with all log entries after the cursor, then the client uploads missing chunks and commits. Full marks for: rename is metadata-only (chunks never move), deletes are tombstones (so offline devices do not resurrect files), and ordering by server sequence number, not device clocks.</p></div>
+<div class="callout drill"><strong>Drill 3 — Spot the data-loss bug.</strong>
+<p>A design resolves every sync conflict with last-writer-wins by device timestamp, and deletes files by removing their metadata rows immediately. Name the two data-loss scenarios and the fix for each.</p>
+<p><em>Rubric:</em> (1) LWW by device clock: a device with a fast clock wins every conflict and silently discards the other edit — fix with conflicted copies + server sequence ordering + version history. (2) Immediate row deletion: an offline device that missed the delete resurrects the file on reconnect — fix with tombstones kept until all devices have passed that log position, plus a trash grace period before garbage collection.</p></div>
+
+<h2>13. Cheat sheet: six decisions to carry into the room</h2>
+<ol>
+  <li><strong>Split metadata from blobs.</strong> Small, hot, consistent index; huge, dumb, immutable byte store. Scale the half that hurts — usually metadata.</li>
+  <li><strong>Chunk everything (4&nbsp;MB).</strong> Chunking buys dedup, resumability, and delta sync in one mechanism; the hash-list round trip is the protocol.</li>
+  <li><strong>Commit atomically.</strong> Upload chunks first, publish the version with one metadata write. Readers never see a half-written file.</li>
+  <li><strong>Sync from a log, not a scan.</strong> Append-only change log + client cursor = O(changes since last sync). Tombstones for deletes; server sequence numbers, never device clocks.</li>
+  <li><strong>Never silently discard an edit.</strong> A generic file store cannot merge bytes, so conflicting offline edits become conflicted copies, both preserved.</li>
+  <li><strong>Shard metadata by owner.</strong> One user's folder listing stays on one shard; folder renames are one metadata entry, not one per file.</li>
+</ol>
+<div class="callout"><strong>60-second framing — say this to open the topic</strong>
+<p>"A file storage system is two systems: a small, strongly consistent metadata service that knows every file, folder, and permission, and a huge blob store of immutable chunks. Clients split files into 4&nbsp;MB chunks, hash them, and only upload the chunks the server doesn't already have — that one protocol gives us deduplication, resumable uploads, and delta sync for free. Sync runs off an append-only change log with client cursors, so a device coming back online asks 'what changed since I last asked' instead of scanning the whole drive. And when two offline edits collide, we don't pick a silent winner — a file store can't merge arbitrary bytes, so we keep both as conflicted copies and let a human merge. Metadata is sharded by owner, chunks are cached forever because they never change, and versions are what make ransomware recoverable."</p></div>
+
+<p class="footer-nav"><a href="../index.html">← All lessons</a> · Lesson 28 of the daily series. Next lesson lands tomorrow morning.</p>
+</div>
+<script>
+function labACompute(files, avgMB, dedupPct, chunkMB) {
+  var rawGB = files * avgMB / 1024;
+  var storedGB = rawGB * (1 - dedupPct / 100);
+  var savedGB = rawGB - storedGB;
+  var replicatedGB = storedGB * 3;
+  var chunksPerFile = Math.ceil(avgMB / chunkMB);
+  var totalChunks = files * chunksPerFile;
+  var manifestKB = totalChunks * 64 / 1024;
+  return { rawGB: rawGB, storedGB: storedGB, savedGB: savedGB, replicatedGB: replicatedGB, chunksPerFile: chunksPerFile, totalChunks: totalChunks, manifestKB: manifestKB };
+}
+function fmt(n) { return (Math.round(n * 10) / 10).toLocaleString('en-US'); }
+function labARender(files, avgMB, dedupPct, chunkMB) {
+  var r = labACompute(files, avgMB, dedupPct, chunkMB);
+  var el = document.getElementById('labAOut');
+  if (!el) return r;
+  el.innerHTML = '<p><span class="big">Raw:</span> ' + fmt(r.rawGB) + ' GB · <span class="big">After dedup:</span> ' + fmt(r.storedGB) + ' GB (saved ' + fmt(r.savedGB) + ' GB) · <span class="big">At 3× replication:</span> ' + fmt(r.replicatedGB) + ' GB</p>'
+    + '<p><span class="big">Manifest:</span> ' + r.chunksPerFile + ' chunks/file × ' + files.toLocaleString('en-US') + ' files = ' + r.totalChunks.toLocaleString('en-US') + ' chunk entries ≈ ' + fmt(r.manifestKB) + ' KB of metadata</p>'
+    + '<p>Smaller chunks would deduplicate a little better on edited files but grow this manifest; larger chunks shrink it but waste more re-upload after a dropped connection.</p>';
+  return r;
+}
+var LAB_B = {
+  'edit|edit': { out: 'Both edits are kept. The first to sync keeps the original filename; the second becomes a "conflicted copy" with the editor\u2019s name in the filename.', rule: 'A file store cannot merge arbitrary bytes, so it must preserve both versions and let a human merge — never silently discard an edit.' },
+  'edit|rename': { out: 'One file, renamed, containing the edit. The rename is a metadata-only entry and the edit is a new version; applied in log order they compose cleanly.', rule: 'Renames move metadata, not chunks, so a rename plus an edit is not a conflict — it is two log entries applied in sequence.' },
+  'edit|delete': { out: 'The edit survives as a resurrected file (or lands in the deleter\u2019s trash, depending on the product\u2019s stated policy) — it is never silently dropped.', rule: 'Delete-vs-edit is the hardest case: pick one documented outcome and preserve the edited bytes, because dropping them is data loss.' },
+  'rename|rename': { out: 'Both renames are recorded in log order; the file ends up with the later rename, and the earlier name survives in version history.', rule: 'Renames are cheap metadata entries ordered by the server log — no chunks move and no bytes are at risk.' },
+  'rename|delete': { out: 'The file is deleted under its latest name; the rename entry stays in history so the deletion is auditable.', rule: 'Apply log entries in order: rename first, then the tombstone. A tombstone for the old name alone would leave a ghost file behind.' },
+  'delete|delete': { out: 'Nothing to resolve — the file is deleted, with a single tombstone in the log. Both devices converge on "gone".', rule: 'Idempotent operations compose: deleting twice is the same as deleting once, which is why tombstones work.' }
+};
+function labBKey(a, b) {
+  if (a === b) return a + '|' + b;
+  var order = { edit: 0, rename: 1, delete: 2 };
+  return order[a] < order[b] ? a + '|' + b : b + '|' + a;
+}
+function labBRender(a, b) {
+  var r = LAB_B[labBKey(a, b)];
+  var el = document.getElementById('labBOut');
+  if (!el) return r;
+  if (!r) { el.innerHTML = '<p>Unknown combination.</p>'; return null; }
+  el.innerHTML = '<p><span class="big">After sync:</span> ' + r.out + '</p><p><strong>Rule:</strong> ' + r.rule + '</p>';
+  return r;
+}
+(function init() {
+  function bind(id, valId, fn) {
+    var el = document.getElementById(id);
+    var val = document.getElementById(valId);
+    if (el) {
+      var update = function () { if (val) val.textContent = el.value; fn(); };
+      if (el.addEventListener) el.addEventListener('input', update);
+      update();
+    }
+  }
+  function renderA() {
+    var f = document.getElementById('labAFiles');
+    var m = document.getElementById('labAAvgMB');
+    var d = document.getElementById('labADedup');
+    var c = document.getElementById('labAChunk');
+    if (f && m && d && c) labARender(parseInt(f.value, 10), parseInt(m.value, 10), parseInt(d.value, 10), parseInt(c.value, 10));
+  }
+  bind('labAFiles', 'labAFilesVal', renderA);
+  bind('labAAvgMB', 'labAAvgMBVal', renderA);
+  bind('labADedup', 'labADedupVal', renderA);
+  bind('labAChunk', 'labAChunkVal', renderA);
+  renderA();
+  var a = document.getElementById('labBDevA');
+  var bb = document.getElementById('labBDevB');
+  if (a && bb) {
+    var renderB = function () { labBRender(a.value, bb.value); };
+    if (a.addEventListener) a.addEventListener('change', renderB);
+    if (bb.addEventListener) bb.addEventListener('change', renderB);
+    renderB();
+  }
+})();
+</script>
+</body>
+</html>
