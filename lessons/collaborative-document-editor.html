@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design a Collaborative Document Editor</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .82rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; }
+  pre { background: var(--code); color: var(--code-ink); border-radius: var(--radius); padding: 16px 18px; overflow-x: auto; font-size: .88rem; line-height: 1.55; }
+  pre code { background: none; border: 0; padding: 0; }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  .docline { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1rem; background: var(--code); color: var(--code-ink); border-radius: 10px; padding: 12px 14px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 29</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 29 · Classic design</span>
+  <h1>Design a Collaborative Document Editor</h1>
+  <p class="whyline">The Google Docs problem: several people typing in the same document at once, from different devices, sometimes offline — and everyone must end up with the same text, with nobody's words silently eaten.</p>
+  <div class="meta"><span>Real-time collaboration</span><span>OT &amp; CRDT</span><span>Presence</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a collaborative document editor?</h2>
+<p>Start from zero. A <strong>document</strong> is a sequence of characters (and, in a rich editor, formatting attached to ranges of them). A <strong>collaborative editor</strong> lets several people edit that one sequence at the same time and see each other's changes within a fraction of a second. Each person's copy is a <strong>replica</strong>: a full local copy of the document that they type into immediately, before the server has confirmed anything.</p>
+<p>The whole design exists to solve one sentence: <strong>two people edited the same text at the same time, on different replicas, and the replicas must converge</strong> — end up identical — <strong>without losing either person's intent</strong>. "Intent" is the key word: if you typed a word, it should still be there; if you deleted a word, it should stay deleted. An editor that converges to <em>some</em> shared text by throwing one person's edit away has failed, even though the replicas agree.</p>
+<p>The soccer running example for this lesson: Riverside FC's coaching staff are writing Saturday's match plan together. The head coach is on the team bus adding a paragraph about pressing triggers, the analyst at home is correcting the set-piece notes in the same paragraph, and the scout is offline on a train, rewriting the opposition winger section. When the scout reconnects, all three copies must become one match plan — with the coach's paragraph, the analyst's corrections, and the scout's rewrite all present, in sensible places.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Operation (op):</strong> one small edit, e.g. "insert 'x' at position 7" or "delete the character at position 3". Editors sync ops, not whole documents. <strong>Convergence:</strong> all replicas eventually holding identical content. <strong>Presence:</strong> the live "who is here, where is their cursor" layer — separate from the document itself. <strong>Server sequence number:</strong> a counter the server stamps on each op in the order it receives it, so every client can say "I have seen ops up to #412".</p></div>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first, or the numbers are meaningless. We are building a Docs-style editor: many documents, most edited by one person, a few edited live by a small group, documents up to book length, and offline editing that syncs later.</p>
+<ul>
+<li><strong>Functional:</strong> create/share a document; type with sub-second propagation to collaborators; cursors and names visible live; comments and suggested edits; version history and restore; offline edits that merge on reconnect.</li>
+<li><strong>Non-functional:</strong> convergence guaranteed (no silent loss); typing latency under ~100 ms for collaborators on the same region; availability over strict consistency for the editing path — a partition must not freeze typing; durability: no committed edit lost.</li>
+</ul>
+<p>The sizing, with every step shown. Assume 5 million monthly users, a peak of 20,000 people actively typing at once, an average typing speed of 5 characters per second while typing, and an average of 4 collaborators per live document (so each op is delivered to 3 other people):</p>
+<ul>
+<li><strong>Inbound ops:</strong> 20,000 typists × 5 chars/sec = <strong>100,000 ops/sec</strong> at peak. This is why ops are batched: a client typically sends a small batch every ~50–100 ms rather than one network message per keystroke.</li>
+<li><strong>Outbound deliveries:</strong> 100,000 ops/sec × 3 recipients = <strong>300,000 deliveries/sec</strong>. Fan-out, not typing, is the dominant load — the same shape as the feed fan-out in Lesson 16, but with tiny payloads and a latency budget measured in milliseconds.</li>
+<li><strong>Bandwidth:</strong> at ~100 bytes per op (position, character, author, sequence number), 300,000 × 100 bytes ≈ <strong>30 MB/sec</strong> of broadcast payload. Small. The hard part is latency and ordering, not bytes.</li>
+<li><strong>Storage:</strong> keeping every op forever is a trap (see tombstones below). With hourly snapshots plus an op log since the last snapshot, a 200 KB document edited daily costs roughly one snapshot a day; 50,000 documents edited per day × 200 KB ≈ <strong>10 GB/day</strong> of snapshots before compression and dedup — comfortable for blob storage.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Because the load is many small ops with a tight latency budget, the editing path is a fleet of stateful WebSocket servers holding live documents in memory, with durable storage behind them — not a request/response API that reloads the document from a database per keystroke. That fleet is the architecture; everything else hangs off it.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Walk a keystroke from the coach's laptop to the analyst's screen:</p>
+<ol>
+<li><strong>Client (browser app).</strong> Applies the keystroke to its local replica instantly — this is why typing feels instant even on a slow train. It queues the op to send, renders remote cursors, and keeps a pending queue of ops not yet acknowledged by the server.</li>
+<li><strong>Collaboration server (WebSocket).</strong> One server owns a document's live session (routed by document ID, exactly as chat connections were routed by conversation in Lesson 17). It orders incoming ops, stamps sequence numbers, broadcasts to the other collaborators on that document, and writes ops to durable storage. If this server dies, clients reconnect to another server and replay from the last snapshot plus the op log — the in-memory session is a cache, never the only copy.</li>
+<li><strong>Document service + storage.</strong> Owns permissions ("who may edit this doc"), metadata, snapshots, and the op log. It is off the keystroke path: the collaboration server consults it on open, not per keystroke.</li>
+<li><strong>Presence service.</strong> A separate, ephemeral channel for cursors, selections, and "who is online". Presence is never written to the document's durable log — when you close the tab, your cursor simply expires by timeout (the same TTL idea as chat presence in Lesson 17).</li>
+<li><strong>Comments, suggestions, history.</strong> Separate features layered on the same document model: comments anchor to character ranges, suggestions are ops flagged "proposed, not applied", and version history is a named snapshot plus the ops after it.</li>
+</ol>
+<p>Why a server at all, if clients could just send ops to each other? Because someone must be the ordering authority (in the OT design below), someone must hold the session when a phone sleeps, and someone must enforce permissions before an op reaches other readers. Peer-to-peer sync exists in research systems; production editors put a server in the middle and keep the clients dumb about ordering.</p>
+
+<h2>Why last-write-wins destroys documents</h2>
+<p>The naive design is: each client sends its whole document (or its edit) to the server, and the server keeps whichever arrived last. Watch it fail on the match plan. Base text: <code>Riverside wins</code>. The coach inserts "FC" after "Riverside" (position 9). At the same moment, the analyst deletes "wins". Last-write-wins keeps one whole version: either the coach's "Riverside FC wins" (analyst's deletion lost) or the analyst's "Riverside" (coach's insertion lost). One person's intent is gone, silently, with no error.</p>
+<p>The same failure happens with positions. If both edits are ops, not whole documents, applying them naively in different orders still diverges: the coach's "insert at position 9" applied after the analyst's deletion lands in a document that is now shorter, so the position means something different. <strong>An op's position is only meaningful against the document state its author saw.</strong> Every real solution is a way of making ops mean the same thing on every replica despite different states. There are two families of solution, and the choice between them is the heart of this design.</p>
+
+<h2>Solution 1: Operational Transformation (OT)</h2>
+<p><strong>Operational Transformation</strong> means: when two ops were written against the same document state but arrive in a different order, <em>rewrite one of them</em> so it has the same effect on the new state. The rewriting function is called <strong>transform</strong>. The server is the authority that decides the order: it receives ops, transforms each incoming op against every op it has already accepted since the sender last synced, stamps it with the next sequence number, and broadcasts the transformed op.</p>
+<p>Worked example, step by step. Base: <code>Riverside wins</code>, counted from 0: R(0) i(1) v(2) e(3) r(4) s(5) i(6) d(7) e(8), space(9), w(10) i(11) n(12) s(13). Coach op A: insert "FC " (3 characters) at position 9, i.e. before the space. Analyst op B: delete the "w" at position 10. Suppose the server accepts A first. B was written against the pre-A document, so B's position is stale: after the 3-character insert, everything from position 9 onward shifted right by 3. Transform shifts B's position by +3, from 10 to 13 — and position 13 in "Riverside FC wins" is exactly the "w". Both replicas apply A then transformed-B, ending at "Riverside FC ins", with both intents preserved. Applied naively, B would delete at position 10 in the new text — the "F" — leaving "Riverside C wins".</p>
+<p>The tie-break rule matters: two inserts at the <em>same</em> position — coach inserts "A", analyst inserts "B", both at position 9 — must land in the same order on every replica, or replicas diverge ("AB" vs "BA"). The standard rule is a deterministic tie-break, e.g. lower user ID's character first. It is arbitrary, but it must be identical everywhere; "arbitrary but deterministic" is a phrase worth using in the room.</p>
+<p>OT's costs, stated honestly. The transform function must be correct for every pair of op types (insert-insert, insert-delete, delete-delete, plus formatting ops), and the classic correctness condition — that transforming in different orders still converges — is genuinely hard to prove for rich text. That is why OT systems keep a central server: one ordering authority makes the problem tractable. Google Docs uses OT. OT also gives you the server sequence number for free, which makes catch-up trivial: "send me everything after #412".</p>
+
+<h2>Solution 2: CRDTs — ops that commute</h2>
+<p>A <strong>CRDT</strong> (Conflict-free Replicated Data Type) takes the opposite approach: design the ops so that applying them in <em>any</em> order gives the same result — the ops <strong>commute</strong>, like addition (3 + 5 = 5 + 3). Then no server ordering is needed at all, and offline replicas can sync peer-to-peer.</p>
+<p>How, for text? The trick is to stop addressing characters by position. In a sequence CRDT (the best-known design is RGA, Replicated Growable Array), every character gets a permanent, unique ID when it is created — typically (counter, client ID), where the counter is a <strong>Lamport clock</strong> (a per-client counter that jumps to max(seen) + 1 on receiving a remote op, so IDs are ordered without wall-clock time). A character also records the ID of the character it was inserted after. Insertion is then "insert character X after character Y", not "insert at position 9" — and that statement is true in every replica, regardless of what else was inserted meanwhile. Deletion does not remove the character; it marks it with a <strong>tombstone</strong> ("this character is deleted, keep its ID so other ops that reference it still resolve"). Replicas sort characters by their IDs and links, skip tombstones when rendering, and converge by construction.</p>
+<p>Worked example: coach inserts "F" after "e" (the last letter of "Riverside"); analyst concurrently deletes "w". The delete marks "w" as a tombstone. The insert references "e", which exists everywhere. Both replicas, in either order, render "Riverside F…" with "w" hidden. No transform, no ordering authority, no tie-break meeting.</p>
+<p>CRDT's costs, stated honestly. Tombstones grow forever unless garbage-collected, and safe garbage collection requires knowing every replica has seen the deletion — which is why production CRDT editors take periodic snapshots and drop the op log and tombstones before the snapshot. And a CRDT document is a data structure, not a string: loading a 100,000-character document means materialising 100,000 character-nodes, so implementations keep a compact snapshot representation and only expand the CRDT structure for the editing session. Automerge and Yjs are the libraries to name; Figma's multiplayer and many newer editors use this family.</p>
+
+<table>
+<tr><th></th><th>OT (server-ordered)</th><th>CRDT (commutative)</th></tr>
+<tr><td><strong>Ordering</strong></td><td>Server decides; clients transform against missed ops</td><td>None needed; any order converges</td></tr>
+<tr><td><strong>Offline / peer-to-peer</strong></td><td>Needs reconnect + transform catch-up</td><td>Natural; sync whenever, in any order</td></tr>
+<tr><td><strong>Hard part</strong></td><td>Proving transform correctness for rich text</td><td>Tombstone growth, snapshot compaction, memory per character</td></tr>
+<tr><td><strong>Undo</strong></td><td>Transform the inverse op against everything since</td><td>Inverse op is just another commuting op</td></tr>
+<tr><td><strong>Use when</strong></td><td>Central server is acceptable; rich formatting is central</td><td>Offline-first or serverless matters most</td></tr>
+</table>
+<div class="callout green"><strong>The verdict to give in the room</strong><p>For a Docs-style product with a server anyway, pick OT with a central ordering server, or a CRDT with server relay — and say why: the server already exists for permissions, presence, and durability, so OT's central authority costs nothing extra, while CRDT's offline elegance is worth it only if offline-first is a headline requirement. Naming the trade-off beats naming a winner.</p></div>
+
+<h2>Presence, cursors, and the "who is typing" layer</h2>
+<p>Presence looks trivial and is a distinct system. A cursor is (user, position, selection range, colour) broadcast to collaborators a few times per second, at most — every keystroke does not need a cursor message, and cursor messages are throttled and coalesced (send at most one per ~100 ms, drop intermediate positions). Two rules keep it cheap: presence is <strong>ephemeral</strong> (never persisted, expires on a heartbeat timeout of a few seconds), and it travels on a <strong>separate channel</strong> from ops, so a flood of cursor moves can never delay a keystroke. The soccer analogy: the live TV graphic showing where each player is standing is not the match report — losing a frame of it changes nothing, and you would never let it delay the referee's whistle.</p>
+<p>Cursor positions have the same staleness problem as ops: your cursor at "position 42" means position 42 in <em>your</em> document. Servers therefore broadcast cursor positions together with the sender's last-seen sequence number, and receivers map the position through the ops they have applied since that number — or, more simply, clients render cursors approximately and correct them as ops arrive. A cursor that is one character off for 100 ms is a cosmetic glitch; an op that is one character off is data loss. Spend precision on ops, not cursors.</p>
+
+<h2>Undo, offline editing, and version history</h2>
+<p><strong>Undo in a shared document is not Ctrl+Z on a stack.</strong> A global undo stack would let the coach undo the analyst's last edit — surprising and wrong. The rule: undo inverts <em>your own</em> most recent op, and that inverse op is transformed against everything that happened since (in OT) or issued as a normal op (in CRDT). If the analyst has since typed inside the paragraph you are undoing, the transform shifts your inverse op so it removes only your characters, not theirs.</p>
+<p><strong>Offline editing</strong> is the same machinery with a longer delay. The scout on the train types into the local replica; ops sit in the pending queue; on reconnect, the client sends its queue with its last-seen sequence number, the server transforms (OT) or relays (CRDT) them against everything missed, and broadcasts. Two disciplines make this survivable: the pending queue is persisted to local storage (a closed tab must not lose a train journey's notes), and the client never applies its own pending ops twice — each op carries a client-generated ID, and the server echoes that ID back in its acknowledgement, so a retried send is deduplicated by ID (the idempotency-key pattern from Lessons 17 and 22).</p>
+<p><strong>Version history</strong> falls out of the op log for free: a version is a snapshot plus "replay ops up to sequence number N". Named versions ("Match plan — final, Friday") are just snapshots with a label. Restore is "make a new snapshot from the old state and keep editing from there" — never rewrite history in place, because other clients' sequence numbers would stop meaning anything.</p>
+
+<h2>Hard parts, failure modes, and senior-depth traps</h2>
+<ul>
+<li><strong>The paste bomb.</strong> One user pastes a 10 MB article into a shared doc. As one op per character, that is ~10 million ops — it stalls the broadcast and every collaborator's render. Fix: cap single-op size, split pastes into chunk ops, and apply large inserts as one ranged op ("insert this string at position P"), not one op per character. State the op granularity decision explicitly: character ops are for teaching; production ops carry strings.</li>
+<li><strong>Hot documents.</strong> A cup-final live blog with 10,000 viewers and 50 editors: broadcast fan-out to viewers who never type is wasted work. Fix: viewers subscribe to a throttled snapshot stream (e.g. the document state every 500 ms), editors stay on the op stream — two dissemination tiers, one document.</li>
+<li><strong>Formatting ops are harder than text ops.</strong> Bold on a range that another user just deleted, or two users bolding overlapping ranges, needs attribute transforms (or CRDT maps per character). Say this before being asked: "text convergence is the solved half; attribute convergence is where implementations earn their keep."</li>
+<li><strong>Server crash mid-broadcast.</strong> The server accepted op #413, broadcast it to two of four collaborators, then died. Fix: ops are written to the durable log <em>before</em> broadcast (the persist-before-route rule from Lesson 17), and reconnecting clients ask for "everything after my last sequence number" — the missed op is replayed, never lost.</li>
+<li><strong>Permission change mid-edit.</strong> The coach revokes the scout's edit access while the scout has unsent ops queued. Fix: the server re-checks permission on op receipt, rejects the queued ops, and the client surfaces "you now have view-only access" rather than silently dropping the scout's train notes — and the client keeps a local copy so nothing is lost.</li>
+</ul>
+<div class="callout amber"><strong>Three senior-depth traps</strong><p><strong>1. "OT and CRDT are interchangeable."</strong> They converge, but they differ in where ordering lives, what offline costs, and what breaks at scale — pick by the product's constraints, not by fashion. <strong>2. "Cursors need the same guarantees as text."</strong> They do not; over-engineering presence is how editors get slow. <strong>3. "Version history is a separate feature."</strong> It is the op log with a label — building a second history mechanism duplicates the hardest part of the system.</p></div>
+
+<div class="lab">
+<h3>Lab A — The OT transform playground</h3>
+<p>Pick a clash. Two editors start from the same sentence and edit at the same time. The lab shows what naive "apply both ops as written" produces versus what the transformed op produces. Use the buttons — each one is a preset clash, and the explanation below it names the transform rule used.</p>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<button type="button" data-scenario="ii" class="active">Insert vs insert, same spot</button>
+<button type="button" data-scenario="id">Insert vs delete</button>
+<button type="button" data-scenario="dd">Delete vs delete, overlap</button>
+</div>
+<p id="labA-desc" style="margin-top:14px"></p>
+<div class="docline" id="labA-out"></div>
+<p style="font-size:.92rem;color:var(--muted)">Why this lab matters: it is the whole convergence problem in miniature. If you can explain why the naive result is wrong in each preset, you can explain OT in the room.</p>
+</div>
+
+<div class="lab">
+<h3>Lab B — Collaboration load planner</h3>
+<p>Drag the sliders. The planner computes inbound ops, broadcast deliveries, and broadcast bandwidth from the same formulas as the back-of-the-envelope section — and how many broadcast servers you need if one server handles 20,000 deliveries per second.</p>
+<label>People typing at peak: <span id="typists-val">20,000</span></label>
+<input id="typists" type="range" min="1000" max="100000" step="1000" value="20000" />
+<label>Typing speed (characters per second per typist): <span id="speed-val">5</span></label>
+<input id="speed" type="range" min="1" max="12" step="1" value="5" />
+<label>Collaborators per live document: <span id="collab-val">4</span></label>
+<input id="collab" type="range" min="2" max="20" step="1" value="4" />
+<label>Bytes per op: <span id="bytes-val">100</span></label>
+<input id="bytes" type="range" min="50" max="500" step="50" value="100" />
+<div class="result" id="labB-out"></div>
+<p style="font-size:.92rem;color:var(--muted)">Notice what moves the needle: collaborators per document (fan-out) matters more than typing speed. A document with 20 collaborators costs roughly 6× the broadcast of one with 4, at the same typing rate.</p>
+</div>
+
+<script>
+(function () {
+  var scenarios = {
+    ii: {
+      desc: "Base: “Riverside wins”. Coach inserts “FC ” at position 9; analyst inserts “today ” at the same position 9. Naive order-dependence gives “FC today ” on one replica and “today FC ” on the other. Transform rule: same-position inserts are ordered by a deterministic tie-break (lower user ID first), so every replica renders the same order.",
+      naive: "Replica 1: Riverside FC today wins\nReplica 2: Riverside today FC wins  ← DIVERGED",
+      fixed: "Both replicas: Riverside FC today wins\n(Tie-break: coach's op first, then analyst's — identical everywhere.)"
+    },
+    id: {
+      desc: "Base: “Riverside wins” (w at position 10). Coach inserts “FC ” at position 9; analyst deletes the “w” at position 10. Naive: the delete's position was written against the pre-insert document, so after the 3-character insert shifts everything right, deleting at the old position 10 removes the “F”, not the “w”. Transform rule: shift a delete's position by the length of any insert before it (+3 here: 10 becomes 13).",
+      naive: "Naive (delete at stale position 10): Riverside C wins  ← “F” deleted, “w” survives",
+      fixed: "Transformed (delete shifted 10 → 13): Riverside FC ins  ← “w” deleted, coach's “FC” survives"
+    },
+    dd: {
+      desc: "Base: “Riverside wins” (w=10, i=11, n=12, s=13). Coach deletes “win” (positions 10–12); analyst deletes “ins” (positions 11–13) — the two ranges overlap on “i” and “n”. Naive double-application: after the first delete leaves “Riverside s”, the second range (11–13) points past the end of that shorter text. Transform rule: overlapping deletes are clipped to the characters not already deleted, and a delete of an already-deleted character becomes a no-op.",
+      naive: "Naive (second range applied blindly): out-of-range error, or extra characters lost — result depends on order",
+      fixed: "Transformed (union of both ranges, overlap counted once): Riverside ␣\n(Both intents preserved: all of “wins” is gone — “win” plus “ins” — and nothing else is.)"
+    }
+  };
+  var descEl = document.getElementById('labA-desc');
+  var outEl = document.getElementById('labA-out');
+  function show(key) {
+    var s = scenarios[key];
+    descEl.textContent = s.desc;
+    outEl.textContent = 'NAIVE:\n' + s.naive + '\n\nTRANSFORMED:\n' + s.fixed;
+    var btns = document.querySelectorAll('[data-scenario]');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].getAttribute('data-scenario') === key);
+  }
+  var btns = document.querySelectorAll('[data-scenario]');
+  for (var i = 0; i < btns.length; i++) {
+    (function (b) {
+      b.addEventListener('click', function () { show(b.getAttribute('data-scenario')); });
+    })(btns[i]);
+  }
+  show('ii');
+
+  function fmt(n) { return n.toLocaleString('en-US'); }
+  var typistsEl = document.getElementById('typists'), speedEl = document.getElementById('speed'),
+      collabEl = document.getElementById('collab'), bytesEl = document.getElementById('bytes'),
+      outB = document.getElementById('labB-out');
+  function updateB() {
+    var t = +typistsEl.value, s = +speedEl.value, c = +collabEl.value, b = +bytesEl.value;
+    document.getElementById('typists-val').textContent = fmt(t);
+    document.getElementById('speed-val').textContent = s;
+    document.getElementById('collab-val').textContent = c;
+    document.getElementById('bytes-val').textContent = b;
+    var inbound = t * s, deliveries = inbound * (c - 1), bwMB = deliveries * b / 1e6,
+        servers = Math.ceil(deliveries / 20000);
+    outB.innerHTML = '<b>' + fmt(inbound) + ' ops/sec inbound</b> · <b>' + fmt(deliveries) + ' deliveries/sec</b> · ' +
+      bwMB.toFixed(1) + ' MB/sec broadcast · <b>' + servers + ' broadcast server(s)</b> at 20,000 deliveries/sec each (before redundancy).';
+  }
+  [typistsEl, speedEl, collabEl, bytesEl].forEach(function (el) { el.addEventListener('input', updateB); });
+  updateB();
+})();
+</script>
+
+<h2>Questions with full model answers</h2>
+<p>Tap each question to reveal its model answer. The answers are written as you would say them, not as bullet-point hints.</p>
+<details><summary>1. Two users type in the same document at the same time. How do you stop one edit from overwriting the other?</summary>
+<p>Never sync whole documents, and never let last-write-win. Sync small operations — insert/delete at a position — and make concurrent ops safe. Either give a server the job of ordering ops and transforming each incoming op against the ops accepted since the sender last synced (OT), or design ops that commute so order does not matter (CRDT: characters addressed by permanent IDs, not positions, with tombstones for deletes). In both designs, both users' intents survive, and every replica converges to the same text. Then add the production details: ops carry client IDs so retries are deduplicated, and the server persists an op to the log before broadcasting it, so a crash mid-broadcast cannot lose it.</p></details>
+<details><summary>2. OT or CRDT — which would you pick, and why?</summary>
+<p>It depends on the product's constraints, and I would say so explicitly. If a central server already exists for permissions, presence, and durability — as it does in a Docs-style product — OT is the pragmatic pick: one ordering authority makes transforms tractable, and the server sequence number gives catch-up for free. If offline-first or peer-to-peer sync is a headline requirement, CRDT is the pick, because ops commute and replicas can sync in any order without a server. The honest costs: OT's transform correctness for rich text is hard to prove; CRDT's tombstones grow until snapshot compaction. I would pick OT with a server relay for this product, and name the CRDT alternative and its trigger condition rather than pretending the choice is obvious.</p></details>
+<details><summary>3. A user edits offline for an hour, then reconnects. What happens, step by step?</summary>
+<p>Their client kept typing into its local replica and queued every op in a pending queue persisted to local storage, each op tagged with a client ID and the last server sequence number the client had seen. On reconnect, the client sends the queue plus that sequence number. The server first re-checks that the user still has edit permission, then transforms the queued ops against every op accepted since that sequence number (OT) or relays them as commuting ops (CRDT), stamps them with new sequence numbers, persists them to the op log, and broadcasts them to current collaborators. The client, meanwhile, receives every op it missed, applies them, and clears its pending queue as acknowledgements arrive — matched by client ID, so a retried send after a dropped acknowledgement is deduplicated, not applied twice. If the document changed a lot while offline, the server may send a fresh snapshot plus the ops after it instead of the whole missed log.</p></details>
+<details><summary>4. The document has 10,000 viewers but only 50 editors. How do you keep broadcast costs sane?</summary>
+<p>Split dissemination into two tiers. Editors stay on the live op stream — they need every op within ~100 ms. Viewers subscribe to a throttled snapshot stream, e.g. the rendered document state every 500 ms, served from a cache, not from the collaboration server's broadcast loop. That turns a 10,000-way fan-out per keystroke into 50 deliveries plus a periodic snapshot, and it isolates the editors' latency from viewer churn. The same tiering idea applies to presence: viewers do not need per-keystroke cursor updates, and cursor traffic is throttled and kept on a separate channel so it can never delay an op.</p></details>
+
+<h2>Practice drills (untimed)</h2>
+<p>Work these without a timer. The rubric under each one is what a strong answer covers.</p>
+<ol>
+<li><strong>Transform it by hand.</strong> Base text: "Riverside FC" (F at position 10, C at 11). User A inserts "X" at position 0 (the start). User B deletes the "F" at position 10. The server accepts A's op first. What is B's transformed op, and what is the final text on both replicas? <em>Rubric: B shifts by +1 (A's insert is before B's position), so B deletes at position 11; final text "XRiverside C". A "no shift needed" answer has missed that inserts before a position move it; deleting at the stale position 10 would remove the space instead.</em></li>
+<li><strong>Design the undo.</strong> The coach bolds a paragraph, the analyst then types two words inside it, and the coach presses undo. What must happen, and what must not happen? <em>Rubric: undo inverts only the coach's own op (un-bold), transformed against the analyst's inserts so it touches only the coach's formatting range; it must not remove the analyst's words or undo the analyst's edit. Mentioning the own-op-only rule is the pass mark.</em></li>
+<li><strong>Size the snapshot strategy.</strong> A document has 2 million ops in its log and is opened 500 times a day. Sketch a snapshot policy and justify the interval. <em>Rubric: snapshot at least hourly or every N ops (e.g. 10,000), so an open replays at most one interval of ops instead of 2 million; snapshots are immutable blobs, named versions are labelled snapshots, and the op log before a snapshot can be dropped once every live replica has passed it.</em></li>
+</ol>
+
+<h2>Cheat sheet: six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default answer</th></tr>
+<tr><td>Sync unit</td><td>Small ops (ranged inserts/deletes), never whole documents</td></tr>
+<tr><td>Convergence mechanism</td><td>OT with a server ordering authority; CRDT if offline-first is the headline</td></tr>
+<tr><td>Op addressing</td><td>OT: position + transform. CRDT: permanent character IDs + tombstones</td></tr>
+<tr><td>Presence</td><td>Separate ephemeral channel, throttled, TTL expiry — never in the op log</td></tr>
+<tr><td>Undo</td><td>Own ops only, inverse op transformed against everything since</td></tr>
+<tr><td>History</td><td>Snapshot + op log; named versions are labelled snapshots; restore never rewrites history</td></tr>
+</table>
+
+<h2>60-second framing</h2>
+<p>Use this when asked to design it cold: "Several people editing one document is a convergence problem, not a storage problem. Each client holds a replica and types into it instantly. Clients sync small operations, not documents. Concurrent operations are made safe either by a server that orders them and transforms each one against what it missed — OT — or by operations designed to commute, addressing characters by permanent IDs instead of positions — CRDT. Presence is a separate, throttled, ephemeral channel, because a cursor is not data. Offline edits queue locally with client IDs, transform on reconnect, and are deduplicated on retry. History is a snapshot plus the op log, and restore means branching from an old snapshot, never rewriting the log. The hard parts are formatting convergence, paste bombs, and hot documents — and each gets its own mitigation, not a bigger server."</p>
+
+<div class="foot">
+<p><a href="../index.html">← Back to all lessons</a></p>
+<p>Lesson 29 · Design a Collaborative Document Editor. Next lesson lands tomorrow morning.</p>
+</div>
+</div>
+</body>
+</html>
