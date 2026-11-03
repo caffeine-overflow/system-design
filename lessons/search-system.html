@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design a Search System</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .82rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; }
+  pre { background: var(--code); color: var(--code-ink); border-radius: var(--radius); padding: 16px 18px; overflow-x: auto; font-size: .88rem; line-height: 1.55; }
+  pre code { background: none; border: 0; padding: 0; }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=text] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  .docline { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1rem; background: var(--code); color: var(--code-ink); border-radius: 10px; padding: 12px 14px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 30</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 30 · Classic design</span>
+  <h1>Design a Search System</h1>
+  <p class="whyline">Type a few words, get the right page in under half a second — from billions of documents. The trick is doing almost all the work before the query ever arrives.</p>
+  <div class="meta"><span>Inverted index</span><span>Ranking (TF-IDF / BM25)</span><span>Index sharding</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a search system?</h2>
+<p>Start from zero. A <strong>document</strong> is one searchable item: a web page, a match report, a player profile, a video with a title and description. A <strong>corpus</strong> is the whole collection of documents. A <strong>query</strong> is the few words a user types. A search system answers one question: <em>given this query, which documents in the corpus match best, in what order?</em></p>
+<p>The naive answer — scan every document for the query words on every search — is correct and hopeless. Scanning billions of documents per query would take minutes, and users expect an answer in milliseconds. So a search system splits the work in two: <strong>indexing</strong> (done once, offline, when documents arrive) builds a data structure that makes lookup fast, and <strong>serving</strong> (done per query, online) consults that structure and ranks the matches. Nearly everything in this lesson is a consequence of that split: the index is the product, the query path just reads it well.</p>
+<p>The soccer running example: Riverside FC's archive holds every match report, player profile, press-conference transcript, and training video description the club has ever published — say, tens of thousands of items for the club version, billions for the web version. A fan types "derby hat-trick". The system must find the report where the striker scored three in the derby, not the hundred reports that merely mention derbies, and it must do it before the fan loses patience. Two words carry the whole lesson: <em>find</em> (which documents contain the words) and <em>rank</em> (which of those the fan actually wants).</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Term:</strong> one searchable word after normalisation (lowercased, punctuation stripped, so "Derby!" and "derby" are the same term). <strong>Posting list:</strong> for one term, the list of documents containing it. <strong>Relevance:</strong> how well a document satisfies the query — a score, not a yes/no. <strong>Recall:</strong> of all the documents that should have matched, how many were returned. <strong>Precision:</strong> of the documents returned, how many were actually wanted. A good system trades these off deliberately: returning everything has perfect recall and terrible precision.</p></div>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are building web-style search: a huge corpus that changes constantly, short keyword queries, a ranked top-10 answer, and a latency budget under ~500 ms. We are not building site search over one database, and we are not building an AI chatbot — the ranking here is term-based, which is the foundation every fancier system still stands on.</p>
+<ul>
+<li><strong>Functional:</strong> index new and changed documents within minutes; answer keyword queries with a ranked top 10; support phrase queries ("clean sheet" as a phrase, not two loose words); autocomplete as the user types; spell correction ("hattrick" → "hat-trick").</li>
+<li><strong>Non-functional:</strong> p99 query latency under 500 ms; availability over perfect freshness — a document indexed a minute late is fine, a search page that fails is not; the index must survive individual shard failures without wrong answers.</li>
+</ul>
+<p>The sizing, with every step shown. Assume a corpus of 2 billion documents, an average of 500 distinct terms per document, and 500 million queries per day:</p>
+<ul>
+<li><strong>Index size:</strong> 2 billion documents × 500 terms = <strong>1 trillion postings</strong> (one posting = one term appearing in one document). Compressed with delta encoding and variable-length integers (storing gaps between document IDs instead of the IDs themselves, in a few bytes each), a posting averages ~2 bytes → 1 trillion × 2 bytes = <strong>~2 TB of index</strong>. That is large but entirely manageable once sharded.</li>
+<li><strong>Document store:</strong> 2 billion documents × ~2 KB of extracted text each = <strong>~4 TB</strong> of text to keep for snippets and re-indexing. The raw HTML is far bigger and is not kept hot — the crawler's job (Lesson 20) ends where this lesson's index build begins.</li>
+<li><strong>Query load:</strong> 500 million queries/day ÷ 86,400 seconds = <strong>~5,800 queries/sec average</strong>, and traffic is spiky — a 5× peak factor gives <strong>~29,000 queries/sec at peak</strong>. This is the number the serving tier must be built for, not the average.</li>
+<li><strong>Fan-out:</strong> if the 2 TB index is split into 200 shards of 10 GB each, every query touches all 200 shards (see the sharding section for why) → 29,000 × 200 = <strong>5.8 million shard-queries/sec at peak</strong>. If one shard replica serves 5,000 shard-queries/sec, that is 5.8M ÷ 5,000 = 1,160 replicas ÷ 200 shards ≈ <strong>6 replicas per shard</strong>. The fan-out, not the corpus size, is what sets the serving fleet size.</li>
+<li><strong>Merge cost:</strong> each shard returns its top 10 → 200 × 10 = 2,000 candidates per query for the aggregator to merge and re-rank → 29,000 × 2,000 = <strong>58 million candidates/sec</strong> at peak. The aggregator tier must itself be a fleet, and it does almost no disk work — it merges lists in memory.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Because a query fans out to every shard, query latency is set by the slowest shard, not the average one. Everything in the serving design — timeouts, partial results, replicas, in-memory posting lists — exists to tame that one fact: at 200 shards, even a 1% slow-shard rate would spoil nearly every query without a mitigation.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Two pipelines, kept strictly separate. The <strong>indexing pipeline</strong> runs continuously in the background; the <strong>serving pipeline</strong> answers queries and never waits on the indexing pipeline.</p>
+<ol>
+<li><strong>Crawl and fetch.</strong> The web crawler (Lesson 20) discovers pages and fetches them, respecting politeness and dedup. Its output — raw page content — is the input here.</li>
+<li><strong>Parse and analyse.</strong> Each document is stripped to text, split into terms (<strong>tokenisation</strong>: splitting text into terms, handling hyphens, numbers, and languages), normalised (lowercasing, removing common <strong>stop words</strong> like "the" and "and" that appear everywhere and discriminate nothing), and reduced to stems (<strong>stemming</strong>: "scoring", "scored", and "scores" all become "score", so a query for one matches the others). The output is a list of (term, document) pairs, plus term positions for phrase queries.</li>
+<li><strong>Index build.</strong> Pairs are sorted by term and written as posting lists into immutable <strong>segments</strong> (chunks of index, each covering a batch of documents). New segments are added as documents arrive; old segments are periodically merged (<strong>compaction</strong>, the same idea as LSM compaction in Lesson 8), which is how updated documents replace stale ones — the new version wins, the old posting is dropped at merge time. This segmented design is what makes near-real-time indexing possible: a fresh document is searchable as soon as its small new segment is published, minutes after arrival, without rebuilding a 2 TB index.</li>
+<li><strong>Serve.</strong> A query arrives at an <strong>aggregator</strong> (also called a broker or scatter-gather coordinator). The aggregator parses the query, sends it to every shard, collects each shard's top 10, merges them into a global top 10, fetches snippets from the document store, and returns the page. The aggregator holds no index data itself, so it scales by adding more aggregators.</li>
+<li><strong>Auxiliary services.</strong> Autocomplete, spell correction, and query caching sit beside the main path (see the query-path section) — they answer before the fan-out or avoid it entirely.</li>
+</ol>
+<p>Why not keep the index in a database and query it with SQL? Because a posting-list lookup — "give me the documents for these three terms, intersected, ranked" — is a workload databases are not shaped for: it needs the posting lists in memory, compressed, sharded by document, and scanned in a tight loop. A search engine is a specialised database, and the specialisation is the whole point.</p>
+
+<h2>The inverted index, from zero</h2>
+<p>An <strong>inverted index</strong> is a map from term to posting list — the inverse of a document, which maps a document to its terms. "Inverted" because you look things up backwards: instead of asking each document "do you contain this word?", you ask the word "which documents contain you?"</p>
+<p>Worked example, tiny corpus. Three documents, already tokenised:</p>
+<pre><code>Doc 1: riverside striker scores derby hat trick
+Doc 2: derby day riverside wins derby
+Doc 3: striker transfer riverside signs striker</code></pre>
+<p>The inverted index (posting lists show document IDs; a real one also stores term frequency and positions):</p>
+<pre><code>riverside → [1, 2, 3]     derby → [1, 2]     striker → [1, 3]
+scores    → [1]            hat   → [1]      trick → [1]
+day       → [2]            wins  → [2]      transfer → [3]  signs → [3]</code></pre>
+<p>Now answer the query "derby hat trick". Look up three posting lists — derby [1, 2], hat [1], trick [1] — and <strong>intersect</strong> them (keep only documents present in all lists): [1]. One document, no scan. For an OR query ("derby OR striker"), <strong>union</strong> the lists: [1, 2, 3]. Intersection is done by walking the sorted lists together with two pointers — linear in the size of the lists, and fast in practice because lists are compressed and, crucially, because the query planner starts with the <em>shortest</em> list: "hat" has 1 document, so the intersection is decided after checking at most that one document against the other lists. <strong>Start from the rarest term</strong> is a rule worth memorising: it is why rare words make queries fast and common words ("riverside" in a club archive, "the" anywhere) make them slow.</p>
+<p>Phrase queries need one more ingredient: term <strong>positions</strong>. "clean sheet" as a phrase means "clean" immediately followed by "sheet" in the same document — the posting list must store, per document, the positions where the term occurs, so the engine can check that position(clean) + 1 = position(sheet). Positions roughly double index size, which is why some systems store them only for the most useful terms, or in a separate positional index consulted only for phrase queries. The trade-off is explicit: phrase support costs storage; without positions, every multi-word query is a bag of words and "sheet clean" matches "clean sheet".</p>
+<div class="callout green"><strong>Why the index is sorted by term, not by document</strong><p>A document store answers "what is in document 42?" An index answers "which documents contain term X?" — the opposite question, so it needs the opposite layout. Every search system, from a library catalogue to a web engine, is this one inversion plus ranking. If you remember one sentence from this lesson, make it this one.</p></div>
+
+<h2>Ranking: from matching to ordering</h2>
+<p>Matching finds candidates; ranking orders them. A query that matches a million documents is useless unless the right ten come first. The classical foundation is <strong>TF-IDF</strong> (term frequency × inverse document frequency), and its grown-up successor is <strong>BM25</strong>. Both rest on two intuitions, and you should be able to state both without notes.</p>
+<p><strong>Intuition 1 — frequency in the document (TF).</strong> A document that mentions "hat-trick" five times is more about hat-tricks than one that mentions it once. But the fifth mention matters less than the first: relevance saturates. Counting raw mentions over-rewards long, repetitive documents, so real formulas use a saturating curve, and they also normalise by document length — a 50-word match report mentioning "derby" twice is more about the derby than a 5,000-word season review mentioning it twice.</p>
+<p><strong>Intuition 2 — rarity in the corpus (IDF).</strong> A term that appears in nearly every document ("riverside" in a club archive) tells you almost nothing; a term that appears in few documents ("hat-trick") tells you a lot. IDF formalises that: IDF(term) = log(N ÷ df), where N is the number of documents and df is how many contain the term. Rare term → large IDF → heavy weight. Common term → IDF near zero → almost no weight.</p>
+<p>Worked TF-IDF example, with the arithmetic shown. Corpus: 4 documents. Term "derby" appears in 3 of them, so IDF(derby) = log₁₀(4 ÷ 3) ≈ 0.125. Term "hat-trick" appears in 1, so IDF(hat-trick) = log₁₀(4 ÷ 1) ≈ 0.602 — nearly five times the weight, because it is five times rarer in log terms. Query: "derby hat-trick". Document A mentions derby once and hat-trick twice: score = 1 × 0.125 + 2 × 0.602 = <strong>1.329</strong>. Document B mentions derby three times and no hat-trick: score = 3 × 0.125 = <strong>0.375</strong>. Document A wins by a wide margin even though B mentions "derby" more — because the rare term dominates, as it should. That is the whole TF-IDF idea in one calculation: <em>count what matters, weight it by how surprising it is</em>.</p>
+<p><strong>BM25</strong> is TF-IDF with the two corrections above built in properly: TF saturates (the 20th mention adds almost nothing) and document length is normalised (long documents are not rewarded just for being long). It has two tunable constants, k₁ (how fast TF saturates, typically ~1.2) and b (how strongly length normalisation applies, typically ~0.75) — naming those defaults in the room signals you have actually used it, not just read about it. On top of BM25, production systems layer <strong>PageRank</strong> (a page linked to by many important pages is probably important — links as votes, computed over the whole web graph offline) and, later, <strong>learning to rank</strong> (a model trained on click data that combines BM25, PageRank, freshness, and hundreds of other signals). The order matters: BM25 retrieves and roughly ranks; the expensive model re-ranks only the top few hundred. Never run the expensive model over the whole corpus.</p>
+<p>Two ranking cautions. First, <strong>freshness</strong>: for "Riverside injury news", yesterday's report beats a perfect 2019 match — so a freshness signal (recency decay) is blended in for news-like queries, and not for evergreen ones ("rules of offside"). Detecting which kind of query it is — <strong>query intent</strong> — is itself a classifier. Second, <strong>clicks are not truth</strong>: users click the top result because it is on top (position bias), so training on raw clicks teaches the model to reproduce the old ranking. Production systems correct for position bias or use human-rated relevance judgements. Saying "we cannot just train on clicks" is a senior sentence.</p>
+
+<h2>Sharding the index: by document, not by term</h2>
+<p>There are two ways to split a 2 TB index across machines, and the choice defines the serving path:</p>
+<table>
+<tr><th></th><th>Sharding by term</th><th>Sharding by document</th></tr>
+<tr><td><strong>Split rule</strong></td><td>Terms A–M on one set of machines, N–Z on another</td><td>Documents 1–10M on shard 1, 10M–20M on shard 2, and so on</td></tr>
+<tr><td><strong>A query touches</strong></td><td>Only the shards holding its terms — a few machines</td><td>Every shard — all 200 of them</td></tr>
+<tr><td><strong>Fatal flaw</strong></td><td>Hot terms: "derby" on cup-final day hammers one shard while the rest idle, and a multi-term query must merge partial scores across machines that each saw only part of the query</td><td>Tail latency: the query waits for the slowest of 200 shards</td></tr>
+<tr><td><strong>Verdict</strong></td><td>Almost never used at scale</td><td>The standard choice — and the tail-latency problem is solved, not avoided</td></tr>
+</table>
+<p>Document sharding wins because it balances load by construction: every shard holds a similar slice of the corpus, every query spreads evenly, and each shard can compute a complete, correctly normalised score for its documents (it knows its own document frequencies; global IDF is replicated to every shard as a small shared table). The price — tail latency — is paid with four mitigations, and you should name all four: (1) <strong>replication</strong>, so a slow shard's replica can answer instead; (2) <strong>hedged requests</strong>, re-sending to a replica if the first has not answered in, say, 50 ms, and taking whichever returns first; (3) <strong>timeouts with partial results</strong>, returning the best-so-far top 10 after ~400 ms rather than failing the whole query because one shard of 200 is stuck; and (4) keeping posting lists <strong>in memory</strong> on the shard, so a lookup never waits on disk. A search page missing one shard's candidates is still a good page; a search page that times out is a failed query. That judgement — partial beats failed — is the senior call.</p>
+<p>Index updates ride on the segment design from the architecture section: new documents land in fresh segments on every shard, and a shard's replica set must all receive the segment before it serves traffic — otherwise two replicas of the same shard would return different top 10s for the same query, and users would see results flicker on refresh. Replication of index segments is therefore done by a controlled rollout (publish segment, wait for all replicas to load it, then flip), not by casual background copying. Stale-by-minutes is acceptable; inconsistent-between-replicas is not.</p>
+
+<h2>The query path, step by step</h2>
+<p>Walk "derby hat-trick" from keyboard to results page:</p>
+<ol>
+<li><strong>Autocomplete (before the search).</strong> As each character is typed, a <strong>trie</strong> (a tree where each node is a character and each path from the root is a prefix — "d" → "de" → "der" → "derby") suggests completions, ranked by past query popularity. The trie is small, held in memory, and updated from query logs — it answers in single-digit milliseconds and never touches the index. This is also why suggestions appear before you finish typing: the system is not searching, it is completing a prefix.</li>
+<li><strong>Query parsing and correction.</strong> The raw query is tokenised the same way documents were (same normalisation, or "hattrick" would never match "hat-trick"). A spell corrector — built from the corpus vocabulary and past queries, using edit distance ("how many single-character changes to reach a known term?") — suggests "hat-trick" for "hattrick" and, if confidence is high, silently searches the corrected form while showing "showing results for hat-trick". Synonyms ("striker" ≈ "forward") are expanded here, cautiously: over-expansion destroys precision, so expansions are weighted lower than the original terms.</li>
+<li><strong>Cache check.</strong> Popular queries ("Riverside fixtures") are served from a <strong>query-result cache</strong> in front of the fan-out — the same cache-aside idea from Lesson 3, keyed by the normalised query string. Cache hit rates are high because query popularity is extremely skewed: a small fraction of distinct queries accounts for most traffic. The cache is what makes the 5× peak survivable. Posting-list caches (caching the lists for hot terms) sit one level deeper, on the shards.</li>
+<li><strong>Fan-out, merge, snippets.</strong> On a cache miss, the aggregator fans out to all shards with a deadline, merges each shard's top 10, re-ranks globally, and fetches the snippet text for the top 10 from the document store. Snippets are generated by finding the query terms in the document and showing the surrounding words with the terms highlighted — which is why the document store keeps the original text, not just the index.</li>
+<li><strong>Logging for the next query.</strong> Every query, its results, and its clicks (with position-bias caveats) are logged to the analytics pipeline that retrains ranking, refreshes autocomplete popularity, and feeds the spell corrector. Search improves because yesterday's queries teach today's ranking — the feedback loop is part of the design, not an afterthought.</li>
+</ol>
+
+<h2>Hard parts, failure modes, and senior-depth traps</h2>
+<ul>
+<li><strong>Hot terms on a hot day.</strong> Cup-final day: every query contains "derby". The posting list for "derby" is enormous, and every shard scans it. Fixes: cache the posting list in memory (it is read far more than written), start intersections from the rarest term so the huge list is consulted last and pruned early, and cap the work with early termination — once a shard has found enough high-scoring candidates, it can stop scanning (the <strong>WAND</strong> family of algorithms: skip documents that cannot beat the current 10th-best score). Stating "we prune with a score threshold, not just intersect fully" is a strong senior detail.</li>
+<li><strong>Duplicate and near-duplicate content.</strong> The same match report syndicated to fifty sites would flood the top 10 with identical text. Fix: near-dup detection at index time (shingles and MinHash, from Lesson 20's dedup section), keeping one canonical copy and clustering the rest under "similar pages". Duplicates are an index-build problem, not a ranking problem — solve them before they reach the ranking stage.</li>
+<li><strong>Spam and SEO gaming.</strong> Pages stuffed with "derby hat-trick" repeated a hundred times would win naive TF scoring. Fixes: TF saturation in BM25 already blunts repetition, link-based signals (PageRank) cannot be faked by one page alone, and a spam classifier demotes or drops known gaming patterns. Ranking is adversarial: whatever signal you publish, someone optimises against it, so no single signal is ever trusted alone.</li>
+<li><strong>Stale results after a fast-moving event.</strong> A transfer is announced; fans search the player's name and get yesterday's speculation. Fixes: freshness-aware ranking for news-like queries, a fast indexing lane for high-churn sources (segments published in minutes, not hours), and cache invalidation keyed to trending terms — the query-result cache must not serve yesterday's top 10 for today's news. The cache TTL for a trending query is minutes; for an evergreen query, hours.</li>
+<li><strong>Multilingual and tokenisation traps.</strong> Languages without spaces between words, compound words, and names with accents all break naive tokenisation ("hat-trick" vs "hattrick" vs "hat trick" are three tokenisations of one idea). Fix: language detection per document, language-specific analysers, and normalisation (accent folding) applied identically at index time and query time. The rule: <em>index-time and query-time analysis must be the same function</em> — any mismatch is a class of bug, not a single bug.</li>
+</ul>
+<div class="callout amber"><strong>Three senior-depth traps</strong><p><strong>1. "Sharding by term is more efficient because a query touches fewer machines."</strong> It touches fewer machines and still loses: hot terms unbalance it, and partial scores across term shards cannot be merged correctly without extra coordination. Document sharding plus tail-latency mitigations is the standard answer — name the mitigations, don't just name the shard key. <strong>2. "TF-IDF is the ranking."</strong> It is the foundation, not the system: BM25 corrects its two flaws (saturation, length), and production ranking re-ranks BM25's top few hundred with a learned model. Quoting BM25's defaults (k₁ ≈ 1.2, b ≈ 0.75) beats reciting its formula. <strong>3. "Caching the top 10 is enough."</strong> The query cache helps only popular queries; the long tail of rare queries — most distinct queries, a minority of traffic — still fans out. Size the shard fleet for the tail, and let the cache absorb the head.</p></div>
+
+<div class="lab">
+<h3>Lab A — The inverted-index playground</h3>
+<p>A six-document Riverside archive, tokenised. Type a query (or tap a preset) and the lab builds the posting lists, intersects them, and ranks the matches with the TF-IDF rule from the ranking section: score = sum over query terms of (mentions in the document × log₁₀(6 ÷ documents containing the term)). Watch how a rare term outranks a common one.</p>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+<button type="button" data-query="derby hat trick" class="active">derby hat trick</button>
+<button type="button" data-query="striker transfer">striker transfer</button>
+<button type="button" data-query="goalkeeper clean sheet">goalkeeper clean sheet</button>
+</div>
+<input id="labA-q" type="text" value="derby hat trick" />
+<div style="margin-top:12px"><button type="button" id="labA-go">Rank it</button></div>
+<p id="labA-post" style="margin-top:14px"></p>
+<div class="docline" id="labA-out"></div>
+<p style="font-size:.92rem;color:var(--muted)">Try "derby" alone: four documents match, all with small scores, because "derby" is common here (IDF ≈ 0.176). Then try "derby hat trick" and watch document 1 win on the rare terms, not on "derby" mentions.</p>
+</div>
+
+<div class="lab">
+<h3>Lab B — Shard and fleet planner</h3>
+<p>Drag the sliders. The planner uses the same formulas as the back-of-the-envelope section: index size from postings, shard count from shard size, fan-out from peak queries, and replicas per shard from per-replica capacity.</p>
+<label>Corpus size (billions of documents): <span id="docsB-val">2</span></label>
+<input id="docsB" type="range" min="0.5" max="10" step="0.5" value="2" />
+<label>Distinct terms per document: <span id="termsB-val">500</span></label>
+<input id="termsB" type="range" min="100" max="1000" step="50" value="500" />
+<label>Bytes per posting (compressed): <span id="bytesB-val">2</span></label>
+<input id="bytesB" type="range" min="1" max="4" step="1" value="2" />
+<label>Index per shard (GB): <span id="shardGB-val">10</span></label>
+<input id="shardGB" type="range" min="5" max="50" step="5" value="10" />
+<label>Peak queries per second: <span id="qpsB-val">29,000</span></label>
+<input id="qpsB" type="range" min="1000" max="50000" step="1000" value="29000" />
+<label>Shard-queries per second per replica: <span id="perB-val">5,000</span></label>
+<input id="perB" type="range" min="1000" max="10000" step="1000" value="5000" />
+<div class="result" id="labB-out"></div>
+<p style="font-size:.92rem;color:var(--muted)">Notice what moves the needle: peak queries and shard count multiply (fan-out), so doubling either roughly doubles the fleet. Corpus size alone only grows the index — it is the fan-out that sets the serving cost.</p>
+</div>
+
+<script>
+(function () {
+  function fmt(n) { return n.toLocaleString('en-US'); }
+  var docs = [
+    { id: 1, text: 'Riverside striker scores a derby hat trick' },
+    { id: 2, text: 'Derby day: Riverside wins the derby' },
+    { id: 3, text: 'Striker transfer news: Riverside signs a new striker' },
+    { id: 4, text: 'Goalkeeper keeps a clean sheet in the derby' },
+    { id: 5, text: 'Riverside academy striker scores twice' },
+    { id: 6, text: 'Match report: derby draw, late goal' }
+  ];
+  function tokenize(s) { return s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean); }
+  function rank(query) {
+    var terms = tokenize(query), df = {}, counts = {};
+    docs.forEach(function (d) {
+      var toks = tokenize(d.text), seen = {};
+      counts[d.id] = {};
+      toks.forEach(function (t) { counts[d.id][t] = (counts[d.id][t] || 0) + 1; seen[t] = true; });
+      Object.keys(seen).forEach(function (t) { df[t] = (df[t] || 0) + 1; });
+    });
+    var post = terms.map(function (t) {
+      var list = docs.filter(function (d) { return counts[d.id][t]; }).map(function (d) { return d.id; });
+      return t + ' → [' + list.join(', ') + '] (in ' + list.length + ' of 6 docs, IDF ' + (list.length ? (Math.log10(6 / list.length)).toFixed(3) : '—') + ')';
+    });
+    var scored = docs.map(function (d) {
+      var score = 0, matched = 0;
+      terms.forEach(function (t) {
+        if (counts[d.id][t]) { matched++; score += counts[d.id][t] * Math.log10(6 / df[t]); }
+      });
+      return { id: d.id, text: d.text, score: score, matched: matched };
+    }).filter(function (r) { return r.matched > 0; }).sort(function (a, b) { return b.score - a.score || a.id - b.id; });
+    return { post: post, scored: scored, terms: terms };
+  }
+  var qEl = document.getElementById('labA-q'), postEl = document.getElementById('labA-post'), outEl = document.getElementById('labA-out');
+  function showA() {
+    var r = rank(qEl.value);
+    postEl.textContent = 'Posting lists: ' + (r.post.length ? r.post.join(' · ') : '(no terms)');
+    outEl.textContent = r.scored.length ? r.scored.map(function (s, i) {
+      return (i + 1) + '. Doc ' + s.id + ' — score ' + s.score.toFixed(3) + ' — ' + s.text;
+    }).join('\n') : 'No document contains any query term.';
+    var btns = document.querySelectorAll('[data-query]');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].getAttribute('data-query') === qEl.value.trim().toLowerCase());
+  }
+  document.getElementById('labA-go').addEventListener('click', showA);
+  var btns = document.querySelectorAll('[data-query]');
+  for (var i = 0; i < btns.length; i++) {
+    (function (b) { b.addEventListener('click', function () { qEl.value = b.getAttribute('data-query'); showA(); }); })(btns[i]);
+  }
+  showA();
+
+  var docsB = document.getElementById('docsB'), termsB = document.getElementById('termsB'), bytesB = document.getElementById('bytesB'),
+      shardGB = document.getElementById('shardGB'), qpsB = document.getElementById('qpsB'), perB = document.getElementById('perB'),
+      outB = document.getElementById('labB-out');
+  function updateB() {
+    var db = +docsB.value, tm = +termsB.value, by = +bytesB.value, sg = +shardGB.value, qp = +qpsB.value, pr = +perB.value;
+    document.getElementById('docsB-val').textContent = db;
+    document.getElementById('termsB-val').textContent = fmt(tm);
+    document.getElementById('bytesB-val').textContent = by;
+    document.getElementById('shardGB-val').textContent = sg;
+    document.getElementById('qpsB-val').textContent = fmt(qp);
+    document.getElementById('perB-val').textContent = fmt(pr);
+    var postings = db * 1e9 * tm, indexTB = postings * by / 1e12, shards = Math.ceil(indexTB * 1000 / sg),
+        shardQPS = qp * shards, perShard = Math.ceil(shardQPS / pr / shards), total = perShard * shards,
+        candidates = qp * shards * 10;
+    outB.innerHTML = '<b>' + fmt(postings) + ' postings</b> · <b>' + indexTB.toFixed(2) + ' TB index</b> · <b>' + shards + ' shards</b> · ' +
+      fmt(shardQPS) + ' shard-queries/sec at peak · <b>' + perShard + ' replica(s) per shard</b> · <b>' + fmt(total) + ' shard replicas total</b> · ' +
+      fmt(candidates) + ' candidates/sec merged (top 10 per shard).';
+  }
+  [docsB, termsB, bytesB, shardGB, qpsB, perB].forEach(function (el) { el.addEventListener('input', updateB); });
+  updateB();
+})();
+</script>
+
+<h2>Questions with full model answers</h2>
+<p>Tap each question to reveal its model answer. The answers are written as you would say them, not as bullet-point hints.</p>
+<details><summary>1. A user types a query and expects an answer in under half a second from billions of documents. How is that possible?</summary>
+<p>Because almost all the work happened before the query arrived. At index time, documents are tokenised and stored in an inverted index — a map from each term to the list of documents containing it — so a query never scans documents, it looks up a few posting lists and intersects them, starting from the rarest term. The index is sharded by document across hundreds of machines with posting lists held in memory, so each shard answers in milliseconds; an aggregator fans the query out to all shards, merges each shard's top 10, and returns the global top 10. Ranking is precomputed as far as possible — BM25 scores from term statistics, PageRank from the link graph — so the per-query work is lookup, intersection, and a merge, not analysis. The half second is a budget for fan-out and merging, not for thinking.</p></details>
+<details><summary>2. Would you shard the index by term or by document, and why?</summary>
+<p>By document. Term sharding looks efficient — a query touches only the shards holding its terms — but it fails twice: a popular term on a big day hammers one shard while the rest idle, and a multi-term query's scores are computed from partial information spread across machines, so merging them correctly needs extra coordination. Document sharding spreads every query evenly across all shards and lets each shard compute complete, correctly normalised scores, because global term statistics are replicated to every shard as a small table. The real cost of document sharding is tail latency — the query waits for the slowest of hundreds of shards — and that is a solved problem: replicate shards, hedge slow requests to a second replica, time out with partial results rather than failing, and keep posting lists in memory. Partial results beat failed queries.</p></details>
+<details><summary>3. Why does a rare word matter more than a common word in ranking?</summary>
+<p>Because rarity is information. If a word appears in nearly every document, knowing a document contains it tells you almost nothing about whether it is the document the user wants; if a word appears in few documents, its presence is a strong signal. TF-IDF makes that precise: IDF = log(N ÷ df), so a term in 1 of 4 documents scores log₁₀(4) ≈ 0.602 while a term in 3 of 4 scores log₁₀(4 ÷ 3) ≈ 0.125. In the worked example, a document mentioning "derby" three times scores 0.375 while a document mentioning "derby" once and "hat-trick" twice scores 1.329 — the rare term dominates, correctly. BM25 keeps this idea and fixes TF-IDF's two flaws: term frequency saturates so repetition stops paying, and scores are normalised by document length so long documents are not rewarded just for being long.</p></details>
+<details><summary>4. Search results for breaking news go stale within minutes. What do you change?</summary>
+<p>Three things, in order. First, a fast indexing lane: new documents from high-churn sources land in fresh index segments within minutes, because segments are immutable and publishable independently — you never rebuild the whole index to add a document. Second, freshness-aware ranking: for news-like queries, blend a recency decay into the score so today's report outranks a perfect 2019 match, while evergreen queries keep their time-independent ranking — which means detecting query intent, not applying freshness blindly. Third, cache discipline: the query-result cache must use short TTLs for trending terms, or it will keep serving yesterday's top 10 no matter how fresh the index is. Stale-by-minutes is a design parameter you set deliberately per query class; stale-because-the-cache-says-so is a bug.</p></details>
+
+<h2>Practice drills (untimed)</h2>
+<p>Work these without a timer. The rubric under each one is what a strong answer covers.</p>
+<ol>
+<li><strong>Intersect by hand.</strong> Posting lists: riverside → [1, 2, 3, 4, 5, 6], derby → [1, 2, 4, 6], hat → [1], trick → [1]. For the query "derby hat trick", which list do you start from, what is the intersection, and how many documents do you actually check? <em>Rubric: start from the shortest list ("hat", 1 document); intersection is [1]; you check at most that one document against the other lists, not all six. Starting from "riverside" or scanning all lists is the miss — the rule is rarest term first.</em></li>
+<li><strong>Score it.</strong> Corpus: 10 documents. Term "striker" appears in 5, term "bicycle" (as in bicycle kick) in 1. Document A mentions striker twice; document B mentions bicycle once. Using IDF = log₁₀(N ÷ df) and score = mentions × IDF, which document ranks higher for the query "striker bicycle", and by how much? <em>Rubric: IDF(striker) = log₁₀(2) ≈ 0.301, so A scores 2 × 0.301 = 0.602; IDF(bicycle) = log₁₀(10) = 1.0, so B scores 1.0; B wins despite one mention vs two, because rarity dominates. Any answer ranking A first has missed the IDF idea.</em></li>
+<li><strong>Size the fleet.</strong> A corpus of 1 billion documents, 400 distinct terms each, 2 bytes per posting, 20 GB shards, 10,000 peak queries/sec, one replica serving 5,000 shard-queries/sec. How many shards, and how many replicas per shard? <em>Rubric: postings = 4 × 10¹¹, index = 800 GB, shards = 800 ÷ 20 = 40; fan-out = 10,000 × 40 = 400,000 shard-queries/sec; replicas per shard = ceil(400,000 ÷ 5,000 ÷ 40) = 2. A missing fan-out step (sizing for queries/sec instead of shard-queries/sec) is the classic error.</em></li>
+</ol>
+
+<h2>Cheat sheet: six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default answer</th></tr>
+<tr><td>Lookup structure</td><td>Inverted index: term → posting list; intersect starting from the rarest term</td></tr>
+<tr><td>Ranking base</td><td>BM25 (saturating TF, length normalisation, k₁ ≈ 1.2, b ≈ 0.75); learned model re-ranks only the top few hundred</td></tr>
+<tr><td>Shard key</td><td>By document, never by term; global IDF replicated to every shard</td></tr>
+<tr><td>Tail latency</td><td>Replicas + hedged requests + timeout with partial results + in-memory posting lists</td></tr>
+<tr><td>Freshness</td><td>Immutable segments published in minutes; freshness signal only for news-like queries; short cache TTLs for trending terms</td></tr>
+<tr><td>Autocomplete &amp; correction</td><td>Trie over past queries for completions; edit-distance spell correction over the corpus vocabulary; same analysis function at index and query time</td></tr>
+</table>
+
+<h2>60-second framing</h2>
+<p>Use this when asked to design it cold: "Search splits into indexing and serving, and the index is the product. Documents are tokenised and stored in an inverted index — each term maps to the list of documents containing it — so a query intersects a few posting lists starting from the rarest term instead of scanning anything. Ranking starts with BM25: term frequency that saturates, weighted by inverse document frequency so rare terms dominate, normalised by document length, with PageRank and a learned re-ranker layered on top of the top few hundred. The index is sharded by document, not by term, because term sharding collapses under hot terms and partial scores; the cost is tail latency across hundreds of shards, paid with replicas, hedged requests, and timeouts that return partial results rather than failing. Fresh documents arrive as new immutable segments in minutes, autocomplete is a trie over past queries, and the query-result cache absorbs the skewed head of query popularity while the shard fleet is sized for the long tail. The hard parts are hot terms, near-duplicates, spam, and freshness — each handled at index time or in the serving path, never by hoping the ranking model sorts it out."</p>
+
+<div class="foot">
+<p><a href="../index.html">← Back to all lessons</a></p>
+<p>Lesson 30 · Design a Search System. Next lesson lands tomorrow morning.</p>
+</div>
+</div>
+</body>
+</html>
