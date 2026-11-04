@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design a Payment System</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .82rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; }
+  pre { background: var(--code); color: var(--code-ink); border-radius: var(--radius); padding: 16px 18px; overflow-x: auto; font-size: .88rem; line-height: 1.55; }
+  pre code { background: none; border: 0; padding: 0; }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 31</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 31 · Classic design</span>
+  <h1>Design a Payment System</h1>
+  <p class="whyline">A fan taps "Pay" for a season ticket. Money must move exactly once — never zero times, never twice — across services that crash, networks that drop replies, and banks that settle days later.</p>
+  <div class="meta"><span>Idempotency</span><span>Auth vs capture vs settlement</span><span>Double-entry ledger</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a payment system?</h2>
+<p>Start from zero. A <strong>payment</strong> is a transfer of money from a buyer to a seller in exchange for something — a season ticket, a shirt, a streaming subscription. A payment system is the machinery that makes that transfer happen reliably over the internet, and its defining property is different from every system in the earlier lessons: <em>it moves money, so a mistake is not a stale page or a duplicate notification — it is a fan charged twice, or a club that shipped a shirt it was never paid for.</em> Correctness outranks speed here, always.</p>
+<p>The cast, defined as it appears. The <strong>buyer</strong> pays. The <strong>merchant</strong> (here, Riverside FC's online shop) sells. The <strong>payment service provider</strong>, or <strong>PSP</strong> (Stripe, Adyen, PayPal are the famous ones), is the company that actually talks to the card networks and banks on the merchant's behalf — most shops never touch a card network directly. The <strong>issuing bank</strong> is the buyer's bank, which holds the buyer's money and approves or declines. The <strong>acquiring bank</strong> is the merchant's bank, which eventually receives the money. The <strong>card network</strong> (Visa, Mastercard) sits between them, routing authorisation messages one way and settlement files the other. A <strong>payment gateway</strong> is the front door that collects card details securely; in modern setups the PSP usually plays this role too.</p>
+<p>The soccer running example: Riverside FC sells 60,000 season tickets online on one morning, plus shirts, scarves, and matchday hospitality all season. A fan taps "Pay $480" for a season ticket. Between that tap and the money landing in the club's bank account, roughly ten things must happen, several of them on systems the club does not own, and the fan's phone may lose signal halfway through. The system's job is to make that whole chain behave as if it were one atomic step: either the fan is charged and the ticket is theirs, or nothing happened and the fan can safely try again.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Authorisation:</strong> the issuing bank confirms the card is valid and places a hold on the funds — no money has moved yet. <strong>Capture:</strong> the merchant claims the held funds, turning the hold into a real charge. <strong>Settlement:</strong> the money actually lands in the merchant's bank account, usually 1–3 days later, in a batch. <strong>Idempotency key:</strong> a unique token the client sends with a request so that retrying the same request is safe — the server recognises the key and returns the original result instead of doing the work twice. <strong>Ledger:</strong> the append-only record of every money movement, kept balanced by double-entry bookkeeping (defined below). <strong>PCI DSS:</strong> the security standard for handling card numbers — the reason your servers should never see a raw card number at all.</p></div>
+<p>One rule governs the whole lesson, and it is worth stating before any architecture: <strong>never take money on the basis of a guess.</strong> If your system does not know whether a charge succeeded, it must find out (by asking the PSP) before it acts — never assume success and ship the ticket, never assume failure and charge again. Every mechanism below exists to turn "I don't know" into "I know" without ever double-charging.</p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are building a payment system for a mid-size merchant platform: cards and digital wallets, one-time purchases plus subscriptions, refunds, and a ledger the finance team can reconcile to the cent. We are not building a bank, a card network, or a real-time fraud engine from scratch — the PSP handles the banking rails, and we buy fraud tooling and plug it in.</p>
+<ul>
+<li><strong>Functional:</strong> accept card and wallet payments; authorise then capture (so a ticket can be held while stock is confirmed); refund fully or partially; support recurring subscription billing; show every payment's full lifecycle to support staff; reconcile daily against PSP settlement reports.</li>
+<li><strong>Non-functional:</strong> <strong>exactly-once charging</strong> — no duplicate charges, ever, even across retries and crashes; durability — a payment record, once acknowledged, must survive any single server crash; auditability — every cent traceable from buyer tap to bank deposit; availability matters, but never at the cost of double-charging (this system is CP-flavoured in CAP terms: when in doubt, stop and reconcile rather than guess).</li>
+</ul>
+<p>The sizing, with every step shown. Assume Riverside FC's shop processes 500,000 payments a day on average, with a matchday peak of 5,000,000 payments in a 2-hour on-sale window, and an average order value of $40:</p>
+<ul>
+<li><strong>Average load:</strong> 500,000 ÷ 86,400 seconds = <strong>~5.8 payments/sec</strong>. Tiny — a single modest service handles this. Payment systems are rarely throughput problems.</li>
+<li><strong>Peak load:</strong> 5,000,000 ÷ 7,200 seconds (2 hours) = <strong>~694 payments/sec</strong>. Still modest, but 120× the average — the system must scale for the spike, and the spike is exactly when fans retry most aggressively, which is why idempotency (not raw throughput) is the hard part.</li>
+<li><strong>Money moved:</strong> 500,000 × $40 = <strong>$20 million/day</strong> in gross volume. At a typical PSP fee of 2.9% + $0.30 per transaction, the fee per payment is 0.029 × $40 + $0.30 = <strong>$1.46</strong>, so daily fees are 500,000 × $1.46 = <strong>$730,000/day</strong> — about 3.65% of gross. Fees, not servers, are the dominant cost of a payment system, and a 0.1% fee difference is worth $20,000/day at this scale.</li>
+<li><strong>Storage:</strong> a payment record plus its ledger entries and event history is roughly 5 KB. 500,000 × 5 KB = <strong>2.5 GB/day</strong>, ~0.9 TB/year. Small. But it must be kept for years (tax, disputes, chargebacks can arrive up to ~120 days later), so retention, not size, is the storage concern.</li>
+<li><strong>Authorisation rate:</strong> if 92% of first attempts are approved, 8% of 500,000 = <strong>40,000 fans a day</strong> see a decline. Each point of authorisation rate recovered (smarter retries, network tokens, 3-D Secure handling) is worth 5,000 × $40 = <strong>$200,000/day</strong> in recovered revenue. This is why payment teams obsess over approval rates more than latency.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Throughput is the easy part — under 1,000 payments/sec even at peak. The system is designed around correctness under failure, not scale: idempotency keys, a state machine, a balanced ledger, and a reconciliation loop are the product. A payment system that is fast but occasionally double-charges is not a payment system at all.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>One payment flows through five stages, and the ordering between two of them is the most important detail in the lesson:</p>
+<ol>
+<li><strong>Checkout and tokenisation.</strong> The fan enters card details into a form served by the PSP (or a wallet like Apple Pay). The raw card number goes straight to the PSP and never touches Riverside's servers — the shop receives only a <strong>token</strong> (a random reference string that stands in for the card). This is how the shop stays mostly out of PCI DSS scope: you cannot leak card numbers you never held. <strong>Tokenisation</strong> is replacing sensitive data with a meaningless reference that only the PSP can map back.</li>
+<li><strong>Payment service.</strong> The shop's backend creates a payment record in its own database with status <code>INITIATED</code>, stores the idempotency key (see below), and calls the PSP to authorise. This service owns the payment state machine and nothing else — it does not send emails, fulfil orders, or update inventory.</li>
+<li><strong>PSP and banks.</strong> The PSP routes the authorisation to the card network and the issuing bank, which approves or declines and places the hold. The PSP returns a result — or the call times out, which is where the hard problems begin.</li>
+<li><strong>Ledger and fulfilment, in that order.</strong> Only after the authorisation is confirmed does the service write ledger entries and then publish a "payment authorised" event that fulfilment listens to (issue the ticket, ship the shirt). The rule from the chat-system lesson returns here in money form: <em>persist before you act</em> — record the money fact first, then tell the rest of the system.</li>
+<li><strong>Capture and settlement, asynchronously.</strong> Capture (claiming the held funds) usually happens minutes later, when fulfilment is confirmed — a shirt that cannot ship should never be captured. Settlement arrives in a batch file from the PSP days later, and the reconciliation job matches every settled cent against the ledger. Mismatches go to a human queue; they are never auto-"fixed" by writing balancing entries.</li>
+</ol>
+<p>Two supporting services complete the picture. The <strong>webhook receiver</strong> accepts asynchronous events from the PSP (a chargeback filed, a dispute opened, a subscription renewal) — webhooks can arrive duplicated and out of order, so the receiver deduplicates by event ID and applies each event through the same state machine, never by blindly overwriting status. The <strong>reconciliation job</strong> runs daily: PSP settlement report vs ledger vs bank statement, three-way match, exceptions listed for humans. Reconciliation is the safety net that catches everything the real-time path got wrong — a payment system without it is flying without instruments.</p>
+
+<h2>The heart of it: charging exactly once</h2>
+<p>Three mechanisms, layered, do all the work. If you understand these three, you understand payment systems.</p>
+<h3>1. The state machine — every payment has one status, and only legal moves</h3>
+<p>A payment is a state machine, and the machine is the contract. The states are <code>INITIATED → AUTHORISED → CAPTURED → SETTLED</code>, with side exits to <code>FAILED</code>, <code>REFUNDED</code> (full or partial, from <code>CAPTURED</code>), and <code>CHARGEBACK</code> (from <code>SETTLED</code>, forced by the bank). Transitions are guarded: you cannot capture a payment that was never authorised, you cannot refund a payment that failed, and you cannot move backwards. Every transition is applied with a conditional write — "set status to CAPTURED only if it is currently AUTHORISED" — so two racing workers cannot both capture the same payment. This is the distributed-lock lesson's cheaper cousin: the database row itself is the lock, via the conditional update.</p>
+<p>Worked example, the lost reply. A fan taps Pay. The service calls the PSP. The PSP charges the card successfully — and then the network drops the reply. The service now genuinely does not know. What it must <em>not</em> do is retry the charge blindly (that double-charges) or tell the fan it failed (the fan retries manually — also a double-charge). What it does: it retries with the <em>same idempotency key</em>, or it queries the PSP for the payment's status by its own payment ID, and only then moves the state machine. "I don't know" is always resolved by asking the source of truth, never by acting.</p>
+<h3>2. Idempotency keys — retries that are safe by construction</h3>
+<p>An <strong>idempotency key</strong> is a unique token the client generates once per intended payment (a UUID is typical) and sends with every attempt, including retries. The server stores the key with the payment record under a unique database constraint, and on seeing a key it already has, it returns the original result without touching money again. The key insight: <em>the key identifies the intent, not the attempt.</em> One tap = one key = at most one charge, no matter how many network retries, app restarts, or double-taps happen. The client must generate the key before the first attempt and reuse it across retries — a key generated fresh per retry is no key at all. Keys are kept for at least the dispute window (months), because a retry can arrive surprisingly late.</p>
+<p>Two subtleties interviewers probe. First, the key must cover the <em>amount and destination</em> too: if the same key arrives with a different amount, that is an error, not a replay — otherwise a bug could silently charge $480 for a $48 shirt. Second, idempotency at your API does not remove the need for idempotency at the PSP call: your service must pass its own idempotency key to the PSP, or a retry of the PSP call can double-charge even though your API deduped correctly. Idempotency is a property of every boundary, not just the front door.</p>
+<h3>3. The double-entry ledger — the books must always balance</h3>
+<p><strong>Double-entry bookkeeping</strong> means every money movement is recorded as at least two entries that sum to zero: a debit to one account and a credit to another. When Riverside captures a $480 season-ticket payment, the ledger records, say, debit "Cash in transit (PSP)" $480 and credit "Ticket revenue" $480. A refund records the mirror image. The invariant — <em>all entries for a transaction sum to zero, and every account balance is the sum of its entries</em> — is checkable mechanically, which is the point: a nightly job that sums the books and finds them unbalanced has found a bug, before the finance team does. The ledger is append-only (entries are never edited or deleted; mistakes are corrected with new, reversing entries), and it is the record the reconciliation job checks the PSP reports against. If your payment service and your ledger ever disagree, the ledger wins and humans investigate.</p>
+<div class="callout green"><strong>The three layers, in one sentence each</strong><p>State machine: a payment can only move forward through legal transitions, enforced by conditional writes. Idempotency keys: retries of the same intent return the original result instead of charging again. Ledger: every movement is balanced, append-only entries that a machine can verify. Lose any one layer and the other two cannot save you — the state machine without idempotency double-charges on retries; idempotency without a state machine lets a refund land on a failed payment; both without a ledger leave you unable to prove what happened.</p></div>
+
+<h2>Authorisation vs capture vs settlement — why three steps, not one</h2>
+<p>Beginners ask why a payment needs three steps when one "take the money" would do. The answer is that the three steps exist for three different risks. <strong>Authorisation</strong> answers "is this card good, and will the bank hold the funds?" — it validates without committing, which is what lets the shop check stock, run fraud checks, and reserve a seat before money moves. <strong>Capture</strong> answers "the goods are really going out, so claim the money now" — separating it from authorisation is what makes "charge only when shipped" possible, and what makes a failed fulfilment a clean void of an authorisation instead of a messy refund. <strong>Settlement</strong> is the banking system's batch reality: networks move money in bulk files, not per transaction, so the merchant's bank balance updates days later and in aggregate, which is exactly why reconciliation against settlement reports is a separate job and not a real-time check.</p>
+<p>The timing traps: an authorisation hold expires (typically ~7 days for cards) — capture after expiry and the bank may decline, so the shop must re-authorise and tell the fan. A capture for a different amount than the authorisation (a shirt price changed, a partial shipment) is allowed only within network rules and must be reflected in the ledger as the captured amount, not the authorised amount. And a subscription renewal is a fresh authorisation each cycle, not a capture against the original — which is why expired cards cause involuntary churn, and why network token updates (the PSP silently refreshing a replaced card) are worth real revenue.</p>
+
+<h2>Fraud, 3-D Secure, refunds, and chargebacks</h2>
+<p><strong>Fraud screening</strong> runs between authorisation and capture: velocity checks (how many purchases from this card/device in an hour), address and CVV matching, device fingerprinting, and a risk score from the PSP or a vendor. The trade-off is brutal and worth naming in the room: every fraud rule that blocks a thief also blocks some honest fans. The metric to watch is not "fraud blocked" but "fraud rate vs false-decline rate" — a rule that cuts fraud by $10,000 while declining $50,000 of good orders is a bad rule. High-risk orders get stepped up, not just blocked: <strong>3-D Secure</strong> (the "Verified by Visa" / Mastercard Identity Check challenge) asks the buyer to confirm with their bank, which shifts fraud liability to the bank for authenticated transactions — at the cost of checkout friction, which is why it is applied selectively (high value, high risk, or legally required, as under Europe's PSD2 rules) rather than to every $5 scarf.</p>
+<p><strong>Refunds</strong> are new ledger entries, not deletions: the money flows back through the same PSP rails to the original card, takes days, and can be partial (refund one shirt of three). A refund of a payment that was authorised but never captured is instead a <strong>void</strong> — releasing the hold, with no money moving. <strong>Chargebacks</strong> are different in kind: the buyer complains to their bank, the bank forcibly pulls the money back, and the merchant must respond with evidence (receipt, delivery proof, terms) within a deadline or lose automatically — plus a dispute fee, win or lose. A high chargeback ratio (over ~1% of transactions) can get a merchant's PSP account terminated, which is why "friendly fraud" (a fan disputing a legitimate season ticket) is fought with evidence, not ignored. The design consequence: keep the evidence trail — order, delivery proof, refund history — attached to the payment record from day one, because by dispute time you cannot reconstruct it.</p>
+
+<h2>Failure modes — six ways payments go wrong</h2>
+<table>
+<tr><th>Failure</th><th>What the fan sees</th><th>What saves you</th></tr>
+<tr><td>Lost PSP reply (charged, reply dropped)</td><td>Spinner, then uncertainty</td><td>Same idempotency key on retry; status query before any action</td></tr>
+<tr><td>Duplicate submission (double-tap, app restart)</td><td>Two charges for one ticket</td><td>Client-generated idempotency key + unique constraint</td></tr>
+<tr><td>PSP outage during a matchday on-sale</td><td>Checkout down at the worst moment</td><td>Queue payments for retry (never fail-open to "free"); multi-PSP routing; clear status page</td></tr>
+<tr><td>Webhook duplicated or out of order</td><td>Refund applied twice, status flickers</td><td>Event-ID dedup; state machine rejects illegal transitions</td></tr>
+<tr><td>Capture after authorisation expiry</td><td>"Payment failed" days after ordering</td><td>Expiry tracking; re-authorise before capture; fan-facing message</td></tr>
+<tr><td>Ledger vs settlement mismatch</td><td>Finance finds missing cents</td><td>Daily three-way reconciliation; exceptions to humans, never auto-adjusted</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"We use the PSP, so we don't need a ledger."</strong> The PSP's records are not your books. You need your own ledger to reconcile, to refund correctly, to answer disputes, and to survive switching PSPs. The PSP is a rail, not your accounting.</li>
+<li><strong>"At-least-once delivery is fine; the webhook is idempotent."</strong> Only if you made it so. A webhook handler that does <code>UPDATE payments SET status = 'refunded'</code> without checking current status or deduping event IDs will apply the same refund twice. Delivery guarantees are the sender's; safety is the receiver's job.</li>
+<li><strong>"We retry failed payments immediately."</strong> Immediate retries on a hard decline (stolen card, insufficient funds that will not change in a second) just burn approval-rate reputation with the network and annoy the bank. Retry with backoff, only for retryable failures (timeout, network error), and never retry a hard decline without new information.</li>
+</ul>
+
+<h2>Interactive lab 1: the double-charge guard</h2>
+<div class="lab">
+<h3>Lab A — Retry, with and without an idempotency key</h3>
+<p>The scenario: a fan taps Pay for a $480 season ticket. The charge succeeds at the PSP, but the reply is lost. The fan's app retries. Move the sliders and see what happens to the fan's bank statement.</p>
+<label for="retryCount">Retries after the lost reply: <span id="retryCountVal">2</span></label>
+<input type="range" id="retryCount" min="0" max="5" value="2" />
+<label>Idempotency key</label>
+<button id="keyOn" class="active">Sent on every retry (correct)</button>
+<button id="keyOff">Fresh key per retry (broken)</button>
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Try it: with the key, any number of retries still charges once. Without it, each retry is a brand-new charge — and each duplicate is a refund ticket, a support call, and a fan who may never trust the shop again.</p>
+</div>
+
+<h2>Interactive lab 2: the fee and approval planner</h2>
+<div class="lab">
+<h3>Lab B — What fees and declines really cost</h3>
+<p>Enter your shop's numbers. The planner shows monthly fees, revenue lost to declines, and what one point of approval rate is worth — the number payment teams actually negotiate over.</p>
+<label for="payPerDay">Payments per day</label>
+<input type="number" id="payPerDay" value="500000" />
+<label for="avgTicket">Average order value ($)</label>
+<input type="number" id="avgTicket" value="40" />
+<label for="feePct">PSP fee (%)</label>
+<input type="number" id="feePct" value="2.9" step="0.1" />
+<label for="feeFixed">PSP fixed fee per payment ($)</label>
+<input type="number" id="feeFixed" value="0.30" step="0.01" />
+<label for="authRate">Authorisation rate (%)</label>
+<input type="number" id="authRate" value="92" step="1" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example: check that the planner reproduces $730,000/day in fees before changing the numbers.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. A fan is charged twice for one season ticket. Walk through how that happened and what prevents it.</summary>
+<p><strong>Model answer.</strong> The usual chain: the fan taps Pay, the charge succeeds at the PSP, the reply is lost (or the fan double-taps, or the app restarts and resubmits). Without protection, each submission is treated as a new payment intent and charged again. Prevention is layered: (1) the client generates one idempotency key per tap and reuses it on every retry, and the server enforces it with a unique constraint, returning the original result on replay; (2) the same key discipline is passed through to the PSP call, so a retried PSP request also dedupes; (3) the payment state machine's conditional writes stop two workers from capturing the same authorisation; (4) if a duplicate ever slips through, the ledger shows two captures against one order, and reconciliation flags it — but note the honest framing: reconciliation detects, it does not prevent; prevention is the key and the state machine. Close by naming the UX half: while the outcome is unknown, the UI must show "processing — do not retry" and poll for the true status, because a fan who manually retries is a second client you cannot control.</p>
+</details>
+<details>
+<summary>Q2. Why authorise and capture separately instead of charging immediately?</summary>
+<p><strong>Model answer.</strong> Because authorisation and capture answer different questions at different times. Authorisation validates the card and reserves funds before the merchant commits — it lets the shop confirm stock, run fraud checks, and reserve a seat while still able to walk away cleanly with a void. Capture claims the money when fulfilment is real — the shirt ships, the ticket is issued — so a fan is never charged for something that never arrives. If you charge immediately and fulfilment then fails, you owe a refund through the banking rails (days, fees, support load) instead of releasing a hold (instant, free). The cost is complexity: holds expire (~7 days), captures can be partial or adjusted within network rules, and the system must track authorisation expiry and re-authorise. That complexity is the price of "charge only when shipped," and it is worth it for any merchant that fulfils after payment.</p>
+</details>
+<details>
+<summary>Q3. Your ledger and the PSP settlement report disagree by $480. What do you do?</summary>
+<p><strong>Model answer.</strong> You do not "fix" the ledger — it is append-only, and an auto-adjusting entry would destroy the audit trail. Step one: identify the payment — match by PSP transaction ID, amount, and date; the $480 figure suggests exactly one season ticket. Step two: determine which side is right by checking the payment's state machine history and the PSP's transaction detail (was it captured? refunded? charged back? settled in a different batch?). Common causes: a capture settled in the next day's batch (timing, not an error — wait for the next report), a refund issued but not yet settled, or a chargeback pulled by the bank. Step three: resolve with a proper entry — a reversing entry if the ledger was wrong, or a note and no action if it was timing — and record the investigation against the payment. Step four: if the cause is systemic (a class of transactions mishandled), fix the code path and re-run reconciliation over the affected window. The senior point: reconciliation is a detection system with a human loop, not an auto-heal; the day it auto-heals is the day a real loss hides inside a balancing entry.</p>
+</details>
+<details>
+<summary>Q4. Design the payment flow for a flash on-sale: 5 million fans, 60,000 tickets, one morning.</summary>
+<p><strong>Model answer.</strong> Start by separating the contention from the money. Ticket allocation is the contested resource (Lesson 26's seat-hold machine: hold with an atomic conditional write, 10-minute window, per-buyer cap), and payment is the slow, external step — so never hold a seat hostage while waiting on a bank. Flow: fan joins the waiting room (admission rate-limited, randomised order — backpressure, Lesson 23); on entry, the seat is held and a 10-minute payment window starts; the fan pays through the idempotent payment API (one key per checkout); authorisation confirms, the hold converts to a sale, capture follows on ticket issue; on payment failure or window expiry, the hold releases and the seat returns to the pool. Scale notes: 5M fans in 2 hours is ~694 payments/sec at peak — modest, but retries multiply it, so the payment service must be stateless and horizontally scaled behind the idempotency store, and the PSP must be warned in advance (PSPs rate-limit and fraud-flag sudden spikes). Failure handling: if the PSP is down, queue the authorised-checkout attempts for retry with the same keys and show honest status — never fail-open to issuing free tickets, and never let a fan pay twice because the queue retried without a key. End with the metric: success is not "payments processed" but "seats sold exactly once, zero double-charges, reconciliation clean the next morning."</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — The lost reply, on paper.</strong> Draw the sequence diagram for: fan taps Pay → PSP charges → reply lost → app retries with the same idempotency key → PSP returns the original result. Mark every place a second charge could sneak in if one layer is missing. <em>Rubric: the diagram shows the key generated client-side before the first attempt; the server's unique-constraint check before any PSP call; the key passed to the PSP; and the state machine transition guarded by current status.</em></p>
+<p><strong>Drill 2 — Design the ledger entries.</strong> A fan buys a $480 ticket, then gets a $100 partial refund (hospitality downgrade), then files a chargeback on the remaining $380 and the club wins the dispute. Write the ledger entries for all four events and verify each transaction sums to zero. <em>Rubric: four transactions, each balanced; the refund is a new reversing entry, not an edit; the chargeback and its reversal are separate entries; account balances are derivable by summing entries.</em></p>
+<p><strong>Drill 3 — Choose the retry policy.</strong> Your PSP returns three failure kinds: timeout (unknown outcome), hard decline (insufficient funds), and rate-limit (429). Write the retry policy for each: retry or not, with what key, after what delay, and how the fan is told. <em>Rubric: timeout → retry with same key after backoff, or status query first; hard decline → no retry, fan-facing message, offer another payment method; 429 → respect Retry-After, back off, queue rather than hammer; no policy ever retries without the original key.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Charge timing</td><td>Authorise at checkout, capture at fulfilment</td><td>Instant digital goods with no fulfilment risk: single-step charge is acceptable</td></tr>
+<tr><td>Idempotency key scope</td><td>One key per client intent, covering amount + destination</td><td>Never reuse a key across different purchases; never generate fresh per retry</td></tr>
+<tr><td>Card data handling</td><td>PSP-hosted fields / wallet tokens; raw PAN never touches your servers</td><td>Only with full PCI DSS compliance — a cost few merchants should accept</td></tr>
+<tr><td>Unknown outcome</td><td>Query the PSP; never guess</td><td>No exception — guessing is how double-charges happen</td></tr>
+<tr><td>Refunds vs voids</td><td>Void an uncaptured authorisation; refund a captured payment</td><td>Partial shipment: partial capture, void the remainder</td></tr>
+<tr><td>Reconciliation</td><td>Daily three-way: ledger vs PSP report vs bank statement</td><td>Higher volume or high dispute rate: intraday reconciliation</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"A payment system moves money exactly once across systems that fail. The fan's tap creates one intent, identified by an idempotency key that survives every retry. The PSP authorises — a hold, not a movement — and only when fulfilment is confirmed do we capture, with settlement arriving in batches days later. Every movement lands in an append-only double-entry ledger, and a daily reconciliation job matches the ledger against the PSP's reports. When anything is unknown — a lost reply, a timed-out call — we ask the PSP; we never guess, because a guess is how a fan gets charged twice."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one non-negotiable: exactly-once charging, correctness over speed.</li>
+<li>Back-of-the-envelope: 500K/day average, ~694/sec peak, $1.46 fee per $40 order, approval rate as the revenue lever.</li>
+<li>Architecture: tokenised checkout → payment service (state machine) → PSP/banks → ledger → fulfilment; capture and settlement async; webhooks deduped; reconciliation daily.</li>
+<li>Deep dive: idempotency keys at every boundary, the lost-reply walkthrough, double-entry ledger invariants.</li>
+<li>Trade-offs and failure modes: fraud vs false declines, 3-D Secure friction, chargeback evidence, PSP outage posture.</li>
+<li>Close: "zero double-charges, reconciliation clean" as the success metric — not throughput.</li>
+</ol>
+
+<div class="foot">
+<p>Lesson 31 · Next: the remaining classic designs build on this one — any system that takes money (ticketing, subscriptions, marketplaces) reuses the idempotency key, the state machine, and the ledger.</p>
+<p><a href="../index.html">← All lessons</a></p>
+</div>
+</div>
+<script>
+function simulateIdempotency(retries, useKey) {
+  var charges = useKey ? 1 : 1 + retries;
+  return { charges: charges, duplicates: charges - 1, refundTickets: charges - 1 };
+}
+function computeFees(payPerDay, avgTicket, feePct, feeFixed, authRate) {
+  var gross = payPerDay * avgTicket;
+  var feePer = avgTicket * feePct / 100 + feeFixed;
+  var fees = payPerDay * feePer;
+  var approved = payPerDay * authRate / 100;
+  var lostRevenue = (payPerDay - approved) * avgTicket;
+  var onePoint = payPerDay * 0.01 * avgTicket;
+  return { gross: gross, fees: fees, feePer: feePer, approved: approved, lostRevenue: lostRevenue, onePoint: onePoint };
+}
+function fmtMoney(n) {
+  return "$" + Math.round(n).toLocaleString("en-US");
+}
+function fmtMoney2(n) {
+  return "$" + n.toFixed(2);
+}
+function renderLabA() {
+  var retries = parseInt(document.getElementById("retryCount").value, 10);
+  document.getElementById("retryCountVal").textContent = retries;
+  var useKey = document.getElementById("keyOn").className.indexOf("active") !== -1;
+  var r = simulateIdempotency(retries, useKey);
+  var verdict = r.duplicates === 0
+    ? "<b>Charges: 1. Duplicates: 0.</b> The fan paid once. Every retry returned the original result."
+    : "<b>Charges: " + r.charges + ". Duplicates: " + r.duplicates + ".</b> The fan was charged " + r.charges + "× $480 = " + fmtMoney(r.charges * 480) + " for one ticket — " + r.refundTickets + " refund ticket(s) and an angry fan.";
+  document.getElementById("labAResult").innerHTML = verdict;
+}
+function renderLabB() {
+  var p = parseFloat(document.getElementById("payPerDay").value) || 0;
+  var t = parseFloat(document.getElementById("avgTicket").value) || 0;
+  var fp = parseFloat(document.getElementById("feePct").value) || 0;
+  var ff = parseFloat(document.getElementById("feeFixed").value) || 0;
+  var a = parseFloat(document.getElementById("authRate").value) || 0;
+  var r = computeFees(p, t, fp, ff, a);
+  document.getElementById("labBResult").innerHTML =
+    "<b>Daily gross: " + fmtMoney(r.gross) + " · Daily fees: " + fmtMoney(r.fees) + "</b> (" + fmtMoney2(r.feePer) + " per payment)<br>" +
+    "Monthly fees: <b>" + fmtMoney(r.fees * 30) + "</b> on monthly gross " + fmtMoney(r.gross * 30) + "<br>" +
+    "Approved payments: " + Math.round(r.approved).toLocaleString("en-US") + "/day · Revenue lost to declines: <b>" + fmtMoney(r.lostRevenue) + "/day</b><br>" +
+    "Each +1 point of authorisation rate recovers <b>" + fmtMoney(r.onePoint) + "/day</b> (" + fmtMoney(r.onePoint * 30) + "/month).";
+}
+document.getElementById("retryCount").addEventListener("input", renderLabA);
+document.getElementById("keyOn").addEventListener("click", function () {
+  document.getElementById("keyOn").className = "active";
+  document.getElementById("keyOff").className = "";
+  renderLabA();
+});
+document.getElementById("keyOff").addEventListener("click", function () {
+  document.getElementById("keyOff").className = "active";
+  document.getElementById("keyOn").className = "";
+  renderLabA();
+});
+["payPerDay", "avgTicket", "feePct", "feeFixed", "authRate"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
