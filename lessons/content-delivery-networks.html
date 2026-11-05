@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Content Delivery Networks (CDN)</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .82rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; }
+  pre { background: var(--code); color: var(--code-ink); border-radius: var(--radius); padding: 16px 18px; overflow-x: auto; font-size: .88rem; line-height: 1.55; }
+  pre code { background: none; border: 0; padding: 0; }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 32</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 32 · Fundamentals</span>
+  <h1>Content Delivery Networks (CDN)</h1>
+  <p class="whyline">A fan in Sydney taps play on the cup-final highlights two seconds after full time — and the video starts instantly, even though the club's servers are in Virginia and 5 million other fans tapped play at the same moment.</p>
+  <div class="meta"><span>Edge caching</span><span>Anycast &amp; DNS routing</span><span>Cache hierarchy</span><span>Invalidation</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a CDN?</h2>
+<p>Start from zero. A <strong>content delivery network</strong>, or <strong>CDN</strong>, is a network of servers placed in cities all over the world whose job is to serve your content from the server closest to the person asking for it, instead of from the one place your own servers live. The <strong>origin</strong> is your own server (or object store) — the single source of truth where the content is created and stored. An <strong>edge server</strong> is a CDN server in a city near the user that keeps a copy of popular content. A <strong>point of presence</strong>, or <strong>PoP</strong>, is a data-centre location where a CDN runs edge servers — a large CDN has hundreds of PoPs, so almost every user on earth is within a few dozen kilometres of one. When a fan's request is answered by an edge server that already has the content, that is a <strong>cache hit</strong>; when the edge server does not have it and must fetch it from the origin, that is a <strong>cache miss</strong>.</p>
+<p>The soccer running example: Riverside FC has one club shop at the stadium, but on cup-final day 5 million fans in 100 countries all want the same 2-minute highlights clip at the same moment. If every fan's phone had to reach the one shop in Virginia, two things break: the speed of light (a round trip from Sydney to Virginia is about 160 ms of pure physics, before any server work) and the shop's own bandwidth (5 million simultaneous video streams would need tens of terabits per second). A CDN is the club opening a pop-up stall in every city: the clip is copied to the stall in Sydney, in Lagos, in São Paulo, and each fan walks to their nearest stall. The stall's copy is what a cache is — the same content, stored closer, served faster.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Origin:</strong> your server, the source of truth. <strong>Edge / PoP:</strong> a CDN server / data-centre location near the user. <strong>Cache hit / miss:</strong> the edge has the content, or it does not. <strong>TTL (time-to-live):</strong> how long an edge server may serve its copy before it must re-check with the origin — the expiry date on a cached copy. <strong>Cache key:</strong> the identifier the edge uses to look content up — usually the URL, plus any headers that change the answer (like language or device type). <strong>Egress:</strong> data leaving a server or cloud, billed per gigabyte. <strong>Anycast:</strong> many servers worldwide sharing one IP address, so the internet's routing sends each user to the nearest one. <strong>Origin shield:</strong> a middle layer of CDN servers between the edges and your origin, so a miss from a hundred edges becomes one request to the origin instead of a hundred.</p></div>
+<p>The one idea to carry through the whole lesson: <strong>a CDN does not make your servers faster — it makes most requests never reach your servers at all.</strong> Everything below — routing, cache hierarchies, invalidation, even the security story — is a consequence of deciding which requests the edge can answer on its own and which must travel back to the origin.</p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are designing the CDN layer for Riverside FC's public content: match highlights and full-match replays, club-shop product images, the live score page, and the matchday programme PDFs. We are <em>not</em> building the CDN itself (that is a business of laying fibre and operating thousands of servers) — we are deciding how a website uses one, which is exactly the framing an interviewer expects.</p>
+<ul>
+<li><strong>Functional:</strong> serve static content (video segments, images, CSS, JS) from the nearest edge; serve the live score and personalised pages without stale data; invalidate a changed file everywhere within minutes; absorb a cup-final traffic spike without the origin noticing; keep the club's origin reachable only through the CDN.</li>
+<li><strong>Non-functional:</strong> low latency for a fan anywhere (page interactive in well under a second); high <strong>cache-hit ratio</strong> (the fraction of requests served from the edge — 95%+ for static content); availability — the site must stay up when the origin is briefly down (serve <strong>stale</strong> copies while revalidating); and cost — egress is the bill, so every gigabyte served from the edge instead of the origin is money saved.</li>
+</ul>
+<p>The sizing, with every step shown. Assume 50 million highlight views in the first 24 hours after the cup final, each view downloading a 200 MB clip, with 5 million fans watching at the same moment in the hour after full time at an average video bitrate of 5 Mbps:</p>
+<ul>
+<li><strong>Total bytes in a day:</strong> 50,000,000 × 200 MB = 10,000,000,000 MB = <strong>10 PB/day</strong>. Ten petabytes. That is the number the origin would have to send if there were no CDN.</li>
+<li><strong>Peak bandwidth:</strong> 5,000,000 concurrent viewers × 5 Mbps = <strong>25 Tbps</strong>. A single origin with 100 Gbps links would need 250 of them, all perfectly utilised — an absurdity. The CDN splits that 25 Tbps across hundreds of PoPs, so each edge handles a few tens of gigabits, which is ordinary hardware.</li>
+<li><strong>Latency, the physics:</strong> light travels through fibre at roughly 200,000 km/s, about two-thirds of its speed in a vacuum. A fan in Sydney is ~16,000 km from an origin in Virginia, so the round trip is 2 × 16,000 ÷ 200,000 = <strong>0.16 s = 160 ms</strong> of pure travel time, before the server does anything. The same fan is ~50 km from the Sydney PoP: 2 × 50 ÷ 200,000 = <strong>0.5 ms</strong>. No amount of server optimisation can beat that 160 ms — the only fix is to move the content closer, which is precisely what the edge does.</li>
+<li><strong>Page-load effect:</strong> a match centre page loads ~40 assets (images, CSS, JS, fonts). With 6 parallel connections, that is roughly 7 sequential round trips of fetching, plus a 2-round-trip TLS handshake. From the origin (180 ms per round trip once the server's own work is counted): 9 × 180 ms = <strong>~1.6 s</strong> of network waiting alone. From the edge at a 95% hit rate, the effective round trip is 0.95 × 5.5 ms + 0.05 × 180 ms ≈ <strong>14 ms</strong>, so the same page costs 9 × 14 ms ≈ <strong>128 ms</strong> — about 13× faster. That gap is the difference between a fan staying and a fan leaving — and it comes from distance, not from faster code.</li>
+<li><strong>Cost:</strong> origin egress at a typical $0.09/GB vs CDN egress at ~$0.02/GB. Without a CDN, 10 PB = 10,000,000 GB × $0.09 = <strong>$900,000/day</strong>. With a 95% edge hit rate and an origin shield (see below) cutting origin traffic to ~1% of requests, the bill falls to roughly <strong>$207,000/day</strong> — a saving of about $693,000 on one day of cup-final traffic. (Lab B lets you check these numbers yourself.)</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Bandwidth and latency, not storage, are the problem a CDN solves. Ten petabytes of storage is cheap; ten petabytes delivered from one place in one day, at 25 Tbps, is not physically plausible. The CDN's job is to turn one impossible origin problem into hundreds of small, local ones — and to keep the origin's bill and load at ~1% of what they would be without it.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>One request for a highlights clip flows through five stages, and the edge's decision at stage three is the whole system:</p>
+<ol>
+<li><strong>Routing — get the fan to the nearest PoP.</strong> The fan's browser asks DNS for <code>video.riversidefc.com</code>. The CDN's DNS answers with the IP of the nearest healthy PoP (measured by the resolver's location and by live load), or the request is routed by <strong>Anycast</strong>: every PoP announces the same IP address, and the internet's routers deliver the packet to the closest one. DNS routing is flexible (it can weigh load and health per region) but adds a lookup; Anycast is instant (no extra lookup, and it fails over in seconds when a PoP dies) but coarser. Most large CDNs use both: DNS to pick a region, Anycast inside it.</li>
+<li><strong>TLS termination at the edge.</strong> The fan's encrypted (HTTPS) connection ends at the edge server, not the origin. <strong>TLS termination</strong> means the edge holds the site's certificate and decrypts the request there. This matters for two reasons: the expensive handshake happens close to the fan (saving round trips across the ocean), and the edge can inspect the request — to apply a cache rule, a firewall rule, or a redirect — before the origin ever sees it.</li>
+<li><strong>Cache lookup — the decision point.</strong> The edge computes the <strong>cache key</strong> (the URL, plus headers that change the answer, e.g. <code>Accept-Language</code> for a localised page) and checks its local store. On a <strong>hit</strong>, it serves the copy immediately and the origin never hears about the request. On a <strong>miss</strong>, it goes one step deeper — to the origin shield, not straight to the origin.</li>
+<li><strong>Origin shield — the middle tier.</strong> A miss at one edge is forwarded to a regional <strong>shield</strong> PoP, a bigger cache that aggregates misses from many edges in its region. If the shield has the clip, it answers and the edge stores a copy for the next fan. Only if the shield also misses does the request reach the origin. With 100 edges missing the same new clip at once, the shield collapses that into a single origin fetch — this is why a viral moment does not melt the origin. The shield is the caching lesson's "cache-aside, one layer up" idea, applied geographically.</li>
+<li><strong>Origin fetch and fill.</strong> The origin serves the file once, the shield and the edge each store a copy with its TTL, and every subsequent fan in that region is served from cache until the TTL expires. The origin's real job shrinks to: serve each object once per region per TTL window, and answer the small fraction of requests that can never be cached (a logged-in fan's personal feed).</li>
+</ol>
+<p>Two supporting pieces complete the picture. The <strong>control plane</strong> is how the club configures the CDN — cache rules ("images: TTL 1 day", "live score: TTL 5 seconds, never cache the personalised header"), purge commands, and firewall rules — pushed out to every PoP. And the <strong>log pipeline</strong> streams per-request logs (hit/miss, PoP, latency, status) back to the club's analytics, because a CDN you cannot measure is a CDN you cannot tune: hit ratio per URL pattern is the number that tells you whether your cache rules are working.</p>
+
+<h2>The heart of it: what can be cached, and for how long</h2>
+<p>Three decisions determine whether a CDN helps or quietly serves the wrong thing. Get these right and the rest is configuration.</p>
+<h3>1. Static vs dynamic — the split that decides everything</h3>
+<p><strong>Static content</strong> is the same for every fan: the highlights clip, a shirt photo, the club crest, the JavaScript bundle. It is cacheable by definition, and the question is only how long. <strong>Dynamic content</strong> is different per fan: the live score page with <em>their</em> fantasy team, a logged-in season-ticket holder's seat details, the cart. It cannot be cached as one copy — or rather, caching it as one copy serves one fan's data to another, which is the worst bug a CDN can produce. The standard split, and the one to say first in the room: <em>cache the static aggressively, and route the dynamic straight through to the origin</em> (the CDN still helps here — a warm, nearby TLS connection and a fast backbone between PoP and origin beat a cold connection across the ocean — but the origin still does the work). The middle ground is <strong>edge compute</strong> (Cloudflare Workers, Lambda@Edge): tiny programs that run at the PoP and can personalise a cached page — insert the fan's name into a cached shell, pick the language, A/B test a layout — without a round trip to the origin. The rule for edge compute: it may assemble and decorate, but it must never become a database; state still lives at the origin.</p>
+<h3>2. TTL and revalidation — how fresh is fresh enough?</h3>
+<p>A <strong>TTL</strong> is the edge's permission to serve a copy without asking. A 1-day TTL on a shirt photo means the edge serves it 10,000 times without bothering the origin — and means a changed photo takes up to a day to appear. The trade-off is hit ratio vs freshness, and the tools for managing it are: <strong>short TTLs</strong> for things that change (live score: 5 seconds — the origin still only gets one request per PoP per 5 seconds, which is a 99%+ reduction from per-fan polling); <strong>stale-while-revalidate</strong>, where the edge serves a slightly expired copy instantly and fetches a fresh one in the background, so no fan ever waits on a revalidation; and <strong>versioned URLs</strong> — the strongest trick in the book. If the CSS file is named <code>main.a3f9c1.css</code> (a hash of its contents), it never changes: a new build gets a new name, so it can carry a 1-year TTL and never be invalidated. The HTML page that references it carries a short TTL. This is the correct answer to "how do I cache aggressively without serving stale files": <em>never mutate a cached object — give the new version a new name.</em></p>
+<h3>3. Cache keys — the same URL is not always the same answer</h3>
+<p>The cache key is usually the URL, but the URL alone is not always enough. The same <code>/match-centre</code> URL returns English to a fan in London and Spanish to a fan in Madrid — if the key ignores the language header, the second fan gets the wrong language. The same image URL returns a 4K image to a desktop and a 400-pixel one to a phone — if the key ignores device type, one of them gets the wrong size. The rule: <em>the key must include every input that changes the response</em> (language, device class, sometimes a cookie for a logged-in variant). The trap is the opposite direction: including something that does <em>not</em> change the response (a tracking query parameter like <code>?utm_source=twitter</code>) fragments the cache — the same clip cached a hundred times under a hundred keys, each with its own cold start. Good CDN configuration is mostly the discipline of normalising the key: strip tracking parameters, include only the headers that matter, and keep the key space small.</p>
+<div class="callout green"><strong>The three decisions, in one sentence each</strong><p>Split static from dynamic — cache the first, route the second through. Set TTLs by change rate, and version immutable files by content hash so they never need invalidating. Key the cache on exactly the inputs that change the answer — no more, no less. Get those three right and the CDN behaves like a local copy of your site in every city; get any one wrong and it serves stale pages, wrong languages, or a hundred cold copies of the same file.</p></div>
+
+<h2>Invalidation — when the wrong copy is out there</h2>
+<p>Sooner or later the club posts the wrong team sheet, or a shirt price changes, and the old copy is sitting in a hundred PoPs with a 1-day TTL. Three ways out, in order of preference:</p>
+<ul>
+<li><strong>Wait for the TTL.</strong> The honest default for anything with a short TTL. A 5-minute TTL means the bad copy is gone in 5 minutes everywhere. This is why short TTLs exist: they are the cheap, reliable invalidation mechanism, and most "purge" requests are really confessions that the TTL was too long.</li>
+<li><strong>Version and rename.</strong> For content-addressed files (the hashed CSS above), there is nothing to invalidate — the new version has a new URL, and the old one simply stops being referenced. This is the preferred answer for anything you control the naming of.</li>
+<li><strong>Purge.</strong> Send the CDN a command: "forget <code>/team-sheet.pdf</code> everywhere, now." A purge is a broadcast to every PoP, and it takes seconds to minutes to propagate — it is not instant, and during propagation some fans still get the old copy. Purges are also rate-limited and logged (a runaway purge of <code>/*</code> empties the entire cache and sends a thundering herd at the origin — the cache-stampede lesson, at planetary scale). <strong>Surrogate keys</strong> (also called cache tags) are the grown-up version: tag every product image with <code>product-4821</code>, and purge by tag to invalidate exactly that product's assets across all its URLs in one command.</li>
+</ul>
+<p>The interviewer-grade line: <em>purging is a correction mechanism, not a caching strategy.</em> If your design needs frequent purges to stay correct, the TTLs are wrong or the content should have been versioned. Design the TTLs and the naming first; keep purge as the fire extinguisher.</p>
+
+<h2>Security and resilience — the edge as a shield</h2>
+<p>A CDN sits in front of the origin, so it is also the first thing an attacker meets — and that position turns into three defences that are hard to build yourself:</p>
+<ul>
+<li><strong>DDoS absorption.</strong> A <strong>distributed denial-of-service</strong> attack is a flood of requests meant to overwhelm a server. The CDN absorbs it by design: the flood is spread across hundreds of PoPs, each with far more capacity than the origin, and the edge drops obviously bad traffic (bad bots, malformed requests) before it ever travels toward the origin. The origin, hidden behind the CDN, sees a trickle. The catch: the origin must actually be unreachable except through the CDN (firewall rules allowing only the CDN's IP ranges, plus a secret header the CDN adds) — otherwise an attacker who learns the origin's real IP can bypass the whole shield, which is the classic "origin IP leak" failure.</li>
+<li><strong>Web application firewall (WAF) at the edge.</strong> A <strong>WAF</strong> is a filter that blocks known attack patterns (SQL injection, cross-site scripting) in incoming requests. Running it at the edge means a malicious request is dropped in Sydney instead of travelling to Virginia to be dropped there — and it means the rule is enforced once, for every request, instead of in every service behind the origin.</li>
+<li><strong>Stale-on-error.</strong> When the origin is down, the edge can keep serving its cached copies (past their TTL) instead of an error page. The site is degraded — the score is a few minutes old — but it is up, which is what a fan notices. This is the availability half of the CAP trade-off, applied to content: serve a slightly old truth rather than no truth at all.</li>
+</ul>
+
+<h2>Failure modes — six ways a CDN goes wrong</h2>
+<table>
+<tr><th>Failure</th><th>What the fan sees</th><th>What saves you</th></tr>
+<tr><td>Cache stampede after a purge or a viral moment</td><td>Site slow or down at the worst moment</td><td>Origin shield collapsing duplicate misses; request coalescing (one fetch, many waiters); short TTLs instead of purges</td></tr>
+<tr><td>Stale content after a price/team-sheet change</td><td>Wrong price or wrong team sheet for hours</td><td>Versioned URLs for static assets; short TTLs on changeable pages; surrogate-key purge as the fire extinguisher</td></tr>
+<tr><td>Personalised page cached and served to the wrong fan</td><td>Someone else's seat details or cart</td><td>Never cache responses that vary by cookie/session; key on the inputs that change the answer; <code>Cache-Control: private</code></td></tr>
+<tr><td>Origin IP leaked, CDN bypassed</td><td>DDoS hits the origin directly; WAF skipped</td><td>Firewall the origin to the CDN's IP ranges only; require the CDN's secret header; rotate the origin's address</td></tr>
+<tr><td>A PoP or region goes down</td><td>Fans in that region see errors</td><td>Anycast/DNS failover to the next-nearest healthy PoP; health checks with fast withdrawal; any single PoP is expendable</td></tr>
+<tr><td>Cache-key fragmentation (tracking params, random headers)</td><td>Low hit ratio, slow pages, origin overloaded</td><td>Normalise keys: strip tracking parameters, vary only on headers that change the response; monitor hit ratio per URL pattern</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"A CDN makes everything faster."</strong> It makes <em>cacheable, static</em> content faster. A personalised, uncacheable API call still travels to the origin — the CDN only shortens the TLS handshake and the first network hop. Claiming a CDN speeds up your database queries is the tell that someone has not thought about what is actually cached.</li>
+<li><strong>"We set a 1-year TTL, so content is always fresh."</strong> A long TTL without versioned URLs is a promise you cannot keep: the only way to change the content is a purge, which is slow, rate-limited, and not guaranteed to reach every PoP at the same instant. Long TTLs are safe only for content-addressed, immutable files.</li>
+<li><strong>"A cache hit ratio of 99% means we're done."</strong> Hit ratio is an average that hides the worst case. A 99% hit ratio with the remaining 1% concentrated on one uncacheable, expensive origin endpoint is still an origin-melting design — and a 99% ratio measured across all URLs can hide a 40% ratio on the one page that matters (the match centre). Measure hit ratio per URL pattern, and weight it by origin cost, not by request count.</li>
+</ul>
+
+<h2>Interactive lab 1: the latency planner</h2>
+<div class="lab">
+<h3>Lab A — How far is your fan from the answer?</h3>
+<p>The scenario: a fan loads the match-centre page — 40 assets, fetched 6 at a time. Move the sliders and see how much of the wait is physics (distance) and how much the edge removes.</p>
+<label for="distOrigin">Distance to origin (km): <span id="distOriginVal">16000</span></label>
+<input type="range" id="distOrigin" min="1000" max="20000" step="500" value="16000" />
+<label for="distEdge">Distance to nearest edge PoP (km): <span id="distEdgeVal">50</span></label>
+<input type="range" id="distEdge" min="5" max="2000" step="5" value="50" />
+<label for="hitRate">Edge cache hit rate (%): <span id="hitRateVal">95</span></label>
+<input type="range" id="hitRate" min="0" max="100" value="95" />
+<label for="assetCount">Assets on the page: <span id="assetCountVal">40</span></label>
+<input type="range" id="assetCount" min="5" max="120" step="5" value="40" />
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Try it: set the hit rate to 0% and watch the edge advantage vanish — a CDN with nothing cached is just a longer route to the same origin. Then move the fan to 1,000 km from the origin and watch the gap shrink — the closer the origin already is, the smaller the edge's distance advantage.</p>
+</div>
+
+<h2>Interactive lab 2: the offload &amp; cost planner</h2>
+<div class="lab">
+<h3>Lab B — What the edge saves the origin (and the bill)</h3>
+<p>Enter your traffic. The planner shows how much of it the origin actually serves once the edge and the shield have had their say — and what that is worth in egress cost.</p>
+<label for="viewsPerDay">Views per day</label>
+<input type="number" id="viewsPerDay" value="50000000" />
+<label for="avgSizeMB">Average object size (MB)</label>
+<input type="number" id="avgSizeMB" value="200" />
+<label for="edgeHit">Edge hit rate (%)</label>
+<input type="number" id="edgeHit" value="95" step="1" />
+<label for="shieldHit">Shield hit rate on edge misses (%)</label>
+<input type="number" id="shieldHit" value="80" step="1" />
+<label for="cdnRate">CDN egress ($/GB)</label>
+<input type="number" id="cdnRate" value="0.02" step="0.01" />
+<label for="originRate">Origin egress ($/GB)</label>
+<input type="number" id="originRate" value="0.09" step="0.01" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example: check that the planner reproduces 10 PB/day, ~1% of it reaching the origin, and about $207,000/day with the CDN vs $900,000/day without it, before changing the numbers.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. A fan in Sydney loads your site slowly even though you have a CDN. Walk through why, and what you check.</summary>
+<p><strong>Model answer.</strong> A CDN only helps requests it can answer from the edge, so start by measuring, not guessing. Step one: check the cache-hit ratio for the slow page's URL pattern in the CDN logs — if it is low, the edge is mostly forwarding to the origin, and the 160 ms round trip is back in play. Step two: find out why the hit ratio is low. Common causes: a tracking query parameter (<code>?utm_source=...</code>) is fragmenting the cache key, so the same page is cached under a hundred keys; a <code>Cache-Control: no-store</code> or a session cookie is marking the response uncacheable; or the TTL is so short that every fan is the first fan. Step three: check the routing — is the Sydney fan actually reaching the Sydney PoP, or is DNS sending them to Singapore because their resolver's location is misreported? Step four: check the dynamic half — if the slow part is a personalised API call, no cache can help; the fix is a shorter network path (edge TLS termination, a warm backbone) or fewer origin round trips (batch the API, cache the static shell at the edge and fill the personal bits by edge compute). Close with the measurement that proves the fix: hit ratio per URL pattern and p95 time-to-first-byte by region, before and after.</p>
+</details>
+<details>
+<summary>Q2. Your site just published a wrong price on a shirt, and the page is cached in 200 PoPs with a 1-day TTL. What do you do — and what should you have done?</summary>
+<p><strong>Model answer.</strong> Right now: purge by surrogate key (tag <code>product-4821</code>) if you tagged the assets, or purge the exact URLs — and say honestly that the purge takes seconds to minutes to propagate, so some fans will still see the wrong price in that window; if the price error is large enough to take orders at a loss, take the page down or serve a maintenance response at the edge until the purge lands. What you should have done: never let a changeable price live in a 1-day-TTL object. Price pages and product pages should carry short TTLs (minutes), or be versioned, or be served as a cached static shell with the price filled in at the edge or by a small API call. The deeper point: purging is a correction mechanism, not a caching strategy — a design that needs frequent purges has its TTLs wrong. The follow-up fix is to tag every product asset with its product's surrogate key at publish time, so the next correction is one purge command, not a list of URLs.</p>
+</details>
+<details>
+<summary>Q3. Design the CDN layer for a live match: the score updates every few seconds, 10 million fans are refreshing, and the origin must not melt.</summary>
+<p><strong>Model answer.</strong> Split the page into what changes and what does not. The static shell (layout, CSS, images, club crest) gets long TTLs and versioned URLs — served from the edge, never touching the origin. The score itself is a tiny JSON payload with a 5-second TTL: each PoP fetches it from the origin at most once per 5 seconds, so 10 million refreshing fans become a few hundred origin requests per second, which is nothing — and fans still see a score at most 5 seconds old, which is fresh enough for a match. Add stale-while-revalidate so a fan never waits on the revalidation, and add request coalescing at the edge so a hundred fans arriving in the same second share one origin fetch. The live video (if any) is segmented and cached the same way as the highlights: each 2-second segment is immutable once published, so it gets a long TTL and a content-addressed name. Guard the origin behind the CDN's IP allow-list so a direct flood cannot bypass the edge, and pre-warm the PoPs with the shell before kick-off so the first fans are not all cache misses. Success metric: origin requests per second during the match, and p95 score latency by region — not total requests, which the edge absorbed.</p>
+</details>
+<details>
+<summary>Q4. When would you NOT use a CDN?</summary>
+<p><strong>Model answer.</strong> When there is nothing to cache and nobody far away. A purely internal tool used by 50 people in one office, all near the origin, gains nothing from an edge network — the added hop and the configuration complexity are pure cost. A low-traffic site whose origin is already close to its users (a local club site with a mostly local audience) similarly gains little on latency, though the DDoS and WAF benefits can still justify it. And an API that is entirely personalised, real-time, and uncacheable (a trading terminal, a multiplayer game server) gets only the TLS and routing benefit — real, but small, and not worth calling a CDN design. The senior framing: a CDN is a cache with a global footprint, so the test is the same as any cache — is there repeated, shareable content, and are the readers far from the writer? If both answers are no, skip it and spend the effort on the origin.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — Draw the request path.</strong> A fan in Lagos requests the highlights clip for the first time after the final whistle, then a second fan in Lagos requests it a minute later. Draw the full path of both requests (DNS/Anycast, TLS, edge lookup, shield, origin), marking every place a copy is stored and which requests the origin actually sees. <em>Rubric: the first request reaches the origin exactly once (via the shield); the second is an edge hit; the diagram shows the copy stored at the shield and at the edge, and the TTL on each; and it shows the TLS handshake ending at the edge, not the origin.</em></p>
+<p><strong>Drill 2 — Set the TTLs.</strong> You have five objects: the club crest (never changes), the match-day CSS bundle (new every release), the live score JSON (changes every few seconds), a season-ticket holder's seat map (personal), and the cup-final highlights clip (published once, never edited). Assign each a caching policy — TTL, versioning, or do-not-cache — and justify it in one line each. <em>Rubric: crest gets a long TTL (immutable); CSS gets a content-hashed name with a long TTL; score gets a ~5s TTL with stale-while-revalidate; seat map is <code>private, no-store</code>; the clip gets a long TTL with a surrogate key for the emergency purge.</em></p>
+<p><strong>Drill 3 — Diagnose the hit ratio.</strong> Your CDN dashboard shows an overall hit ratio of 92%, but the match-centre page loads slowly from the edge and the origin is seeing 10× the traffic you predicted. List three hypotheses, what log or metric confirms each, and the fix. <em>Rubric: (1) cache-key fragmentation from tracking parameters — confirmed by distinct keys per URL in the logs, fixed by stripping them; (2) a session cookie forcing dynamic treatment — confirmed by <code>Cache-Control: private</code> on the response, fixed by splitting the personalised fragment out; (3) a hot uncacheable endpoint dominating origin load — confirmed by per-URL origin request counts, fixed with a short TTL or edge compute.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>What to cache</td><td>Static, shareable content with a long TTL; dynamic routed through</td><td>Personalised fragments: cache the shell, fill the personal bits at the edge or via API</td></tr>
+<tr><td>TTL</td><td>Match it to the change rate: immutable = 1 year, pages = minutes, live data = seconds</td><td>Never a long TTL on a mutable URL — version it or shorten it</td></tr>
+<tr><td>Cache key</td><td>URL + only the headers that change the response</td><td>Strip tracking parameters; never vary on a header that does not change the answer</td></tr>
+<tr><td>Invalidation</td><td>Wait for the TTL; version by content hash</td><td>Surrogate-key purge as the fire extinguisher — never <code>/*</code> purges in anger</td></tr>
+<tr><td>Miss handling</td><td>Origin shield + request coalescing between edge and origin</td><td>No shield on a small site: accept the extra origin load, or add one when a spike hurts</td></tr>
+<tr><td>Origin protection</td><td>Firewall the origin to the CDN's IP ranges; require the CDN's secret header</td><td>No exception — an origin reachable directly is an origin unprotected</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"A CDN is a copy of your content in every city, so a fan downloads from kilometres away instead of across an ocean. The origin is the source of truth; the edge serves what it has, the origin shield collapses duplicate misses, and the origin only ever sees each object once per region per TTL window. The design decisions are which content is cacheable, how long each copy may live, and what the cache key includes — version immutable files by content hash so they never need invalidating, keep TTLs short on anything that changes, and treat purge as the fire extinguisher, not the strategy. The same position in front of the origin also absorbs DDoS and runs the firewall, as long as the origin is actually unreachable except through the CDN."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: the CDN does not make servers faster — it makes most requests never reach them.</li>
+<li>Back-of-the-envelope: 10 PB/day, 25 Tbps peak, 160 ms of physics from Sydney, ~$693,000/day saved on egress.</li>
+<li>Architecture: DNS/Anycast routing → TLS at the edge → cache lookup → origin shield → origin; control plane and logs.</li>
+<li>Deep dive: static vs dynamic split, TTL and versioned URLs, cache-key discipline.</li>
+<li>Trade-offs and failure modes: invalidation, personalised pages cached by mistake, stampedes, origin IP leaks.</li>
+<li>Close: hit ratio per URL pattern and origin requests per second as the success metrics — not total traffic served.</li>
+</ol>
+
+<div class="foot">
+<p>Lesson 32 · Next: the remaining classic designs build on this one — every video, feed, and storefront lesson reuses the edge: cache the static shell, route the personal bits through, and let the shield protect the origin.</p>
+<p><a href="../index.html">← All lessons</a></p>
+</div>
+</div>
+<script>
+var LIGHT_SPEED_FIBER_KM_S = 200000;
+function rttMs(distanceKm) {
+  return 2 * distanceKm / LIGHT_SPEED_FIBER_KM_S * 1000;
+}
+function computeLatency(distOriginKm, distEdgeKm, hitRatePct, assetCount, parallel) {
+  var originRtt = rttMs(distOriginKm) + 20; // +20ms origin server work
+  var edgeRtt = rttMs(distEdgeKm) + 5;      // +5ms edge server work
+  var hit = hitRatePct / 100;
+  var effRtt = hit * edgeRtt + (1 - hit) * originRtt;
+  var batches = Math.ceil(assetCount / parallel);
+  var tls = 2 * effRtt;
+  var fetch = batches * effRtt;
+  var withCdn = tls + fetch;
+  var noCdnTls = 2 * originRtt;
+  var noCdnFetch = batches * originRtt;
+  var noCdn = noCdnTls + noCdnFetch;
+  return { originRtt: originRtt, edgeRtt: edgeRtt, effRtt: effRtt, batches: batches, withCdn: withCdn, noCdn: noCdn, speedup: noCdn / withCdn };
+}
+function computeOffload(viewsPerDay, avgSizeMB, edgeHitPct, shieldHitPct, cdnRate, originRate) {
+  var totalGB = viewsPerDay * avgSizeMB / 1000;
+  var edgeFrac = edgeHitPct / 100;
+  var shieldFrac = (1 - edgeFrac) * (shieldHitPct / 100);
+  var originFrac = (1 - edgeFrac) * (1 - shieldHitPct / 100);
+  var originGB = totalGB * originFrac;
+  var cdnGB = totalGB * (edgeFrac + shieldFrac);
+  var costWith = cdnGB * cdnRate + originGB * originRate;
+  var costWithout = totalGB * originRate;
+  return { totalGB: totalGB, originGB: originGB, cdnGB: cdnGB, originFrac: originFrac, costWith: costWith, costWithout: costWithout, saving: costWithout - costWith };
+}
+function fmtMs(n) {
+  return Math.round(n).toLocaleString("en-US") + " ms";
+}
+function fmtGB(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(2) + " PB";
+  if (n >= 1000) return (n / 1000).toFixed(1) + " TB";
+  return Math.round(n).toLocaleString("en-US") + " GB";
+}
+function fmtMoney(n) {
+  return "$" + Math.round(n).toLocaleString("en-US");
+}
+function renderLabA() {
+  var dO = parseFloat(document.getElementById("distOrigin").value);
+  var dE = parseFloat(document.getElementById("distEdge").value);
+  var hr = parseFloat(document.getElementById("hitRate").value);
+  var ac = parseFloat(document.getElementById("assetCount").value);
+  document.getElementById("distOriginVal").textContent = dO.toLocaleString("en-US");
+  document.getElementById("distEdgeVal").textContent = dE.toLocaleString("en-US");
+  document.getElementById("hitRateVal").textContent = hr;
+  document.getElementById("assetCountVal").textContent = ac;
+  var r = computeLatency(dO, dE, hr, ac, 6);
+  document.getElementById("labAResult").innerHTML =
+    "Origin round trip: <b>" + fmtMs(r.originRtt) + "</b> · Edge round trip: <b>" + fmtMs(r.edgeRtt) + "</b> · Effective round trip at " + hr + "% hits: <b>" + fmtMs(r.effRtt) + "</b><br>" +
+    "Page load (TLS + " + r.batches + " fetch batches): with CDN <b>" + fmtMs(r.withCdn) + "</b> vs direct to origin <b>" + fmtMs(r.noCdn) + "</b><br>" +
+    "The edge makes this page <b>" + r.speedup.toFixed(1) + "× faster</b> — and most of that gap is distance, not server speed.";
+}
+function renderLabB() {
+  var v = parseFloat(document.getElementById("viewsPerDay").value) || 0;
+  var s = parseFloat(document.getElementById("avgSizeMB").value) || 0;
+  var e = parseFloat(document.getElementById("edgeHit").value) || 0;
+  var sh = parseFloat(document.getElementById("shieldHit").value) || 0;
+  var cr = parseFloat(document.getElementById("cdnRate").value) || 0;
+  var orr = parseFloat(document.getElementById("originRate").value) || 0;
+  var r = computeOffload(v, s, e, sh, cr, orr);
+  document.getElementById("labBResult").innerHTML =
+    "<b>Total delivered: " + fmtGB(r.totalGB) + "/day</b> · Origin serves only <b>" + fmtGB(r.originGB) + "</b> (" + (r.originFrac * 100).toFixed(1) + "% of requests)<br>" +
+    "Cost with CDN: <b>" + fmtMoney(r.costWith) + "/day</b> · Cost without CDN: <b>" + fmtMoney(r.costWithout) + "/day</b><br>" +
+    "The edge and shield together save <b>" + fmtMoney(r.saving) + "/day</b> — and spare the origin " + fmtGB(r.totalGB - r.originGB) + " of traffic it never has to serve.";
+}
+document.getElementById("distOrigin").addEventListener("input", renderLabA);
+document.getElementById("distEdge").addEventListener("input", renderLabA);
+document.getElementById("hitRate").addEventListener("input", renderLabA);
+document.getElementById("assetCount").addEventListener("input", renderLabA);
+["viewsPerDay", "avgSizeMB", "edgeHit", "shieldHit", "cdnRate", "originRate"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
