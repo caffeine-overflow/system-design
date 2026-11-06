@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Authentication &amp; Authorization at Scale</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .82rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; }
+  pre { background: var(--code); color: var(--code-ink); border-radius: var(--radius); padding: 16px 18px; overflow-x: auto; font-size: .88rem; line-height: 1.55; }
+  pre code { background: none; border: 0; padding: 0; }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 33</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 33 · Fundamentals</span>
+  <h1>Authentication &amp; Authorization at Scale</h1>
+  <p class="whyline">Two million fans try to log in during the ten minutes before kick-off, and every one of them expects the app to know who they are, what they are allowed to do, and to never let someone else in as them.</p>
+  <div class="meta"><span>AuthN vs AuthZ</span><span>Sessions &amp; JWTs</span><span>OAuth 2.0 &amp; OIDC</span><span>RBAC &amp; ABAC</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is authentication? What is authorization?</h2>
+<p>Start from zero. <strong>Authentication</strong> (often shortened to <strong>AuthN</strong>) is proving <em>who you are</em>. <strong>Authorization</strong> (shortened to <strong>AuthZ</strong>) is deciding <em>what you are allowed to do</em> once your identity is known. They are two different problems, solved by different mechanisms, and confusing them is the single most common design error in this area — a system that authenticates perfectly and authorizes sloppily will happily let the right person do the wrong thing.</p>
+<p>The soccer running example: Riverside FC's stadium on cup-final day. A fan arrives at the turnstile holding a season ticket. The steward checks the ticket and the photo on it — that is authentication: <em>are you really the person this ticket belongs to?</em> Then the steward checks what the ticket permits — a general-admission ticket gets you into the stands, a hospitality ticket gets you into the lounge, a press pass gets you into the press box, and none of them gets you onto the pitch. That is authorization: <em>given who you are, which doors may you open?</em> A forged ticket is a stolen credential. A season ticket cancelled mid-season is a revoked credential — and the turnstile only knows about the cancellation if someone tells it, which is the revocation problem this whole lesson turns on.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Principal:</strong> whoever (or whatever) is acting — a fan, a coach, or a service calling another service. <strong>Credential:</strong> the proof a principal presents — a password, a fingerprint, a one-time code. <strong>Identity provider (IdP):</strong> the service that checks credentials and vouches for identity — "yes, this is fan 4821". <strong>Session:</strong> a server-side record that a principal is logged in, referenced by a random <strong>session ID</strong> the client carries. <strong>Token:</strong> a self-contained credential the client carries — usually a <strong>JWT</strong> (JSON Web Token), a signed JSON object that asserts "this is fan 4821, allowed until 15:00". <strong>Access token:</strong> a short-lived token used on every API call. <strong>Refresh token:</strong> a long-lived token used only to get new access tokens. <strong>Scope:</strong> a permission label on a token, e.g. <code>read:tickets</code> — what the token is allowed to do. <strong>Role:</strong> a named bundle of permissions, e.g. <code>steward</code> or <code>club-admin</code>. <strong>Claim:</strong> one field inside a token, e.g. <code>sub</code> (subject: who) or <code>exp</code> (expiry: until when). <strong>Multi-factor authentication (MFA):</strong> requiring two different kinds of proof — something you know (password) plus something you have (phone code) or are (fingerprint).</p></div>
+<p>The one idea to carry through the whole lesson: <strong>authentication answers "who?", authorization answers "may I?", and at scale the hard part is not checking the password — it is making the answer to both questions cheap, fast, and revocable for millions of people at once.</strong> Everything below — sessions versus tokens, OAuth flows, role models, the failure modes — is a consequence of where you store the answer, how long you trust it, and how you take it back.</p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are designing identity for Riverside FC's platform: 50 million registered fans, the club app, the ticket shop, and the staff tools (stewards, coaches, club admins). We are <em>not</em> building a new cryptography library — we are deciding how login, tokens, and permissions work at this scale, which is exactly the framing an interviewer expects.</p>
+<ul>
+<li><strong>Functional:</strong> fans sign up and log in with email/password plus optional MFA; staff log in with stronger MFA; third-party apps (a fantasy-league app, a merch partner) can act on a fan's behalf with the fan's consent; permissions differ by role (fan, steward, coach, admin); a stolen or revoked credential stops working quickly; a fan can log out everywhere at once.</li>
+<li><strong>Non-functional:</strong> login must survive the kick-off surge; every API call must re-check authorization in well under a millisecond of added latency; availability — fans must be able to log in even if one data centre is down; and security — a breach of the user database must not hand attackers usable passwords, and a stolen token must have a short useful life.</li>
+</ul>
+<p>The sizing, with every step shown. Assume 50 million registered fans, 20% of whom log in on a cup-final day, with 2 million of those logins landing in the 10 minutes before kick-off:</p>
+<ul>
+<li><strong>Kick-off login surge:</strong> 2,000,000 logins ÷ 600 seconds = <strong>~3,333 logins/second</strong> at peak. The rest of the day averages 10,000,000 ÷ 86,400 ≈ 116 logins/second — the peak is about 29× the average, so the login path must be built for the surge, not the average.</li>
+<li><strong>Password hashing is the bottleneck, by design.</strong> Passwords are never stored in plain text; they are run through a deliberately slow hash (bcrypt, scrypt, or Argon2). At bcrypt cost 12, one hash takes about <strong>250 ms on one CPU core</strong> — slow on purpose, so a stolen database is expensive to crack. At peak, 3,333 logins/second × 0.25 seconds of CPU each = <strong>833 CPU-seconds per second</strong>, i.e. about 833 cores busy doing nothing but password hashing. Drop to bcrypt cost 10 (~60 ms) and it is 3,333 × 0.06 ≈ <strong>200 cores</strong> — cheaper, but a stolen database is ~4× cheaper to crack too. That trade-off — hash cost vs login capacity vs breach cost — is a real capacity decision, and it is why login is a separate, independently scalable service. (Lab A lets you run these numbers yourself.)</li>
+<li><strong>Session store size.</strong> If logins are stateful sessions, each session record is ~200 bytes. 50 million active sessions × 200 bytes = <strong>10 GB</strong> — trivial for a Redis cluster, but it is state that must be replicated, expired, and looked up on every request. Refresh tokens are similar: 50 million × ~300 bytes ≈ <strong>15 GB</strong>.</li>
+<li><strong>Token refresh load.</strong> During the match, say 10 million fans are active in the app, each holding an access token that lives 15 minutes. Each fan refreshes 4 times an hour: 10,000,000 × 4 ÷ 3,600 = <strong>~11,100 refreshes/second</strong> — a steady background load the refresh endpoint must absorb, and the reason short token lifetimes are not free. With 1-hour tokens it falls to ~2,800/second; with 5-minute tokens it rises to ~33,300/second. (Lab B shows the whole trade-off.)</li>
+<li><strong>Token validation cost.</strong> Every API call carries its access token, and the API must validate it. An HMAC signature check costs ~1–2 microseconds; an RSA signature check costs ~0.1 ms. At 50,000 API requests/second, RSA validation is 50,000 × 0.0001 = <strong>5 CPU-seconds per second</strong> — about 5 cores, fine — but HMAC is ~250× cheaper, which is why services that validate tokens themselves usually use symmetric keys, and why asymmetric keys are reserved for tokens validated by many independent parties.</li>
+<li><strong>Brute force, quantified.</strong> A 6-digit one-time code has 1,000,000 possible values. Rate-limiting a login to 5 attempts per 15 minutes gives an attacker a 5 ÷ 1,000,000 = <strong>0.0005% chance per window</strong> — guessing is dead. The real attack is not guessing: it is <strong>credential stuffing</strong>, trying passwords leaked from other sites, which is why breached-password screening and MFA matter far more than password complexity rules.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Login is a CPU problem, token refresh is a throughput problem, and validation is a per-request tax. A design that hashes passwords on the same servers that serve the API will fall over at kick-off — not because the API is slow, but because 833 cores of hashing starve everything else. Separate the login path, price the token lifetime in refreshes per second, and keep the per-request validation in microseconds, not milliseconds.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>One fan logging in and then buying a ticket flows through six stages. The interesting decisions are at stages three, four, and six:</p>
+<ol>
+<li><strong>The client asks to log in.</strong> The app sends the fan's email and password over TLS to the login endpoint. The login service is a separate, independently scalable service behind its own rate limiter — it is the only service that ever sees a raw password, and it is the service the kick-off surge hits hardest.</li>
+<li><strong>Credential check.</strong> The login service looks up the fan by email, then hashes the submitted password with the same algorithm and parameters stored alongside the hash, and compares the results in constant time. A <strong>hash</strong> is a one-way function: easy to compute, practically impossible to reverse — so a stolen database yields hashes, not passwords. The comparison must take the same time whether the password is right or wrong, or the timing itself leaks information. On success, the service also checks MFA if the account has it: a 6-digit code from an authenticator app (<strong>TOTP</strong> — time-based one-time password, a code that changes every 30 seconds) or a push approval.</li>
+<li><strong>Token issuance.</strong> On success, the login service (acting as the <strong>identity provider</strong>) issues two tokens: a short-lived <strong>access token</strong> (15 minutes) and a long-lived <strong>refresh token</strong> (30 days, stored as a hash in the database so a stolen refresh-token database is useless). The access token is what the fan's app sends on every API call; the refresh token is used only at the refresh endpoint to get a new access token. Splitting them is the whole trick: the token that travels everywhere is nearly worthless if stolen, because it dies in minutes.</li>
+<li><strong>Every API call re-validates.</strong> The app sends the access token in the <code>Authorization: Bearer …</code> header. Each API service validates it — checks the signature, the expiry, and the issuer — without calling the identity provider. That independence is what makes token auth scale: validation is a local computation, not a network round trip. The cost is that a revoked token keeps working until it expires — the revocation problem, covered below.</li>
+<li><strong>Authorization at the resource.</strong> After the token is validated, the service checks whether this principal may do this action on this resource: does fan 4821 own ticket 9917, or hold the <code>steward</code> role for gate 12? This check happens at the service that owns the resource, using the permissions in the token plus its own data — never in the client, because the client is not trusted.</li>
+<li><strong>Refresh and logout.</strong> When the access token expires, the app presents the refresh token and gets a new pair. With <strong>refresh-token rotation</strong>, each refresh also replaces the old refresh token — so if a stolen refresh token is used, the legitimate user's next refresh fails, and the system can detect the theft and revoke the whole token family. Logging out everywhere means revoking every refresh token for that fan, and the short-lived access tokens simply die within minutes.</li>
+</ol>
+<p>Two supporting pieces complete the picture. The <strong>directory</strong> is the store of principals, roles, and permissions — the source of truth the login service reads and the admin tools write. And the <strong>audit log</strong> records every login, failed attempt, role change, and revocation, append-only, because after an incident the first question is always "who did what, and when?" — and a system that cannot answer it has failed its security requirement even if nothing was stolen.</p>
+
+<h2>The heart of it: sessions vs tokens</h2>
+<p>There are two ways for a server to remember that a fan is logged in, and the choice shapes everything else. Get this comparison right and the rest of the design falls out of it.</p>
+<h3>1. Stateful sessions — the server remembers</h3>
+<p>After login, the server creates a session record (fan 4821, logged in at 14:02, expires 15:02) in a shared store — usually Redis — and hands the client a random <strong>session ID</strong>, a meaningless string of ~128 bits. On every request the server looks the ID up in the store. The advantages are real: revocation is instant (delete the record and the fan is logged out everywhere, immediately); the session can carry anything, including data that changes; and the ID itself reveals nothing if intercepted in a log. The costs are also real: every request pays a store lookup (a network round trip, ~0.5 ms, plus the store's own capacity — remember the 10 GB for 50 million sessions), and the store becomes a piece of infrastructure every service depends on. If the session store is down, nobody is logged in — which is why it is replicated across regions and why its availability is a first-class requirement, not an afterthought.</p>
+<h3>2. Stateless JWTs — the token remembers</h3>
+<p>A <strong>JWT</strong> is three base64url parts joined by dots: <code>header.payload.signature</code>. The <strong>header</strong> says how it is signed (<code>alg: RS256</code>). The <strong>payload</strong> is the claims: <code>sub</code> (subject — who, e.g. fan 4821), <code>exp</code> (expiry), <code>iss</code> (issuer), plus whatever permissions the token carries. The <strong>signature</strong> is computed over the first two parts with the identity provider's private key, so any service holding the public key can verify the token was really issued by the IdP and has not been tampered with — without calling anyone. The advantage is scale: validation is a local signature check in microseconds, with no store lookup and no shared state, so any service in any region can validate any token independently. The price is threefold. First, <strong>revocation is not free</strong>: a signed token is valid until its expiry, so "log out everywhere" cannot take effect until the token dies — which is exactly why access tokens live 15 minutes and the refresh token, which <em>is</em> stored server-side and revocable, does the long-term work. Second, <strong>size</strong>: a JWT carrying roles and permissions is typically 200–500 bytes, and it travels on every request — at 50,000 requests/second, a 500-byte token is 25 MB/second of header overhead, and a token stuffed with every permission a user has can blow past the 4 KB cookie limit. Third, <strong>the payload is readable</strong>: base64 is encoding, not encryption — anyone holding the token can read its claims, so a JWT must never contain secrets.</p>
+<div class="callout green"><strong>The rule that decides it</strong><p>Use short-lived stateless tokens for the hot path (every API call), and a stateful, revocable refresh token for the long-lived part. You get microsecond validation on the path that matters and instant revocation on the credential that matters. A design that makes the access token long-lived to "reduce refresh traffic" has traded away its only fast revocation mechanism; a design that makes everything a server-side session has bought a store lookup on every request. The hybrid is not a compromise — it is the standard, and it is what every large system actually runs.</p></div>
+<p>One more distinction that trips people up in the room: <strong>a JWT is a format, not a session strategy.</strong> You can store JWTs server-side and revoke them (then you have paid the store cost and gained nothing), and you can issue opaque random tokens that are validated by lookup (then you have a session by another name). The real question is always: <em>who holds the state, and how do I take it back?</em> Answer that, and the format follows.</p>
+
+<h2>OAuth 2.0 and OpenID Connect — letting others act for the fan</h2>
+<p>Sooner or later a fan wants a third-party app — a fantasy-league app, a merch partner — to read their tickets or post on their behalf. The fan must not hand over their password: the third party would then have full access, forever, and changing the password would break it. <strong>OAuth 2.0</strong> is the protocol that solves this, and it is worth defining precisely because interviewers probe it constantly.</p>
+<p>The four roles: the <strong>resource owner</strong> (the fan), the <strong>client</strong> (the fantasy app), the <strong>authorization server</strong> (Riverside's IdP — it issues tokens), and the <strong>resource server</strong> (Riverside's API — it serves tickets). The standard flow is the <strong>authorization code flow with PKCE</strong> (proof key for code exchange — pronounced "pixie"). It runs like this: the fantasy app redirects the fan to Riverside's login page (the fan's password never touches the fantasy app); the fan logs in and sees a consent screen — "Fantasy App wants to read your tickets" — and approves; Riverside redirects the fan back to the fantasy app with a one-time <strong>authorization code</strong>; the fantasy app exchanges that code, plus a secret it generated at the start (the PKCE verifier), for an access token scoped to exactly what the fan approved, e.g. <code>read:tickets</code>. The code is single-use and short-lived (minutes), and PKCE ties the code to the app that started the flow, so a stolen code is useless to anyone else.</p>
+<p><strong>OpenID Connect (OIDC)</strong> is the thin identity layer on top of OAuth 2.0: it adds an <strong>ID token</strong> (a JWT stating who the fan is — <code>sub</code>, name, email) alongside the access token. The split matters: OAuth answers "may this app do X?" (authorization); OIDC answers "who is this fan?" (authentication). <strong>Single sign-on (SSO)</strong> is what you get when several apps all trust the same IdP: the fan logs in once at Riverside and is recognised by the shop, the app, and the staff portal without logging in again — because each app accepts the same IdP's tokens. The common failure mode is the opposite direction: an app that accepts tokens from an IdP it does not fully trust, or that checks the token's signature but not its issuer — a token minted for the fantasy app's IdP is not a Riverside login, and "valid signature" is not the same as "issued by us".</p>
+
+<h2>Authorization models — who may do what</h2>
+<p>Authentication tells you who is at the turnstile. Authorization is the rulebook the steward follows, and there are three standard rulebooks, each with a clear home:</p>
+<table>
+<tr><th>Model</th><th>How it works</th><th>Best for</th><th>Where it breaks</th></tr>
+<tr><td><strong>RBAC</strong> — role-based access control</td><td>Permissions are bundled into roles (<code>fan</code>, <code>steward</code>, <code>coach</code>, <code>club-admin</code>); a principal is assigned roles, and the role decides what they may do.</td><td>Staff tools, admin panels — a small, stable set of roles.</td><td>Role explosion: "steward for gate 12 on match days only" is not a role, it is a paragraph. Hundreds of near-identical roles mean the model has failed.</td></tr>
+<tr><td><strong>ABAC</strong> — attribute-based access control</td><td>Each decision evaluates attributes: who (role, department, clearance), what (resource owner, classification), and context (time, location, device trust). "A steward may open gate 12 if they are on shift, at the stadium, and the gate is in their zone."</td><td>Fine-grained, contextual rules — the press box, the medical room, the transfer budget.</td><td>Policy sprawl and debuggability: when a rule is a 40-line expression, nobody can answer "why was I denied?" in the room.</td></tr>
+<tr><td><strong>Scopes + ownership</strong></td><td>Tokens carry scopes (<code>read:tickets</code>, <code>write:profile</code>); services additionally check ownership — fan 4821 may read ticket 9917 because it is <em>theirs</em>, regardless of role.</td><td>Fan-facing APIs and third-party apps — the OAuth world.</td><td>Scopes are coarse: <code>read:tickets</code> does not say <em>whose</em> tickets, so the ownership check must still happen at the resource.</td></tr>
+</table>
+<p>The senior line: <strong>roles answer "what kind of person is this?", ownership answers "is this theirs?", and context answers "is this the right time and place?"</strong> Most real systems use all three — RBAC for the broad shape, ownership for fan data, ABAC for the handful of genuinely contextual rules — and the design error is picking one model and forcing every rule through it. Two more rules that belong in every answer. First, <strong>enforce at the resource, never in the client</strong>: the app may hide the "Refund" button from a fan, but the refund endpoint must still check, because the client is code the user controls. Second, <strong>deny by default</strong>: a missing rule means no access, and every denial is logged — a system that fails open when its policy store is unreachable has a security hole shaped exactly like an outage.</p>
+
+<h2>Failure modes — six ways auth goes wrong</h2>
+<table>
+<tr><th>Failure</th><th>What the fan (or attacker) sees</th><th>What saves you</th></tr>
+<tr><td>Stolen access token (XSS, leaked logs, shoulder-surfed)</td><td>Attacker acts as the fan until the token expires</td><td>Short TTL (15 min) caps the damage; tokens in <code>HttpOnly</code> cookies, never in localStorage where scripts can read them; rotate refresh tokens so theft is detected</td></tr>
+<tr><td>Stolen refresh token</td><td>Attacker mints fresh access tokens indefinitely</td><td>Refresh-token rotation + reuse detection: if an already-used refresh token appears again, revoke the whole token family and force re-login</td></tr>
+<tr><td>Credential stuffing with leaked passwords</td><td>Thousands of accounts taken over with passwords reused from other breaches</td><td>Breached-password screening at signup and login; per-account rate limits; MFA; device and velocity signals (new country, 50 accounts from one IP)</td></tr>
+<tr><td>Password database stolen</td><td>Attacker cracks weak passwords offline at full speed</td><td>Slow, salted hashes (bcrypt/Argon2) with a per-user salt — cracking one password must not crack them all; pepper (a server-side secret mixed into the hash) so the database alone is not enough</td></tr>
+<tr><td>Revocation that does not reach the edge</td><td>A banned steward's token still opens gates for 15 minutes; a logged-out fan's token still works</td><td>Short access-token TTL as the hard bound; a small revocation denylist (only revoked tokens, checked on the hot path) for the cases where minutes matter</td></tr>
+<tr><td>OAuth consent phishing ("log in with Riverside" on a fake page)</td><td>Fan grants a malicious app broad scopes, or types their password into a lookalike page</td><td>Exact redirect-URI matching (no wildcards); PKCE; minimal scopes by default; consent screens that name the app and list every scope in plain language</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"We use JWTs, so we are stateless."</strong> A JWT is stateless only until you need revocation, and every real system needs revocation. The moment you add a denylist, a token-family table, or a "log out everywhere" button, you have state — the honest question is <em>where</em> the state lives and how big it is (a denylist of revoked tokens is tiny; a session table of every login is not). Claiming statelessness while quietly keeping a revocation table is the tell.</li>
+<li><strong>"The token is signed, so it is safe to put anything in it."</strong> A signature proves the token was not tampered with; it does not hide the contents. Base64 is readable by anyone holding the token, and tokens end up in logs, in browser devtools, and in support tickets. A JWT must never contain a password, an internal ID an attacker can exploit, or a permission the user should not know they have — and stuffing every role into the token is how a 500-byte token becomes a 5 KB one that breaks the cookie limit.</li>
+<li><strong>"We check authorization in the frontend."</strong> The frontend is a convenience, not a control. Hiding a button is a user-experience decision; the API endpoint must re-check, because the client is JavaScript the user can edit, and a direct <code>curl</code> call does not render your UI. If the only thing stopping a fan from refunding someone else's ticket is that the button was hidden, there is no authorization at all.</li>
+</ul>
+
+<h2>Interactive lab 1: the login-storm planner</h2>
+<div class="lab">
+<h3>Lab A — How many cores does kick-off cost?</h3>
+<p>The scenario: fans log in before kick-off, and every login pays one slow password hash. Move the sliders and see what the hash cost does to your login fleet.</p>
+<label for="loginsPerSec">Peak logins per second: <span id="loginsPerSecVal">3,333</span></label>
+<input type="range" id="loginsPerSec" min="100" max="10000" step="50" value="3333" />
+<label for="hashMs">Password hash time per login (ms): <span id="hashMsVal">250</span></label>
+<input type="range" id="hashMs" min="10" max="500" step="10" value="250" />
+<label for="loginCores">Login-service cores available: <span id="loginCoresVal">400</span></label>
+<input type="range" id="loginCores" min="50" max="2000" step="50" value="400" />
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Try it: at bcrypt cost 12 (~250 ms) the kick-off surge needs about 833 cores — more than the 400-core default fleet, so logins queue. Drop the hash to cost 10 (~60 ms) and the same surge needs about 200 cores — but a stolen database is now ~4× cheaper to crack. That is the trade-off, in cores.</p>
+</div>
+
+<h2>Interactive lab 2: the token-lifetime planner</h2>
+<div class="lab">
+<h3>Lab B — Price your token lifetime</h3>
+<p>Enter your scale. The planner shows what an access-token lifetime costs in refresh traffic, what it costs in bandwidth on every API call, and how long a stolen token stays useful after revocation.</p>
+<label for="activeUsers">Fans active at once</label>
+<input type="number" id="activeUsers" value="10000000" />
+<label for="tokenTtlMin">Access-token lifetime (minutes)</label>
+<input type="number" id="tokenTtlMin" value="15" step="1" />
+<label for="tokenBytes">Access-token size (bytes)</label>
+<input type="number" id="tokenBytes" value="500" step="50" />
+<label for="apiReqPerSec">API requests per second (all fans)</label>
+<input type="number" id="apiReqPerSec" value="50000" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example: check that the planner reproduces ~11,100 refreshes/second, 25 MB/second of token overhead on API calls, and a 15-minute revocation window, before changing the numbers.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. Design login for a service with 10 million users. A stolen database must not hand over passwords, and the login path must survive a 3,000 logins/second surge.</summary>
+<p><strong>Model answer.</strong> Start with the threat model, not the boxes. Passwords are stored as slow, salted hashes — bcrypt cost 12 or Argon2id — with a per-user salt and a server-side pepper, so a stolen database yields hashes that cost ~250 ms each to test, and the pepper means the database alone is not enough to crack them at all. The login path is a separate, independently scalable service behind its own rate limiter, because the hash cost is the capacity number: 3,000 logins/second × 0.25 seconds = 750 cores of hashing at peak, so the login fleet is sized for the surge and scales independently of the API fleet — a login surge must never starve the API. Rate-limit per account (5 attempts per 15 minutes) and per IP, screen passwords against a breached-password list at signup and at login, and offer MFA (TOTP or passkeys) so a leaked password alone is not enough. On success, issue a short-lived access token (15 minutes, stateless JWT, HMAC-signed for cheap validation) and a rotating refresh token stored hashed server-side. Log every login and failed attempt to an append-only audit log. Close with the numbers that prove it: cores at peak, refreshes per second at the chosen token lifetime, and the revocation bound (15 minutes) — and name what you would measure: login p99 latency, hash CPU, and failed-login rate by IP.</p>
+</details>
+<details>
+<summary>Q2. A fan reports their account was used by someone else. They changed their password — why might the attacker still be in, and what do you do?</summary>
+<p><strong>Model answer.</strong> Changing the password only blocks the front door. The attacker may hold a live access token (good for up to 15 minutes), a refresh token (good for 30 days — the real problem), or an active session on another device, and none of those are invalidated by a password change unless you make them so. The fix, in order: revoke every refresh token and session for the account (the "log out everywhere" action — this is the operation a password change must trigger); force re-login on all devices; put the attacker's known access tokens on the short revocation denylist if the window matters; then investigate the audit log — when did the attacker log in, from where, what did they do (change email? buy tickets? grant an OAuth app?). If the attacker added an OAuth grant or changed the recovery email, undo those too — a password reset that leaves a malicious OAuth grant in place leaves the attacker a permanent back door. The senior point: a password is one credential among several, and account recovery is a revocation problem, not a password problem. The follow-up fix is to make "change password" always revoke all sessions and refresh tokens by default, and to alert the fan on login from a new device or country.</p>
+</details>
+<details>
+<summary>Q3. Your API validates JWTs itself, in every service, with no call to the identity provider. A club admin is fired at 14:00. At 14:10 they can still open the admin panel. Why, and what are your options?</summary>
+<p><strong>Model answer.</strong> The admin's access token is a signed statement that was true when it was issued — it says "club-admin until 14:15" — and no service re-checks with the IdP, so nothing knows the admin was fired until the token expires. That is the price of stateless validation: revocation is bounded by the token lifetime, not instant. The options, in order of strength: (1) accept it, if the bound is short — with a 15-minute token the window is at most 15 minutes, and many systems accept exactly this; say so honestly and name the bound. (2) Shorten the token lifetime for privileged roles — admins get 5-minute tokens, fans get 15 — so the worst case shrinks where it matters most. (3) Keep a small revocation denylist of revoked token IDs, checked on the hot path for privileged endpoints only — the list is tiny (only revoked tokens, not all sessions) so the lookup stays cheap, and it makes the firing effective in seconds for the endpoints that matter. (4) For the most sensitive actions (refunds, role changes, transfers), re-check the directory at request time instead of trusting the token — a deliberate slow path for a small number of dangerous operations. What you do <em>not</em> do is quietly add a full session lookup to every request and keep calling the design stateless. Close with the trade-off: each option buys a smaller window at the price of a lookup, and the right answer is usually (1) plus (3) for privileged roles.</p>
+</details>
+<details>
+<summary>Q4. A partner app wants to show a fan their upcoming tickets. Should it ask for the fan's password, use a service account, or use OAuth — and what scopes does it get?</summary>
+<p><strong>Model answer.</strong> OAuth, with the authorization code flow and PKCE — never the password, never a shared service account. The password would give the partner full access as the fan, forever, with no way to revoke just the partner; a service account would give the partner access to <em>every</em> fan's tickets, which is both a breach waiting to happen and impossible to audit per fan. With OAuth, the fan logs in on Riverside's own page, sees a consent screen naming the partner and exactly what it wants, and approves a token scoped to the minimum: <code>read:tickets</code>, and only upcoming tickets, not purchase history or payment methods. The token is short-lived with a refresh token the fan can revoke at any time from their account settings, and every access is logged against the partner's client ID, so a misbehaving partner can be cut off without touching any fan's password. If the partner only needs public data, no token at all — but tickets are personal, so consent and scopes are the mechanism. The senior framing: the question is not "how does the partner authenticate?" but "what is the smallest, revocable permission that does this job, and who can take it back?"</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — Trace the stolen token.</strong> A fan's phone is stolen at half-time. The thief opens the app: the access token has 9 minutes left, and a refresh token is stored on the phone. Walk through what the thief can do in the next hour, what the fan's "log out everywhere" does at each step, and what still works after it. <em>Rubric: the thief can act as the fan for up to 9 minutes on the access token, then can mint new access tokens indefinitely with the refresh token; "log out everywhere" revokes the refresh token, so the next refresh fails — but access tokens already issued keep working until they expire; the fix that closes the gap is a revocation denylist for the stolen token IDs, or a short token lifetime; and the answer names that the thief's refresh-token use is itself detectable via rotation reuse.</em></p>
+<p><strong>Drill 2 — Pick the model.</strong> You have four rules: (a) only coaches may edit the match plan; (b) a steward may open gate 12 only while on shift and at the stadium; (c) a fan may cancel their own ticket up to 2 hours before kick-off; (d) a partner app may read a fan's upcoming tickets only with that fan's consent. Assign each rule to RBAC, ABAC, ownership, or scopes — and name one rule that would break if you forced it through the wrong model. <em>Rubric: (a) RBAC — a stable role; (b) ABAC — time and location context; (c) ownership plus a time condition; (d) scopes plus consent; the breakage: forcing (b) into RBAC creates a role per gate per shift (role explosion), and forcing (c) into scopes alone fails because the scope does not say whose ticket it is.</em></p>
+<p><strong>Drill 3 — Size the login fleet.</strong> A derby brings 5,000 logins/second at peak. Your hash costs 250 ms and your login fleet has 600 cores. Do logins queue? If you switch to a 60 ms hash, what changes — and what do you lose? <em>Rubric: 5,000 × 0.25 = 1,250 cores needed vs 600 available, so yes, logins queue and p99 login latency climbs; at 60 ms the need falls to 300 cores, inside the fleet — but a stolen database becomes ~4× cheaper to crack, so the honest answer pairs the cheaper hash with a compensating control (MFA by default, breached-password screening, or a pepper) rather than presenting the switch as free.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Password storage</td><td>Slow salted hash (bcrypt cost 12 / Argon2id) + server-side pepper</td><td>Never fast hashes (SHA-256 alone) or unsalted hashes — a stolen database must be expensive to crack</td></tr>
+<tr><td>Token shape</td><td>Short-lived stateless access token (15 min) + stateful rotating refresh token</td><td>Longer access tokens only for low-risk reads; shorter (5 min) for privileged roles</td></tr>
+<tr><td>Validation</td><td>Local signature check in each service (HMAC where one issuer validates; RSA where many parties do)</td><td>Re-check the directory at request time for the few most sensitive operations</td></tr>
+<tr><td>Revocation</td><td>Revoke refresh tokens + sessions; access tokens die within their TTL</td><td>Add a small denylist for privileged roles or high-risk incidents where minutes matter</td></tr>
+<tr><td>Third-party access</td><td>OAuth 2.0 authorization code + PKCE, minimal scopes, fan-revocable</td><td>Never share passwords or service accounts; never accept a token without checking its issuer</td></tr>
+<tr><td>Authorization model</td><td>RBAC for roles, ownership for fan data, ABAC for contextual rules</td><td>One model forced everywhere is the smell — if roles are exploding, the rule is contextual</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"Authentication proves who you are, authorization decides what you may do, and at scale the hard part is making both answers cheap, fast, and revocable for millions of people. Passwords are stored as slow salted hashes, so login is a CPU problem — size the login service for the kick-off surge, not the daily average. After login, the fan gets a short-lived access token that every service validates locally in microseconds, and a rotating refresh token that lives server-side and can be revoked instantly. That split is the whole design: the token that travels everywhere dies in minutes, and the credential that lasts is the one you can take back. Third parties never get a password — they get an OAuth token with the smallest scope the job needs, revocable by the fan. And authorization is enforced at the resource, never in the client, with roles for staff, ownership for fan data, and context for the rules that depend on time and place."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: AuthN is "who?", AuthZ is "may I?", and the hard part is cheap, fast, revocable answers at scale.</li>
+<li>Back-of-the-envelope: 3,333 logins/second at kick-off, ~833 cores of bcrypt, ~11,100 refreshes/second at a 15-minute token lifetime, 0.0005% brute-force chance per window.</li>
+<li>Architecture: login service → credential check → token issuance → local validation on every call → authorization at the resource → refresh and logout.</li>
+<li>Deep dive: sessions vs tokens and the revocation price of statelessness; OAuth with PKCE and OIDC; RBAC vs ABAC vs scopes.</li>
+<li>Trade-offs and failure modes: stolen tokens, credential stuffing, revocation windows, consent phishing.</li>
+<li>Close: the six decisions, and the rule that authorization is enforced at the resource — never in the client.</li>
+</ol>
+
+<div class="foot">
+<p>Lesson 33 · Next: the remaining foundations — microservices vs monolith, observability — and the classic designs still to come, each of which reuses this lesson's rule: authenticate once, authorize at the resource, and make every credential revocable.</p>
+<p><a href="../index.html">← All lessons</a></p>
+</div>
+</div>
+<script>
+function computeLoginStorm(loginsPerSec, hashMs) {
+  var coresNeeded = loginsPerSec * hashMs / 1000;
+  return { coresNeeded: coresNeeded };
+}
+function computeTokenPlan(activeUsers, ttlMin, tokenBytes, apiReqPerSec) {
+  var refreshesPerSec = activeUsers / ttlMin / 60;
+  var refreshesPerHour = refreshesPerSec * 3600;
+  var overheadBytesPerSec = tokenBytes * apiReqPerSec;
+  var overheadMBPerSec = overheadBytesPerSec / (1000 * 1000);
+  var revocationWindowMin = ttlMin;
+  return { refreshesPerSec: refreshesPerSec, refreshesPerHour: refreshesPerHour, overheadMBPerSec: overheadMBPerSec, revocationWindowMin: revocationWindowMin };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function renderLabA() {
+  var lps = parseFloat(document.getElementById("loginsPerSec").value);
+  var hm = parseFloat(document.getElementById("hashMs").value);
+  var cores = parseFloat(document.getElementById("loginCores").value);
+  document.getElementById("loginsPerSecVal").textContent = fmtNum(lps);
+  document.getElementById("hashMsVal").textContent = hm;
+  document.getElementById("loginCoresVal").textContent = fmtNum(cores);
+  var r = computeLoginStorm(lps, hm);
+  var ok = r.coresNeeded <= cores;
+  var verdict = ok
+    ? "The fleet copes: <b>" + fmtNum(r.coresNeeded) + " cores</b> needed vs " + fmtNum(cores) + " available (" + fmtNum(cores - r.coresNeeded) + " to spare)."
+    : "The fleet is short by <b>" + fmtNum(r.coresNeeded - cores) + " cores</b>: logins queue, and p99 login latency climbs at kick-off.";
+  document.getElementById("labAResult").innerHTML =
+    "Hashing load: <b>" + fmtNum(r.coresNeeded) + " cores</b> busy just checking passwords (" + fmtNum(lps) + " logins/s × " + hm + " ms)<br>" + verdict;
+}
+function renderLabB() {
+  var au = parseFloat(document.getElementById("activeUsers").value) || 0;
+  var ttl = parseFloat(document.getElementById("tokenTtlMin").value) || 0;
+  var tb = parseFloat(document.getElementById("tokenBytes").value) || 0;
+  var rps = parseFloat(document.getElementById("apiReqPerSec").value) || 0;
+  var r = computeTokenPlan(au, ttl, tb, rps);
+  document.getElementById("labBResult").innerHTML =
+    "Refresh traffic: <b>" + fmtNum(r.refreshesPerSec) + " refreshes/second</b> (" + fmtNum(r.refreshesPerHour) + "/hour) at a " + ttl + "-minute lifetime<br>" +
+    "Token overhead on API calls: <b>" + r.overheadMBPerSec.toFixed(1) + " MB/second</b> of headers (" + fmtNum(tb) + " bytes × " + fmtNum(rps) + " requests/s)<br>" +
+    "Revocation window: a stolen or revoked access token stays usable for up to <b>" + r.revocationWindowMin + " minutes</b> — that is the price of a " + ttl + "-minute lifetime.";
+}
+document.getElementById("loginsPerSec").addEventListener("input", renderLabA);
+document.getElementById("hashMs").addEventListener("input", renderLabA);
+document.getElementById("loginCores").addEventListener("input", renderLabA);
+["activeUsers", "tokenTtlMin", "tokenBytes", "apiReqPerSec"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
