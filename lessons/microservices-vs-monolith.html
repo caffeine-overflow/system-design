@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Microservices vs Monolith</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: .82rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; }
+  pre { background: var(--code); color: var(--code-ink); border-radius: var(--radius); padding: 16px 18px; overflow-x: auto; font-size: .88rem; line-height: 1.55; }
+  pre code { background: none; border: 0; padding: 0; }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 34</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 34 · Foundations</span>
+  <h1>Microservices vs Monolith</h1>
+  <p class="whyline">Riverside FC's platform started as one codebase and forty engineers. Now the ticket team cannot ship without the merch team, a bug in the fantasy league takes down ticket sales, and every deploy is a whole-club event. Splitting the system apart would fix that — and create a whole new set of problems.</p>
+  <div class="meta"><span>Monolith vs microservices</span><span>Decomposition &amp; bounded contexts</span><span>Service discovery</span><span>The distributed monolith trap</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a monolith? What is a microservice?</h2>
+<p>Start from zero. A <strong>monolith</strong> is an application built as a single deployable unit: one codebase, one process (or one set of identical processes behind a load balancer), one database, and one deploy. Every feature — tickets, merch, fantasy league, live scores — lives in the same program, and a function in the ticket code calls a function in the merch code directly, in the same memory, in nanoseconds. A <strong>microservice</strong> is the opposite shape: the application is split into many small services, each one a separate process with its own codebase, its own database, and its own deploy, talking to the others over the network through defined <strong>APIs</strong> (application programming interfaces — the contract of endpoints and message formats a service offers to the outside world).</p>
+<p>The soccer running example: Riverside FC's platform as a football club. A monolith is one club where every department — ticketing, merch, catering, the academy — shares one building, one phone system, and one front door. If the catering team wants to rearrange its kitchen, the whole building closes for the day. A microservices club is a training ground of separate buildings, each with its own door, its own staff, and its own budget: the ticket office can repaint and reopen on its own schedule, but now a fan who wants a ticket, a shirt, and a pie has to walk between three buildings, and if the path between buildings is closed, the fan's errand fails even though every building is open. That walk between buildings — the network — is the entire trade-off of this lesson.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Deployment unit:</strong> the thing you ship as one piece — one binary, one container image, one deploy. A monolith has one; a microservices system has one per service. <strong>Service:</strong> a small, independently deployable program that owns one business capability and its data. <strong>Bounded context:</strong> a boundary inside which one meaning of a word holds — "ticket" means a seat in the ticketing context and a support request in the helpdesk context, and the two must not share a model. <strong>Conway's law:</strong> the observation that a system ends up mirroring the communication structure of the organisation that builds it — teams that never talk build services that never talk. <strong>Two-pizza team:</strong> a team small enough to be fed by two pizzas, roughly 6–8 people — the unit Amazon popularised as the right size to own one service. <strong>Service discovery:</strong> the mechanism by which a service finds the current address of another service, since addresses change every time a service redeploys or scales. <strong>API gateway:</strong> the single front door for clients — one address that routes, authenticates, and rate-limits requests before fanning them out to services. <strong>Distributed monolith:</strong> a system split into services that still cannot be deployed, scaled, or failed independently — all the cost of microservices with none of the benefit.</p></div>
+<p>The one idea to carry through the whole lesson: <strong>a monolith makes the easy things easy and the organisational things hard; microservices make the organisational things easy and the technical things hard.</strong> The split is not a technical upgrade — it is a trade of one kind of pain (coordination, one deploy train, one blast radius) for another (network latency, distributed failure, no shared transactions). The interviewer is not listening for which side you pick. They are listening for whether you can name what each side costs.</p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are deciding the shape of Riverside FC's platform: ticketing, merch shop, fantasy league, live scores, and the staff tools, built and run by 40 engineers. We are <em>not</em> deciding which framework or cloud to use — we are deciding how the code is organised, deployed, and owned, which is exactly the framing an interviewer expects.</p>
+<ul>
+<li><strong>Functional:</strong> six product areas ship independently (a ticket fix must not wait for a merch release); a failure in the fantasy league must not take down ticket sales; each area owns its data and its release schedule; the platform keeps working while individual pieces deploy.</li>
+<li><strong>Non-functional:</strong> a fan-facing request must still answer in well under a second; deploys must not need all 40 engineers to coordinate; a bug's damage must be bounded to one area; and the system must stay operable — debuggable, observable, and testable — by a team of 40, not 400.</li>
+</ul>
+<p>The sizing, with every step shown. These are the numbers that decide the shape before any opinion enters the room:</p>
+<ul>
+<li><strong>The network is not free — it is ~10,000× slower than a function call.</strong> Inside one process, calling a function costs about <strong>50 nanoseconds</strong> (a nanosecond is a billionth of a second). One network hop between two services in the same data centre costs about <strong>0.5 milliseconds</strong> round trip — 500,000 nanoseconds — before you count serialising the request into JSON and parsing the reply, roughly another 100 microseconds for a 10 KB payload. So one service-to-service call costs roughly 10,000× what an in-process call costs. A request that fans out through 5 services in sequence pays 5 × (0.5 ms + 0.1 ms) ≈ <strong>3 ms</strong> of pure plumbing, against ~0.00025 ms in a monolith. Three milliseconds sounds small — until the chain is 20 hops deep, or the hop crosses regions, and then it is the whole latency budget. (Lab A lets you run these numbers yourself.)</li>
+<li><strong>Sequential availability multiplies downwards.</strong> If each service is 99.9% available and a checkout request depends on 4 services in sequence, the request's availability is 0.999 × 0.999 × 0.999 × 0.999 = 0.999<sup>4</sup> ≈ <strong>99.6%</strong> — worse than the monolith's 99.9%, because every hop is another chance to fail. The same multiplication is why the critical path matters more than the service count: 20 services that never call each other in sequence cost nothing; 4 services chained on the checkout path cost 0.3 percentage points of availability. (This is the same chain math as Lesson 9: 0.999<sup>6</sup> ≈ 99.4%.)</li>
+<li><strong>Deploys: more of them, but none of them a ceremony.</strong> A monolith with 40 engineers typically runs one deploy train — say 1 deploy a week, 30 minutes of coordinated rollout, and every team waiting on the same window. Twenty services, each deploying 3 times a week at 3 minutes a deploy, is 20 × 3 = <strong>60 deploys a week</strong> and 60 × 3 minutes = <strong>3 engineer-hours a week</strong> of deploy toil — six times the monolith's 30 minutes. That is the honest price: microservices cost <em>more</em> total deploy effort, and buy you zero coordination. The ticket team ships at 10:00 on a Tuesday without asking the merch team anything. (Lab B shows the whole trade-off.)</li>
+<li><strong>Team shape follows the architecture — or fights it.</strong> Forty engineers in two-pizza teams of ~7 is about <strong>6 teams</strong>, which maps naturally to about 6 services. Forty engineers on one codebase is 40 people landing ~200 commits a day into the same main branch, where every merge conflict and every broken build blocks everyone. The monolith's coordination cost grows with the square of the team size (every pair of engineers can step on each other); the microservices cost grows with the number of service boundaries instead. Conway's law says the architecture will match the org chart eventually — the choice is whether you pick the shape deliberately or discover it by accident.</li>
+<li><strong>Data has a price either way.</strong> A monolith's one database gives you joins and ACID transactions (Lesson 21) for free. Twenty services with twenty databases give you twenty independent schemas — and no joins, no cross-service transactions, and a read that needs data from three services is now three network calls or a duplicated copy of the data kept in sync by events. Duplication is not a bug here; it is the accepted cost of independence, and it is why every microservices design eventually grows an event stream and a materialised view or two.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Every hop you add costs latency, availability, and a copy of the data — so a service boundary must pay for itself in independence: its own team, its own deploy, its own failure domain. A boundary that buys none of those is pure cost, and a system full of such boundaries is a distributed monolith wearing a microservices costume.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>One fan buying a ticket and a shirt flows through two very different systems. The interesting decisions are at the boundaries — where one piece ends and another begins.</p>
+<h3>Shape 1: the monolith</h3>
+<p>One codebase, one deploy, one database. The fan's request arrives at a load balancer (Lesson 2), lands on one of several identical copies of the whole application, and the ticket code calls the merch code as a function, in the same process, in nanoseconds. The database is one schema, so "show me this fan's tickets and their orders" is one SQL join, and "charge the card and reserve the seat" is one transaction — both succeed or both fail, atomically. Scaling is simple: add more identical copies of the whole thing. The cost is organisational: every team edits the same codebase, every release ships everyone's changes together, and a bug in the fantasy league's new feature takes down ticket sales, because there is only one process to crash. A monolith is not a bad architecture — it is a <em>small-team</em> architecture, and most systems should start as one.</p>
+<h3>Shape 2: microservices</h3>
+<p>Now the same fan journey, split apart. Six stages:</p>
+<ol>
+<li><strong>The client talks to one front door.</strong> The app calls the <strong>API gateway</strong>, which authenticates the fan (Lesson 33), applies rate limits (Lesson 11), and routes the request — tickets go to the ticketing service, shirts to the merch service. The client never learns the services' addresses.</li>
+<li><strong>Each service owns its capability and its data.</strong> The ticketing service owns seats, holds, and orders; the merch service owns products and stock. Each has its own database, its own schema, and its own deploy. No service reads another service's database directly — that rule is the whole point, because the moment two services share a table, they share a deploy.</li>
+<li><strong>Services find each other through discovery.</strong> When the ticketing service needs the fan's discount tier from the membership service, it asks the <strong>service registry</strong> (Consul, etcd, or the platform's built-in discovery — the same consensus-backed stores from Lesson 14) for the membership service's current address, then calls it. Addresses change on every deploy and every scale-out, so nothing may be hard-coded.</li>
+<li><strong>Reads cross boundaries by API or by copy.</strong> A request that needs data from three services either calls all three (slow, and availability multiplies downwards) or reads a local copy: each service publishes the changes other services need as events, and interested services keep a <strong>materialised view</strong> — a read-optimised copy of someone else's data, kept up to date by consuming those events. The copy is eventually consistent (Lesson 7), which is a trade-off you must name, not hide.</li>
+<li><strong>Writes that span services become sagas.</strong> "Charge the card and reserve the seat" can no longer be one database transaction, because the payment service and the ticketing service own different databases. The write becomes a saga (Lesson 21): local transactions plus compensating transactions, driven by an orchestrator or by choreography over events — with the explicit acceptance that a failure halfway through leaves a visible intermediate state (seat held, payment pending) that must be resolved, not hidden.</li>
+<li><strong>Every service is observable from the outside.</strong> Because a request now crosses five processes, debugging by reading one log file is dead. Each service emits the same three signals — <strong>metrics</strong> (numbers over time: request rate, error rate, latency), <strong>logs</strong> (timestamped events), and <strong>traces</strong> (the request's journey across services, tied together by one ID) — and a shared platform collects them. Observability is not a feature you add later; it is the price of admission for this shape, and it gets its own lesson next.</li>
+</ol>
+<p>Two supporting pieces complete the picture. <strong>Configuration</strong> lives outside the code — feature flags, timeouts, and connection strings in a config service or environment, so a threshold can change without a redeploy. And <strong>versioning</strong> is a discipline, not a tool: a service's API is a contract, old versions keep working while clients migrate, and a breaking change is a negotiation with every caller, not a commit.</p>
+
+<h2>The heart of it: how to split — and how not to</h2>
+<p>Splitting is the whole skill. A bad split is worse than no split, because the network makes every wrong boundary permanent and expensive. There are three standard ways to find the boundaries, and one test that judges all of them.</p>
+<h3>1. Split by business capability</h3>
+<p>Ask what the club <em>does</em>, not what the code <em>looks like</em>: sell tickets, sell merch, run the fantasy league, publish live scores, manage memberships. Each capability becomes a service. This is the most common starting point, because the boundaries match the org chart — the ticket team already exists, so the ticketing service already has an owner. The risk is a capability that is secretly two capabilities: "ticketing" that is really "seat allocation" plus "payment" plus "fraud checks" will split again later, and a late split is more expensive than an early one.</p>
+<h3>2. Split by subdomain — bounded contexts</h3>
+<p>Ask where the <em>words change meaning</em>. In ticketing, a "ticket" is a seat for a match. In the helpdesk, a "ticket" is a support request. In the shop, a "ticket" does not exist at all. Each meaning is a <strong>bounded context</strong>, and each context gets its own model, its own service, and its own database. This is the domain-driven design (DDD) approach, and it is the strongest of the three, because it finds boundaries in the language of the business rather than in the org chart. The tell that you have the boundary right: two teams can argue about what a word means and both be correct, because they are in different contexts. The tell that you have it wrong: the same word means the same thing in two services, and they keep needing to agree on its shape — that is one context, not two.</p>
+<h3>3. Split gradually — the strangler fig</h3>
+<p>Almost nobody gets to start greenfield. The realistic path is the <strong>strangler fig pattern</strong>, named for the vine that grows around a tree and eventually replaces it: put the API gateway in front of the monolith, then carve one capability out at a time — first the fantasy league, because it is the least entangled — and route its traffic to the new service while the monolith keeps serving everything else. Each carve-out is small, reversible, and independently valuable, and the monolith shrinks until the last piece moves out or, honestly, until the remaining core is small enough that splitting it further buys nothing. A big-bang rewrite, by contrast, is how you spend a year with two systems and no shipping.</p>
+<div class="callout green"><strong>The one test for every boundary</strong><p>Ask three questions: can this service deploy without the others? Can it fail without taking the others down? Can one team own it end to end? If the answer to all three is yes, the boundary is real. If any answer is no — if a deploy of the ticket service always needs a matching deploy of the merch service, or a crash in one always cascades to the other — you have drawn a line on a diagram, not a boundary in the system, and you are paying network costs for monolith behaviour. That is the distributed monolith, and it is the most common failure mode in this space.</p></div>
+<p>One more rule that belongs in every answer: <strong>split when the organisation hurts, not when the diagram looks tidy.</strong> A team of 5 engineers with one product area should be a monolith — the split buys them nothing and costs them a network, a saga, and an observability platform. A team of 40 with six product areas and a deploy train that takes a week to coordinate has outgrown the monolith, and the split is paying for itself in shipping speed. The question is never "microservices or monolith?" in the abstract. It is "what is hurting right now, and which shape removes that pain?"</p>
+
+<h2>Communication: synchronous calls vs events</h2>
+<p>Once split, services must talk, and there are two families of conversation, each with a clear home:</p>
+<table>
+<tr><th>Style</th><th>How it works</th><th>Best for</th><th>Where it breaks</th></tr>
+<tr><td><strong>Synchronous</strong> — request/response (REST, gRPC)</td><td>Service A calls service B and waits for the reply, over HTTP or gRPC (Lesson 27).</td><td>Reads that need a fresh answer now: "is this seat still available?"</td><td>Availability multiplies downwards along the chain; a slow B makes A slow; retry storms when B is down (Lesson 23).</td></tr>
+<tr><td><strong>Asynchronous</strong> — events and queues (pub/sub, message queues)</td><td>Service A publishes an event ("ticket sold") to a broker; interested services consume it when they can (Lessons 9 and 12).</td><td>Things that can happen later: updating the fan's order history, sending the confirmation email, feeding analytics.</td><td>Eventual consistency — the merch service's copy of the fan's tier is minutes old; debugging a flow that spans five inboxes is hard; event schemas become contracts.</td></tr>
+</table>
+<p>The senior line: <strong>synchronous calls are for questions, events are for facts.</strong> "What is the price of this seat?" is a question — ask it and wait. "This ticket was sold" is a fact — announce it and move on. The design error is making facts into questions: a checkout that synchronously calls five services in sequence to announce what happened has built a distributed transaction out of hope, and the first slow service in the chain teaches it why. Conversely, the design error in the other direction is making questions into events: a fan staring at a loading spinner while the answer travels through a queue has been given eventual consistency where they needed an answer.</p>
+
+<h2>Data per service — the rule and its price</h2>
+<p>Each service owns its database, and no other service touches it. That rule is what makes independent deploys possible: the ticketing team can rename a column without asking anyone. The price is threefold, and a strong answer names all three. First, <strong>no joins</strong>: a screen that shows a fan's tickets, orders, and membership tier reads three services or one materialised view — never one query. Second, <strong>no cross-service transactions</strong>: multi-service writes are sagas, with compensating transactions and visible intermediate states (Lesson 21). Third, <strong>duplication is normal</strong>: the merch service keeps its own copy of the fan's discount tier, updated by events, because calling the membership service on every product page is a latency and availability tax. The duplicated copy is stale by seconds or minutes, and the design must say which reads can tolerate that staleness and which cannot — a discount shown on a product page can be a minute old; a seat's availability cannot.</p>
+<p>Two patterns complete the picture. <strong>CQRS</strong> (command query responsibility segregation) is the admission that writes and reads want different shapes: the service that takes orders keeps its write model normalised and correct, and serves reads from a purpose-built view — a different table, or a different service entirely. And the <strong>outbox pattern</strong> is how a service publishes events reliably: it writes the business change and the event into the same local transaction, in an outbox table, and a relay publishes the outbox rows to the broker — so a crash can never produce a changed database with a lost event, or an event with no change behind it.</p>
+
+<h2>Failure modes — six ways the split goes wrong</h2>
+<table>
+<tr><th>Failure</th><th>What the fan (or engineer) sees</th><th>What saves you</th></tr>
+<tr><td>The distributed monolith</td><td>Twenty services, but every deploy needs all twenty, and every change touches five repos</td><td>The three-question boundary test; merge services that cannot deploy independently — a wrong split un-split is a fix, not a failure</td></tr>
+<tr><td>Cascading failure down a call chain</td><td>The fantasy league slows down, ticket checkout slows with it, then the whole site</td><td>Timeouts on every call, bulkheads (separate thread pools per dependency), circuit breakers, and async where a fresh answer is not needed</td></tr>
+<tr><td>Retry storm after a partial outage</td><td>A service recovers, then drowns under the retries of everything that waited</td><td>Bounded retries with exponential backoff and jitter, a retry budget, and 429/503 with Retry-After (Lesson 23)</td></tr>
+<tr><td>Eventual-consistency surprise</td><td>A fan buys a membership, then the shop shows the old price for a minute — and support gets the call</td><td>Name the staleness budget per read; read-your-own-write for the fan's own actions (session guarantee, Lesson 7); never promise strong consistency you do not have</td></tr>
+<tr><td>Version drift and breaking changes</td><td>The merch service deploys v2 of its API; three callers break at 2 a.m.</td><td>Backward-compatible changes by default (add fields, never rename); versioned endpoints for real breaks; contract tests in CI that fail the build before the deploy</td></tr>
+<tr><td>Undebuggable request</td><td>A checkout fails and nobody can say which of five services said no, or in what order</td><td>One trace ID carried across every hop, structured logs with that ID, and a single place to read the whole journey — observability from day one, not month six</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"Microservices are more scalable."</strong> A monolith scales fine — you run more copies of it behind a load balancer, and the whole industry did exactly that for a decade. Microservices let you scale <em>one piece</em> independently (the live-score service on match day, without scaling the merch service), and they let teams ship independently. That is organisational scaling and per-piece scaling, not raw throughput — and if the bottleneck is the database, splitting the application into twenty services that all hit the same database has scaled nothing.</li>
+<li><strong>"We split by team, so the boundaries must be right."</strong> Team boundaries and service boundaries usually coincide, because of Conway's law — but a team that owns two services that always deploy together has one service with extra steps, and a service owned by two teams has no owner. The test is the three questions (deploy, fail, own), not the org chart. Conway's law describes what happens by default; the architect's job is to decide deliberately, and to reorganise the teams when the architecture needs it, not only the other way around.</li>
+<li><strong>"Each service has its own database, so data is decoupled."</strong> Separate databases stop shared-table coupling, but the coupling moves: into the events (a change to the "ticket sold" event breaks every consumer), into the synchronous calls (a slow membership service is now everyone's problem), and into the duplicated copies (whose staleness budget nobody wrote down). Decoupling is not achieved by drawing a line — it is achieved by versioning the contracts across the line and naming what happens when the other side is slow, down, or changed.</li>
+</ul>
+
+<h2>Interactive lab 1: the service-hop latency planner</h2>
+<div class="lab">
+<h3>Lab A — What does the split cost in latency?</h3>
+<p>The scenario: a fan's request fans out through services in sequence — ticketing calls membership, membership calls pricing, and so on. Move the sliders and see what the network charges for each hop, against what the same calls would cost inside one process.</p>
+<label for="hops">Sequential service hops in the request: <span id="hopsVal">5</span></label>
+<input type="range" id="hops" min="0" max="12" step="1" value="5" />
+<label for="rttMs">Round-trip time per hop (ms): <span id="rttMsVal">0.5</span></label>
+<input type="range" id="rttMs" min="0.1" max="5" step="0.1" value="0.5" />
+<label for="serUs">Serialisation per hop (µs, both sides): <span id="serUsVal">100</span></label>
+<input type="range" id="serUs" min="0" max="1000" step="50" value="100" />
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Try it: 5 hops at 0.5 ms cost about 3 ms of plumbing against ~0.00025 ms in-process — roughly 12,000×. Push the hops to 12 and the RTT to 5 ms (a cross-region call) and the same request pays about 61 ms before any real work happens.</p>
+</div>
+
+<h2>Interactive lab 2: the deploy &amp; blast-radius planner</h2>
+<div class="lab">
+<h3>Lab B — Price the split in deploys and blast radius</h3>
+<p>Enter your shape. The planner shows the total deploy toil, what the monolith would have cost instead, how much of the platform one failing service takes down, and what a chained checkout request's availability becomes.</p>
+<label for="serviceCount">Number of services</label>
+<input type="number" id="serviceCount" value="20" />
+<label for="deploysPerWeek">Deploys per service per week</label>
+<input type="number" id="deploysPerWeek" value="3" step="1" />
+<label for="deployMinutes">Minutes of toil per deploy</label>
+<input type="number" id="deployMinutes" value="3" step="1" />
+<label for="criticalPath">Services chained on the checkout path</label>
+<input type="number" id="criticalPath" value="4" step="1" />
+<label for="serviceAvail">Availability per service (%)</label>
+<input type="number" id="serviceAvail" value="99.9" step="0.1" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example: check that the planner reproduces 60 deploys a week, 3 engineer-hours of toil (vs 0.5 hours for the monolith's one deploy), a 5% blast radius per service, and ~99.6% checkout availability, before changing the numbers.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. You have a team of 8 engineers building a new product with one feature area. Monolith or microservices — and why?</summary>
+<p><strong>Model answer.</strong> A monolith, without hesitation — and I would say so in the first sentence, because the question is testing whether I reach for microservices by default. Eight engineers is one two-pizza team with one product area, so the split buys nothing: there is no second team to unblock, no deploy train to escape, and no failure domain to isolate. What it costs is real — every call between features becomes a network hop at ~10,000× the cost of a function call, every multi-feature write becomes a saga instead of a transaction, and the team now needs service discovery, an API gateway, and distributed tracing just to debug a request. A well-structured monolith — modules with clear boundaries inside one codebase, one deploy — gives the team everything it needs: fast iteration, one database with real transactions, and trivial debugging. The honest close is the trigger for revisiting: when the team grows past ~20 engineers, or a second product area needs its own release cadence, or one feature's failure starts taking down the rest, that is when I would start carving pieces out with the strangler fig pattern — one capability at a time, behind the gateway, with the monolith shrinking rather than being rewritten.</p>
+</details>
+<details>
+<summary>Q2. Your checkout calls four services in sequence — pricing, inventory, payment, and fraud — and p99 latency doubled after the split. What do you do?</summary>
+<p><strong>Model answer.</strong> First, I would measure before moving anything: put a trace ID on the request and read the trace, because "latency doubled" could be four network hops, or one slow service, or serialisation of a huge payload, and each has a different fix. If it is the hops themselves — four sequential calls at ~0.5 ms RTT plus serialisation — the fix is structural, in order of strength. One: collapse calls that are really questions into one — pricing and inventory can often be answered by a single service that owns a materialised view, or by one call that returns both. Two: parallelise what does not depend on the previous answer — pricing and fraud can run at the same time, so the chain costs the slowest call, not the sum. Three: move facts to events — the fraud check does not need to block the reply if the payment can be held and reviewed asynchronously, which turns a synchronous chain into a fire-and-forget event. Four: if the chain is genuinely necessary, shorten it — put the services in the same availability zone, keep payloads small, and use gRPC instead of JSON where the serialisation cost shows up in the trace. And I would name the trade-off out loud: every one of these fixes trades something — a materialised view trades freshness, parallel calls trade partial-failure handling, async fraud trades immediate certainty — and the right answer depends on which of those the checkout can afford. What I would not do is add a cache in front of a chain that is slow because it is long; a cache hides latency, it does not remove hops.</p>
+</details>
+<details>
+<summary>Q3. Two of your services always deploy together, and a change to one always means a change to the other. What is wrong, and what do you do about it?</summary>
+<p><strong>Model answer.</strong> That is a distributed monolith — the boundary is drawn on a diagram but does not exist in the system. The test is the three questions: can it deploy alone, can it fail alone, can one team own it — and here the answer is no on the first, which means the two services are one service with a network hop in the middle, paying ~10,000× per call for the privilege. I would find out why they are coupled before touching the code: usually it is a shared data model (both services need the same "order" shape), a synchronous call chain (A cannot answer without B), or a shared database table they both write to. The fix depends on the cause. If it is a shared model, split the model along the bounded contexts — each service keeps its own view of an order, and the shared shape becomes an event both consume. If it is a call chain, move the fact to an event: B publishes what A needs, A keeps a materialised view, and the synchronous dependency disappears. If it is a shared table, one service owns the table and the other goes through its API. And if none of that is practical — if the two really are one capability — the honest fix is to merge them back into one service, which is a fix, not a failure. Merging a wrong split is how you learn where the boundary actually is, and a system that has merged one service is healthier than a system carrying a boundary nobody dares to question.</p>
+</details>
+<details>
+<summary>Q4. Design the split of a monolithic e-commerce platform into services. Where do you draw the lines, and what do you deliberately leave together?</summary>
+<p><strong>Model answer.</strong> I would start from the business, not the code: the capabilities are catalogue, search, cart, checkout, payment, orders, inventory, shipping, membership, and notifications — and the first cut follows those, because each has a team or a natural owner. Then I would check each cut against bounded contexts: a "product" in the catalogue (title, description, images) is not the same object as a "product" in inventory (SKU, stock count, warehouse), so catalogue and inventory are genuinely separate contexts even though they talk about the same shirt. The deliberate non-splits matter as much as the splits: cart and checkout stay close, because a checkout that reads a cart through a network call on every step is a latency and consistency headache — and many teams keep them in one service until the cart needs its own scale. Search stays a read model fed by events from the catalogue, not a service that queries the catalogue live. And payment is its own service from day one, because it has different compliance, different availability, and different failure handling from everything else — it is the one place where a shared transaction would be genuinely dangerous to lose. The migration is strangler fig: gateway in front, carve the least entangled capability first (notifications, then catalogue), route traffic service by service, and leave the monolith running the core until the last piece moves. I would close with the numbers: a checkout through 4 chained services at 99.9% each is ~99.6% available, so the checkout path gets parallel calls and a materialised view where it can, and the deploy math — 60 small deploys a week instead of one coordinated train — is the payoff the split is actually buying.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — Find the real boundary.</strong> A club platform has one service called "fan-service" that handles login, membership tiers, ticket purchases, and support tickets. Apply the three-question test (deploy alone, fail alone, one owner) and the bounded-context test (does "ticket" mean the same thing everywhere?). Propose a split — or argue it should stay whole — and name what changes in the split. <em>Rubric: "ticket" fails the bounded-context test (seat vs support request), so the service is at least two contexts; login/membership is one context, seat ticketing is another, support is a third; the split is justified only if the teams and deploy cadences differ — if one team owns all of it and ships weekly, the honest answer is to keep it one service with internal modules; and the answer names the cost of splitting (the membership tier becomes a network call or a duplicated copy with a staleness budget).</em></p>
+<p><strong>Drill 2 — Collapse the chain.</strong> A matchday page loads by calling five services in sequence: fan profile, membership tier, ticket history, merch recommendations, and live scores. p99 is 400 ms and the budget is 100 ms. The trace shows each hop costs ~60 ms, mostly waiting on the previous answer. Redesign the read path without changing what the page shows. <em>Rubric: the five calls are independent, so parallelise them — the chain costs the slowest call (~60 ms) instead of the sum (~300 ms); the membership tier and ticket history can be served from a materialised view owned by the page's own service, removing two hops entirely; live scores come from the edge cache (Lesson 32), not a service call; and the answer names what is lost — the view is eventually consistent, so a tier upgraded seconds ago may not show yet, which is acceptable for a page but not for a checkout.</em></p>
+<p><strong>Drill 3 — Size the split.</strong> A platform has 30 services, each deploying twice a week at 4 minutes of toil per deploy. A monolith alternative would deploy once a week at 45 minutes. Compare the weekly toil, then argue whether the split is worth it — and name the one fact that would change your answer. <em>Rubric: 30 × 2 × 4 = 240 minutes (4 hours) a week vs 45 minutes for the monolith — the split costs ~3.25 extra hours of toil a week; it is worth it if the deploys are independent (no coordination meetings, no waiting for other teams) and if a bad deploy's blast radius is one service, not the platform; the fact that changes the answer is whether deploys are actually independent — if every deploy still needs a coordinated release window, the split costs 4 hours and buys nothing, and the right move is to merge back or fix the coupling first.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Shape</td><td>Start as a well-structured monolith; split when the organisation hurts</td><td>Split early only if teams, deploy cadences, or failure domains are already separate</td></tr>
+<tr><td>Where to split</td><td>By business capability, checked against bounded contexts (where words change meaning)</td><td>Never split by technical layer (a "database service" is a monolith with a network hop)</td></tr>
+<tr><td>How to migrate</td><td>Strangler fig: gateway first, carve one capability at a time, monolith shrinks</td><td>Never a big-bang rewrite — a year with two systems and no shipping</td></tr>
+<tr><td>Communication</td><td>Synchronous calls for questions, events for facts</td><td>Never a synchronous chain of facts; never an event where the user is waiting for the answer</td></tr>
+<tr><td>Data</td><td>One database per service; reads via API or materialised views; writes via sagas</td><td>Never a shared database across services — that is one deploy with extra steps</td></tr>
+<tr><td>Boundary test</td><td>Deploy alone, fail alone, one owner — all three, or it is not a boundary</td><td>Merge a service that fails the test; an un-split is a fix, not a failure</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"A monolith is one codebase, one deploy, one database — fast to build, fast to debug, and painful to scale organisationally, because every team ships together and one bug can take down everything. Microservices split the system into small services with their own code, data, and deploys, which buys independent shipping and a bounded blast radius — and charges for it in network latency, about ten thousand times the cost of a function call per hop, in availability that multiplies downwards along every chain, and in data that has to be duplicated or reached through events. So the split is justified by the organisation, not by the diagram: split by business capability and bounded contexts, migrate with the strangler fig one piece at a time, keep synchronous calls for questions and events for facts, and test every boundary with three questions — can it deploy alone, can it fail alone, can one team own it? If the answer is no, it is a distributed monolith, and the fix is to merge it back."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: the monolith makes the easy things easy and the organisational things hard; microservices reverse that — the split trades one pain for another.</li>
+<li>Back-of-the-envelope: ~10,000× per network hop vs a function call; 0.999<sup>4</sup> ≈ 99.6% for a four-service checkout chain; 60 small deploys a week vs one coordinated train.</li>
+<li>Architecture: gateway → services with their own databases → discovery → materialised views for reads → sagas for multi-service writes → observability across it all.</li>
+<li>Deep dive: splitting by capability and bounded context, the strangler fig, sync questions vs async facts, data per service and its price.</li>
+<li>Trade-offs and failure modes: the distributed monolith, cascading failure, retry storms, eventual-consistency surprises, version drift, undebuggable requests.</li>
+<li>Close: the six decisions, and the three-question boundary test — deploy alone, fail alone, one owner.</li>
+</ol>
+
+<div class="foot">
+<p>Lesson 34 · Next: Observability — metrics, logs, and traces, the three signals that make a split system debuggable at all.</p>
+<p><a href="../index.html">← All lessons</a></p>
+</div>
+</div>
+<script>
+function computeHopLatency(hops, rttMs, serUs) {
+  var perHopMs = rttMs + serUs / 1000;
+  var totalMs = hops * perHopMs;
+  var inProcessMs = hops * 0.00005;
+  var ratio = inProcessMs > 0 ? totalMs / inProcessMs : 0;
+  return { perHopMs: perHopMs, totalMs: totalMs, inProcessMs: inProcessMs, ratio: ratio };
+}
+function computeDeployPlan(services, deploysPerWeek, deployMinutes, criticalPath, serviceAvailPct) {
+  var totalDeploys = services * deploysPerWeek;
+  var toilHours = totalDeploys * deployMinutes / 60;
+  var monoToilHours = 30 / 60;
+  var blastRadiusPct = services > 0 ? 100 / services : 0;
+  var chainAvail = Math.pow(serviceAvailPct / 100, criticalPath) * 100;
+  return { totalDeploys: totalDeploys, toilHours: toilHours, monoToilHours: monoToilHours, blastRadiusPct: blastRadiusPct, chainAvail: chainAvail };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function renderLabA() {
+  var hops = parseFloat(document.getElementById("hops").value);
+  var rtt = parseFloat(document.getElementById("rttMs").value);
+  var ser = parseFloat(document.getElementById("serUs").value);
+  document.getElementById("hopsVal").textContent = hops;
+  document.getElementById("rttMsVal").textContent = rtt;
+  document.getElementById("serUsVal").textContent = ser;
+  var r = computeHopLatency(hops, rtt, ser);
+  var verdict = hops === 0
+    ? "No hops: the request never leaves the process — this is the monolith's latency, and the baseline everything else is measured against."
+    : "A monolith would pay <b>~" + r.inProcessMs.toFixed(5) + " ms</b> for the same calls in-process. The split costs <b>~" + fmtNum(r.ratio) + "×</b> as much latency — before any service does any real work.";
+  document.getElementById("labAResult").innerHTML =
+    "Plumbing per hop: <b>" + r.perHopMs.toFixed(2) + " ms</b> (" + rtt + " ms round trip + " + ser + " µs serialisation)<br>" +
+    "Total added latency: <b>" + r.totalMs.toFixed(2) + " ms</b> across " + hops + " sequential hop" + (hops === 1 ? "" : "s") + "<br>" + verdict;
+}
+function renderLabB() {
+  var s = parseFloat(document.getElementById("serviceCount").value) || 0;
+  var d = parseFloat(document.getElementById("deploysPerWeek").value) || 0;
+  var m = parseFloat(document.getElementById("deployMinutes").value) || 0;
+  var cp = parseFloat(document.getElementById("criticalPath").value) || 0;
+  var av = parseFloat(document.getElementById("serviceAvail").value) || 0;
+  var r = computeDeployPlan(s, d, m, cp, av);
+  document.getElementById("labBResult").innerHTML =
+    "Deploy events: <b>" + fmtNum(r.totalDeploys) + " deploys/week</b> (" + fmtNum(s) + " services × " + fmtNum(d) + " each)<br>" +
+    "Deploy toil: <b>" + r.toilHours.toFixed(1) + " engineer-hours/week</b> vs " + r.monoToilHours.toFixed(2) + " hours for the monolith's one weekly deploy — the split costs more toil and buys zero coordination<br>" +
+    "Blast radius: one failing service takes down <b>~" + r.blastRadiusPct.toFixed(1) + "%</b> of the platform surface<br>" +
+    "Checkout availability: <b>" + r.chainAvail.toFixed(2) + "%</b> with " + fmtNum(cp) + " services chained at " + av + "% each (vs " + av + "% for the monolith)";
+}
+document.getElementById("hops").addEventListener("input", renderLabA);
+document.getElementById("rttMs").addEventListener("input", renderLabA);
+document.getElementById("serUs").addEventListener("input", renderLabA);
+["serviceCount", "deploysPerWeek", "deployMinutes", "criticalPath", "serviceAvail"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
