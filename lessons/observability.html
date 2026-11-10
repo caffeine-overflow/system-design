@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Observability: Metrics, Logs &amp; Traces</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 35</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 35 · Foundations</span>
+  <h1>Observability: Metrics, Logs &amp; Traces</h1>
+  <p class="whyline">It is the 89th minute of the cup final and the ticket page has gone slow. Twenty services, five databases, a queue, a CDN — and nobody can say which one is the problem, or whether the fans are even feeling it yet. Observability is the answer to that question: the ability to ask a running system "what is happening inside you right now?" and get a true answer, instead of guessing from the outside.</p>
+  <div class="meta"><span>The three pillars</span><span>Metrics, logs &amp; traces</span><span>Cardinality &amp; sampling</span><span>SLI / SLO / error budget</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is observability?</h2>
+<p>Start from zero. <strong>Observability</strong> is the property of a system that lets you understand what is happening inside it from the signals it emits — without having to deploy new code or reproduce the problem first. If you can answer a question about a failure you have never seen before, using only the data the system already produces, the system is observable. If the only way to find out is to add a log line, ship it, and wait for the failure to happen again, it is not.</p>
+<p>The soccer running example: Riverside FC's match-day control room. The stadium has three kinds of information flowing into it. The <strong>scoreboard</strong> shows the score, the clock, and the possession percentage — numbers that update every second, summarised, easy to glance at. That is <strong>metrics</strong>. The <strong>stewards' radio log</strong> records everything that happened, in order, with timestamps: "Gate 4 opened 18:02", "Turnstile 7 jammed 18:14", "Medical team dispatched, north stand, 19:41". That is <strong>logs</strong>. And the <strong>VAR replay</strong> follows one single incident from start to finish — the ball, every player it touched, every decision the referee made, with a timestamp at each step — so you can see exactly where a goal-scoring move broke down. That is a <strong>trace</strong>. One control room needs all three: the scoreboard tells you something is wrong, the radio log tells you what happened around it, and the replay shows you the exact sequence that caused it.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Metric:</strong> a number measured over time — request rate, error rate, latency, CPU usage — usually aggregated (counted, averaged, percentiled) and stored as a time series. <strong>Log:</strong> a timestamped record that something happened — one line per event, kept in order, usually text or JSON. <strong>Trace:</strong> the record of one request's journey through the system, broken into <strong>spans</strong> — timed steps, one per service or operation — all tied together by one <strong>trace ID</strong>. <strong>Span:</strong> a single timed operation inside a trace ("ticket service: reserve seat, 42 ms"), with a start, a duration, and a parent. <strong>Cardinality:</strong> how many distinct combinations of labels a metric can take — the number that decides whether your metrics bill explodes. <strong>SLI (service level indicator):</strong> the thing you actually measure, e.g. "99.9% of requests answered in under 300 ms over 30 days". <strong>SLO (service level objective):</strong> the target you promise for an SLI, e.g. "99.9%". <strong>Error budget:</strong> how much failure the SLO allows — 0.1% of 30 days is 43.2 minutes of downtime, and that is all you may spend. <strong>Sampling:</strong> keeping only a fraction of traces or logs, because keeping all of them costs more than they are worth. <strong>Exemplar:</strong> a single concrete trace ID attached to an aggregated metric, so a spike in a graph has a "show me one real request" button.</p></div>
+<p>One distinction to get right early, because interviewers test it: <strong>monitoring is not observability.</strong> Monitoring is watching a fixed list of known things — dashboards and alerts for problems you predicted ("alert me if error rate exceeds 1%"). Observability is the ability to investigate problems you did <em>not</em> predict — the unknown unknowns. Monitoring asks "is the thing I already worry about happening?" Observability asks "what is happening, full stop?" A system can have a hundred dashboards and still be unobservable, if every question outside the pre-written list requires a new deploy. The practical test: when something new breaks at 2 a.m., do you debug it from the data you already have, or do you add logging and wait? That answer is the observability of the system.</p>
+<p>The one idea to carry through the whole lesson: <strong>the three pillars answer three different questions, and you need all three.</strong> Metrics answer "how bad is it, and how many people are affected?" Logs answer "what exactly happened, in what order?" Traces answer "where did this one request spend its time, and which hop failed?" A system with only metrics knows something is wrong but not why. A system with only logs drowns in text the moment traffic spikes. A system with only traces has beautiful replays and no idea how widespread the problem is. The senior answer is never "we use Prometheus" or "we use Datadog" — it is which question each signal answers, and how they connect: the metric's spike has an exemplar pointing at a trace, and the trace's span carries the same trace ID the logs are tagged with, so one click walks you from "how bad" to "which request" to "what happened".</p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are designing observability for Riverside FC's platform as it stands after Lesson 34: 20 microservices, a gateway, a queue, a CDN, five databases, and a match day that produces <strong>100 million requests</strong> — about 1,157 requests a second on average, peaking at roughly 10× that, ~11,600 a second, in the minutes after a goal. We are <em>not</em> choosing a vendor or writing a runbook for one specific alert — we are deciding what signals the system emits, how much of them we keep, and what it costs.</p>
+<ul>
+<li><strong>Functional:</strong> every service emits the same three signals in the same format; any engineer can go from an alert to the failing request in under five minutes; the system answers questions nobody predicted, not only the ones on the dashboards; and nothing sensitive (passwords, card numbers, session tokens) ever lands in a log or a trace.</li>
+<li><strong>Non-functional:</strong> the observability pipeline must not slow the request path (instrumentation overhead under ~1% of latency); it must survive a traffic spike without dropping the very data that explains the spike; and its cost must stay a small fraction of the infrastructure it watches — an observability bill bigger than the servers it monitors is a design failure, not a success.</li>
+</ul>
+<p>The sizing, with every step shown. These are the numbers that decide the shape before any tool choice enters the room:</p>
+<ul>
+<li><strong>Metrics are cheap — until a label multiplies them.</strong> Twenty services, each exposing 500 metric series, is 20 × 500 = <strong>10,000 series</strong>. Scraped every 15 seconds, each series produces 86,400 ÷ 15 = <strong>5,760 samples a day</strong>, so the fleet produces 10,000 × 5,760 = <strong>57.6 million samples a day</strong>. At roughly 1.3 bytes per compressed sample (the Prometheus figure), that is about <strong>75 MB a day, ~2.2 GB a month</strong> — trivial. The trap is cardinality: one metric labelled by endpoint (50 values) and user ID (1,000,000 values) is 50 × 1,000,000 = <strong>50 million series for that one metric alone</strong>, producing 50,000,000 × 5,760 × 1.3 bytes ≈ <strong>374 GB a day</strong> — five thousand times the whole fleet's baseline, from a single careless label. (Lab A lets you run this yourself.)</li>
+<li><strong>Logs are the volume problem.</strong> At the average 1,157 requests a second, with 5 log lines per request at 200 bytes each, the fleet writes 1,157 × 5 × 200 = <strong>~1.16 MB a second, about 100 GB a day</strong>. Seven days of retention is ~700 GB. At the post-goal peak of ~11,600 requests a second the same arithmetic gives ~1 TB a day if the peak were sustained — which is why logs are the first signal to get a budget, a retention policy, and a sampling rule, and why "log everything" is a bill, not a strategy.</li>
+<li><strong>Traces are the sampling problem.</strong> One request crossing 10 services produces 10 spans; at 100 bytes a span, keeping every trace at the average rate costs 1,157 × 10 × 100 = <strong>~1.16 MB a second, again about 100 GB a day</strong>. But nobody needs 100% of successful traces. A 1% head sample keeps ~10 million spans a day (~1 GB), and tail sampling — keeping 100% of the traces that errored, at a 1% error rate — adds another ~10 million spans (~1 GB). Total: <strong>~2 GB a day</strong> for a system where every single failure is still replayable, at 2% of the cost of keeping everything. (Lab B does this arithmetic.)</li>
+<li><strong>An SLO is a budget, and the budget is small.</strong> Thirty days is 30 × 24 × 60 = 43,200 minutes. A 99.9% availability SLO allows 0.1% of that to fail: 43,200 × 0.001 = <strong>43.2 minutes a month</strong>. At 99.95% it is <strong>21.6 minutes</strong>; at 99.99% it is <strong>4.32 minutes</strong>. That number is the whole point of an SLO: it turns "the site must be up" into a spendable allowance, and once the allowance is gone, the correct move is to stop shipping features and spend the time on reliability instead.</li>
+<li><strong>Alerting has a human cost, not just a compute cost.</strong> An alert that fires once a week and is always real gets read. An alert that fires ten times a day and is usually noise gets muted — and then the one real page in the pile gets missed with it. The rule of thumb from Google's SRE practice: a human should be paged at most a couple of times a week, and every page must need a human. Everything else is a ticket, a dashboard, or nothing at all.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Metrics are nearly free and logs and traces are nearly free — until a label, a debug line, or a 100% sampling rate multiplies one of them by a thousand. So observability is designed as a budget problem first and a tooling problem second: decide how many series, how many log lines, and how many traces you can afford, and then spend that budget where it answers the most questions. A pipeline with no budget is a bill that arrives at 2 a.m. during the cup final.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>One fan's request — "buy two tickets" — flows through the platform, and observability is the machinery that watches it without getting in its way. Five stages, in order:</p>
+<ol>
+<li><strong>Instrument — the services emit signals.</strong> Every service is instrumented once, the same way, usually with <strong>OpenTelemetry</strong> (the vendor-neutral standard for emitting metrics, logs, and traces from code, replacing the older mix of StatsD, Jaeger clients, and hand-rolled logging). A request arriving at the gateway gets a <strong>trace ID</strong> and a <strong>span ID</strong>, carried in headers (<strong>context propagation</strong>), and every service it touches adds its own span to the same trace, logs with the same trace ID attached, and increments the same counters. The key discipline: instrumentation lives in shared libraries and middleware, not in each service's business code, so the signals are uniform and nobody has to remember to add them.</li>
+<li><strong>Collect — the signals leave the services.</strong> Metrics are usually <strong>pulled</strong>: a collector scrapes each service's <code>/metrics</code> endpoint every 15 seconds (the Prometheus model), which means a dead service is visible as a missing scrape, not as silence. Logs and traces are usually <strong>pushed</strong>: the service sends them to a local agent or collector (an OpenTelemetry Collector, a Fluent Bit sidecar) that batches, compresses, and forwards them — because a service should never block a fan's request while waiting for a log server. The collector is also where sampling decisions happen: it can keep 1% of successful traces and 100% of errored ones, before anything crosses the network.</li>
+<li><strong>Store — three backends, one per shape.</strong> Metrics go to a <strong>time-series database</strong> (Prometheus, Thanos, Mimir, or a vendor equivalent), which is built for "give me the p99 latency of this endpoint over the last hour" and compresses aggressively because it only stores numbers. Logs go to a <strong>log store</strong> (Loki, Elasticsearch, or a vendor equivalent), indexed by labels and time, built for "show me all errors from the ticket service in the last ten minutes containing this trace ID". Traces go to a <strong>trace store</strong> (Jaeger, Tempo), built for "show me this one request, span by span". Three stores, because the three questions have different access patterns — one store cannot serve all three well, and a design that tries is usually a log store being asked to do metric math.</li>
+<li><strong>Query and alert — the signals become decisions.</strong> Dashboards show the golden signals per service (below). Alerts are defined on SLIs, not on raw machine health: "page me if the checkout success rate drops below 99.9% over ten minutes", not "page me if CPU is above 80%", because CPU can be 80% and fine, or 40% and broken. Alerts fire through an <strong>alert manager</strong> (Alertmanager, PagerDuty, Opsgenie), which dedupes, silences, and routes them to the right human, with a link to the dashboard and a <strong>runbook</strong> — the written steps for what to check first.</li>
+<li><strong>Correlate — the three signals join up.</strong> This is the step most designs skip, and the one that saves the most time at 2 a.m. The metric dashboard's spike carries an <strong>exemplar</strong> — the trace ID of one real slow request. Clicking it opens the trace, which shows the payment span took 4 seconds. The trace's span carries the same trace ID, so one search in the log store shows every log line from every service for that exact request, including the payment provider's timeout. Three clicks, one story. Without correlation, the same investigation is three separate searches in three tools, and the engineer spends the first twenty minutes proving the three tools are even looking at the same incident.</li>
+</ol>
+<p>Two supporting pieces complete the picture. <strong>Structured logs</strong> — log lines as JSON with named fields (<code>trace_id</code>, <code>service</code>, <code>user_id</code>, <code>duration_ms</code>) rather than free text ("user 4821 bought 2 tickets in 310ms") — are what make the log store searchable at all; free text can be grepped, structured fields can be filtered, counted, and grouped. And <strong>retention</strong> is a deliberate policy per signal: metrics 15–90 days (aggregated down as they age — keep per-minute resolution for a week, per-hour after that), logs 7–30 days, traces 7–14 days for sampled data and longer for errors. Retention is where the bill lives, so it is set by the budget, not by the default.</p>
+
+<h2>The heart of it: what each pillar is for</h2>
+<p>The three pillars are not three ways of doing the same thing. Each one is the only good answer to a different question, and a strong answer can say which question each one answers and what it cannot do.</p>
+<h3>1. Metrics — "how bad is it, and how many people are affected?"</h3>
+<p>A metric is a number over time: how many requests per second, what fraction errored, how long the 99th percentile took. Metrics are <strong>aggregated</strong> — you keep the count and the histogram, not the individual requests — which is why they are cheap and why they are the first thing you look at. The standard framing is Google's <strong>four golden signals</strong>: <strong>latency</strong> (how long requests take), <strong>traffic</strong> (how many requests), <strong>errors</strong> (what fraction fail), and <strong>saturation</strong> (how close a resource is to its limit). For a single service, the <strong>RED method</strong> is the tighter version: <strong>Rate, Errors, Duration</strong> — three graphs per service, and if all three are green, the service is healthy from the outside. For infrastructure, the <strong>USE method</strong> is the equivalent: <strong>Utilization, Saturation, Errors</strong> per resource. The trap is the label: a metric's usefulness is its labels (endpoint, status code, region), and its cost is its <strong>cardinality</strong> — the number of distinct label combinations. A label with 5 values is fine. A label with 1,000,000 values (a user ID, a request ID, an email address) is a cardinality bomb: it turns one metric into millions of series, and the bill and the query latency follow. The rule: <strong>labels describe categories, never individuals.</strong> If you need per-user data, that is a log or a trace, not a metric.</p>
+<h3>2. Logs — "what exactly happened, in what order?"</h3>
+<p>A log is a timestamped record of an event: a request arrived, a payment was attempted, a cache missed, a retry fired. Logs are the only pillar that can tell you <em>what the system decided</em>, because they record the decisions, not just their outcomes. The discipline is threefold. First, <strong>structure</strong>: JSON with fields, one event per line, so the store can filter by <code>service=ticketing AND level=error AND trace_id=…</code> instead of grepping text. Second, <strong>levels with meaning</strong>: <code>ERROR</code> means a human may need to act, <code>WARN</code> means something degraded but recovered, <code>INFO</code> means a business event worth counting, <code>DEBUG</code> means detail for a live investigation only — and a service that logs everything at ERROR has no ERROR level at all. Third, <strong>volume control</strong>: log the event, not the payload — "payment attempted, amount $120, provider timeout after 30 s" is a log line; the full card number, the full request body, and the stack trace on every retry are a liability and a bill. The soccer analogy: the stewards' radio log is useful because every entry is short, timestamped, and tagged by location; a radio log where every steward narrates everything they see, in full sentences, is noise nobody can search during an emergency.</p>
+<h3>3. Traces — "where did this one request spend its time?"</h3>
+<p>A trace follows one request across every service it touches, as a tree of spans: gateway (2 ms) → ticketing (180 ms) → payment (4,000 ms) → fraud check (90 ms). The trace answers the question metrics and logs cannot: <em>which hop</em> made this request slow, and <em>in what order</em> things happened. Two design decisions matter. First, <strong>context propagation</strong>: the trace ID and span ID travel in request headers (the W3C <code>traceparent</code> standard), and every service, queue, and async job must forward them — a hop that drops the headers breaks the trace in half, and a broken trace is worse than no trace, because it looks complete. Second, <strong>sampling</strong>: you cannot keep every trace at 100 million requests a day, and you do not need to. <strong>Head sampling</strong> decides at the start of a request (keep 1% of all requests, decided by the trace ID hash) — cheap, but it can sample away the one error you needed. <strong>Tail sampling</strong> decides at the end, once the collector has seen the whole trace — keep 100% of errors and slow requests, 1% of the healthy ones — which costs a short buffer (seconds, not minutes) and keeps exactly the traces that matter. The production answer is almost always tail sampling: the healthy 99% of requests are interchangeable, and the failing 1% is the entire point.</p>
+<table>
+<tr><th>Signal</th><th>Question it answers</th><th>What it costs</th><th>What it cannot do</th></tr>
+<tr><td><strong>Metrics</strong></td><td>How bad is it, how many are affected, is it getting worse?</td><td>Cheap — ~75 MB/day for the whole fleet — until a high-cardinality label multiplies it</td><td>Tell you why, or what happened to one specific request</td></tr>
+<tr><td><strong>Logs</strong></td><td>What happened, in what order, and what did the system decide?</td><td>Volume — ~100 GB/day at match-day average, ~1 TB/day at peak if uncontrolled</td><td>Show you where time went across services, or how widespread a problem is</td></tr>
+<tr><td><strong>Traces</strong></td><td>Where did this one request spend its time, and which hop failed?</td><td>Sampling discipline — 100% sampling is ~100 GB/day; 1% head + 100% errors is ~2 GB/day</td><td>Tell you how many requests are affected, or what happened before this request arrived</td></tr>
+</table>
+<div class="callout green"><strong>The senior line on the three pillars</strong><p>Start every investigation at the metric, because it tells you the blast radius in seconds. Follow the exemplar to the trace, because it tells you the failing hop. Finish in the logs, because they tell you what the failing service decided. An engineer who starts in the logs is searching a haystack; an engineer who starts at the metric and walks the correlation chain is following a thread. That walk — metric → trace → log, one click each — is the entire user experience observability is designed to deliver.</p></div>
+
+<h2>Alerting: symptoms, not causes</h2>
+<p>Alerting is where most observability designs quietly fail, because the failure is human, not technical. The rule from Google's SRE book is short: <strong>alert on symptoms, not causes.</strong> A symptom is something a fan feels: "checkout is failing for 1% of fans". A cause is something a machine reports: "CPU on ticket-service-7 is at 85%". Alert on the symptom, because the symptom is what matters and the cause may be wrong — CPU can be 85% and fine, or 40% and broken. The cause belongs on the dashboard the alert links to, not in the page itself.</p>
+<p>The mechanics are the <strong>SLI → SLO → error budget → alert</strong> chain. Pick the SLI (checkout success rate over a 30-day window). Set the SLO (99.9%). The error budget falls out (43.2 minutes a month). Then alert on the <strong>burn rate</strong>: how fast the budget is being spent. A burn rate of 1× means the budget lasts exactly the month; 2× means it is gone in 15 days; 14.4× means it is gone in 2 days, and that is a page, not a ticket. Burn-rate alerts come in two speeds — a fast one (a high burn over an hour) for things that are on fire now, and a slow one (a moderate burn over a day) for things that are quietly eating the budget — because a slow leak and a burst pipe need different responses, and an alert that cannot tell them apart will page for both or neither.</p>
+<p>Three more rules, all learned the expensive way. <strong>Every alert must need a human.</strong> If the correct response is "wait, it fixes itself", it is not a page — it is a dashboard panel, or an automated remediation, or nothing. <strong>Every alert must have a runbook.</strong> A page at 3 a.m. that says "error rate high" with no link to what to check first is a page that wakes someone up to google their own system. <strong>Alert fatigue is a reliability bug.</strong> A team that gets ten pages a day learns to ignore pages, and the eleventh page — the real one — gets ignored with them. The fix is not louder alerts; it is fewer, sharper ones, and a regular review where every alert that fired and needed no action gets deleted or demoted. An alert that never fires is also suspect — it may be testing a condition that cannot happen, which means it will not fire when it should either.</p>
+
+<h2>Failure modes — six ways observability fails</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>Cardinality explosion</td><td>The metrics bill jumps 100× overnight; queries time out; the collector falls over</td><td>Labels are categories, never individuals; a cardinality budget per metric; an alert on series count itself; drop or aggregate the offending label at the collector</td></tr>
+<tr><td>Sampling away the error</td><td>The one request a fan complained about has no trace — head sampling kept 1% and this was in the other 99%</td><td>Tail sampling: keep 100% of errors and slow requests, sample only the healthy ones; never head-sample below the rate that keeps error coverage</td></tr>
+<tr><td>Log volume blowup</td><td>A debug line inside a hot loop writes 10,000 lines a second; the log store fills, the bill spikes, and real errors are buried</td><td>Log the event, not the payload; level discipline (DEBUG off in production by default); per-service log budgets with alerts; sample verbose logs at the collector</td></tr>
+<tr><td>Trace gaps — broken context propagation</td><td>The trace ends at the queue; the consumer's spans are a separate, orphaned trace, and the handoff is invisible</td><td>Propagate trace IDs through queues, async jobs, and cron — headers on messages, not just HTTP; a test that asserts end-to-end trace continuity</td></tr>
+<tr><td>Alert fatigue</td><td>Ten pages a day, nine of them noise; the team mutes the channel; the real outage pages into silence</td><td>Symptom-based alerts only; every page needs a human and a runbook; a monthly alert review that deletes anything that fired without action</td></tr>
+<tr><td>Dashboards nobody reads</td><td>Forty dashboards, built once, never opened; the incident starts with "which dashboard do we look at?"</td><td>Three golden-signal dashboards per service (RED), one per platform; dashboards are built from the alerts, not the other way around; delete dashboards with no views in 30 days</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"We have dashboards, so we are observable."</strong> Dashboards are monitoring — pre-written answers to pre-written questions. Observability is the ability to answer a question nobody wrote down, from data the system already emits. The test is not how many dashboards exist; it is whether the last incident was debugged from existing data or required a new deploy. A team with three dashboards and full trace-to-log correlation is more observable than a team with forty dashboards and no trace IDs in their logs.</li>
+<li><strong>"We sample 100% of traces — we keep everything."</strong> Keeping everything is not thoroughness, it is the absence of a budget. At 100 million requests a day, 100% trace sampling is ~100 GB a day of spans, of which 99% are healthy requests nobody will ever open — and the bill for storing them is paid in the same currency as the reliability work it crowds out. The senior answer is tail sampling with the numbers: 1% head + 100% of errors is ~2 GB a day, keeps every failure replayable, and the 98 GB saved is the point, not a compromise.</li>
+<li><strong>"Logs are observability — just log more."</strong> Logs are one pillar, and the most expensive one per question answered. A system that logs everything has not bought observability; it has bought a haystack, a bill, and a compliance problem (the full request body in a log is a data breach waiting for a log-store compromise). The right question is always "which signal answers this question cheapest?" — a rate goes in a metric, a decision goes in a log line, a slow request goes in a trace, and nothing else goes anywhere.</li>
+</ul>
+
+<h2>Interactive lab 1: the cardinality &amp; metrics-storage planner</h2>
+<div class="lab">
+<h3>Lab A — How much does one label cost?</h3>
+<p>The scenario: Riverside FC's fleet of services, each exposing a set of metric series, scraped on a fixed interval. Add a label and watch the series count — and the storage bill — multiply. The "extra label" is applied to every metric, which is the worst case: in practice it happens to one metric first, and that alone is enough.</p>
+<label for="svcCount">Number of services</label>
+<input type="number" id="svcCount" value="20" />
+<label for="seriesPerSvc">Metric series per service</label>
+<input type="number" id="seriesPerSvc" value="500" />
+<label for="scrapeSec">Scrape interval (seconds)</label>
+<input type="number" id="scrapeSec" value="15" />
+<label for="labelMult">Values of the extra label added to every metric</label>
+<select id="labelMult">
+<option value="1">No extra label (×1)</option>
+<option value="5">Status code — 5 values (×5)</option>
+<option value="50">Endpoint — 50 values (×50)</option>
+<option value="1000">City — 1,000 values (×1,000)</option>
+<option value="1000000">User ID — 1,000,000 values (×1,000,000)</option>
+</select>
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Try it: the defaults reproduce this lesson's worked example — 10,000 series, 57.6M samples a day, ~0.07 GB a day. Then pick "User ID" and watch the same fleet need ~74,880 GB a day. In practice the explosion hits one metric first: 50 endpoints × 1,000,000 users = 50M series, ~374 GB a day for that metric alone.</p>
+</div>
+
+<h2>Interactive lab 2: the trace-sampling &amp; error-budget planner</h2>
+<div class="lab">
+<h3>Lab B — What does keeping traces cost, and what does your SLO allow?</h3>
+<p>Enter your traffic and your sampling policy. The planner shows how many spans you store, what they cost, and how many minutes of failure your availability target allows in a 30-day month.</p>
+<label for="reqPerSec">Requests per second (average)</label>
+<input type="number" id="reqPerSec" value="1157" />
+<label for="spansPerReq">Spans per request</label>
+<input type="number" id="spansPerReq" value="10" />
+<label for="headSample">Head sampling — % of all requests kept</label>
+<input type="number" id="headSample" value="1" step="0.1" />
+<label for="errorRate">Error rate (%) — tail sampling keeps 100% of these</label>
+<input type="number" id="errorRate" value="1" step="0.1" />
+<label for="sloAvail">Availability SLO (%)</label>
+<input type="number" id="sloAvail" value="99.9" step="0.01" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example: check that the planner reproduces ~20.0M spans a day (~2.0 GB) with 1% head sampling plus 100% of errors, versus ~100 GB a day at 100% sampling — and a 43.2-minute error budget at 99.9%.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. Your checkout error rate spikes at 2 a.m. Walk me through how you find the cause.</summary>
+<p><strong>Model answer.</strong> I start at the metric, because it tells me the blast radius before anything else: the checkout success-rate graph shows the error rate went from 0.2% to 4%, and the traffic graph shows it is affecting all regions or one, which tells me whether this is a global problem or a single deployment. Then I follow the exemplar — the trace ID attached to the spike — into one real failing request, and read the trace span by span: gateway 3 ms, ticketing 120 ms, payment 4,000 ms and timing out. The trace says the payment hop is the problem, not checkout itself. Then I search the logs by that trace ID and see the payment service's lines: "provider timeout after 30 s, retry 1 of 3", repeated three times — so the payment provider is timing out and our retries are tripling the load on a service that is already down. The fix is to stop retrying a timing-out provider and fail fast with a clear message to the fan, then check the payment provider's status page. I would close by naming what each step cost: the metric took seconds, the trace took one click, the logs took one search — and by naming what I would <em>not</em> do, which is start in the logs, because at 2 a.m. with 5,000 log lines a second, grepping for "error" is searching a haystack while the fans are still failing to check out.</p>
+</details>
+<details>
+<summary>Q2. You are designing observability for a new microservices system. What do you build first, and what do you deliberately leave for later?</summary>
+<p><strong>Model answer.</strong> First, the three signals with correlation, in this order: metrics, traces, logs — but the order is less important than the rule that all three ship together, before the first service goes to production. Metrics first because they are the cheapest and the first thing you look at: the four golden signals per service, with RED dashboards, and alerts on SLIs, not on machine health. Traces second, because in a microservices system the question "which hop is slow" is unanswerable without them — OpenTelemetry instrumentation in the shared libraries, context propagation through the gateway, the queues, and every service, with tail sampling so errors are always kept. Logs third, structured JSON with trace IDs attached, because logs without trace IDs are unsearchable at scale. What I deliberately leave for later: the fancy parts — custom business dashboards, anomaly detection, log-based metrics, and long retention. Those are valuable, but they are built on top of the three signals, and a team that builds the anomaly detector before the trace IDs are propagated has a clever system that cannot answer "which request failed". I would also set the budgets on day one: a cardinality budget per metric, a log-volume budget per service, and a sampling policy — because the bill is a design decision, and a pipeline with no budget is a bill that arrives during the first traffic spike. And I would close with the test: on day one, an engineer who has never seen the system should be able to go from a page to the failing request in under five minutes, or the observability is not done.</p>
+</details>
+<details>
+<summary>Q3. Your metrics bill tripled overnight. How do you find the cause and fix it?</summary>
+<p><strong>Model answer.</strong> A metrics bill tripling overnight is almost always a cardinality explosion, so I start with the series count, not the cost: which metric grew, and by how much. The time-series store can rank metrics by series count, and the culprit is usually one metric that gained a high-cardinality label — the classic case is someone adding a user ID, a request ID, or an email address as a label, turning one series into a million. I would confirm it with the math: if the metric had 50 endpoint values and now has 50 × 1,000,000, that is 50 million series, and at a 15-second scrape that is 288 billion samples a day. The immediate fix is at the collector: drop or aggregate the offending label before it reaches the store, so the bleeding stops in minutes without a deploy. The real fix is a deploy that removes the label from the instrumentation — labels describe categories, never individuals; per-user data belongs in a log or a trace. Then I prevent the recurrence: a cardinality budget per metric with an alert on series count, a CI check that rejects new labels above a threshold, and a rule that any label with unbounded values (IDs, timestamps, free text) is rejected in review. And I would name the deeper lesson: the metrics system needs observability too — an alert on series count is what turns a $10,000 surprise into a five-minute fix.</p>
+</details>
+<details>
+<summary>Q4. A fan reports "my payment failed" but your dashboards are all green. What do you do?</summary>
+<p><strong>Model answer.</strong> Green dashboards and a failing fan means the gap is between what we measure and what the fan experiences — and that gap is the most important thing to find. First, I would check whether the fan's failure is even in our SLI: if the SLO measures server-side success and the fan's payment failed client-side, or failed in a way our metrics aggregate away (one user out of a million, or one payment method out of twelve), the dashboard is correctly green and incorrectly reassuring. I would reproduce the fan's exact path: find their request by user ID in the logs (logs, not metrics, because this is one individual), get the trace ID, and read the trace — and the usual findings are one of three: the failure happened in a dependency we do not instrument (a third-party payment widget), the failure was sampled away (head sampling kept 1% and this request was in the other 99%), or the failure is real but below the alert threshold (0.01% of requests, which is invisible on a graph but is still a real fan). The fix depends on the finding: instrument the missing hop, switch to tail sampling so errors are always kept, or add an SLI sliced by payment method so a failure affecting one method shows up instead of being averaged away. And I would close with the general rule: an SLI that cannot see a real user's failure is not an SLI, it is a vanity metric — and the fix is always to slice the measurement closer to the user's experience, not to add more dashboards.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — Budget the signals.</strong> A platform runs 10 services at 500 requests a second each, 8 spans per request, 100 bytes per span, and 4 log lines per request at 200 bytes each. Work out the daily cost of keeping 100% of traces and all logs, then design a sampling and retention policy that cuts the total below 12 GB a day while keeping every error replayable. <em>Rubric: traces at 100% are 10 × 500 × 8 × 100 × 86,400 = 345.6 GB/day; logs are 10 × 500 × 4 × 200 × 86,400 = 345.6 GB/day — the two are the same size, which is the point; a 1% head sample (3.5 GB/day) plus 100% of errors at a 1% error rate (another 3.5 GB/day) gives ~6.9 GB/day of traces, and keeping only error log lines gives ~3.5 GB/day of logs, for a total of ~10.4 GB/day — under the 12 GB budget; the answer names the retention (7 days traces, 7 days logs) and the tail-sampling rule, and says what is lost — 99% of healthy requests, which nobody will ever open.</em></p>
+<p><strong>Drill 2 — Write the alert.</strong> A ticket service has a 99.9% SLO on "successful ticket purchases in under 2 seconds, over 30 days". Write the SLI, the error budget in minutes, and two burn-rate alerts (one fast, one slow), and say what each one pages for. <em>Rubric: SLI is the fraction of purchases succeeding in under 2 s; the error budget is 43.2 minutes a month; the fast alert fires on a burn rate above ~14× over one hour (budget gone in two days — page now); the slow alert fires on a burn rate above ~2× over a day (budget gone in fifteen days — ticket, investigate today); the answer names the symptom (fans cannot buy tickets) rather than a cause (CPU, queue depth), and links each alert to a runbook and a dashboard.</em></p>
+<p><strong>Drill 3 — Diagnose from the three signals.</strong> You are given three facts: the payment service's p99 latency doubled, its error rate is flat, and its log volume tripled. No traces are available. What is your leading hypothesis, what would you check next, and what does the missing trace data cost you? <em>Rubric: latency up with errors flat points at a slow dependency or a retry loop, not a crash — and log volume tripling points at retries or a debug line in a hot path, so the leading hypothesis is a downstream timeout with aggressive retries (each attempt logs, each attempt is slow, none of them errors at the service boundary because the timeout is eventually absorbed); the next check is the downstream dependency's latency and the retry configuration, then the log lines themselves to see the repeated attempts; the missing traces cost the exact hop and the exact request — without them you are inferring the chain from aggregates, which is slower and can be wrong, and the answer says so rather than pretending the three facts are conclusive.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Which signal first</td><td>Metrics for "how bad", traces for "which hop", logs for "what happened" — in that order</td><td>Never start an investigation in the logs; never debug one request from a metric</td></tr>
+<tr><td>Instrumentation</td><td>OpenTelemetry in shared libraries; trace IDs propagated through gateway, queues, and async jobs</td><td>Never hand-roll instrumentation per service — the signals must be uniform or correlation breaks</td></tr>
+<tr><td>Labels</td><td>Categories only (endpoint, status, region); never individuals (user ID, request ID, email)</td><td>If you need per-user data, use a log or a trace — a label with a million values is a bill, not a feature</td></tr>
+<tr><td>Sampling</td><td>Tail sampling: 1% of healthy traces, 100% of errors and slow requests</td><td>100% sampling only at low volume; head sampling only when you cannot buffer traces for a tail decision</td></tr>
+<tr><td>Alerting</td><td>Symptoms, not causes; SLI-based burn-rate alerts; every page needs a human and a runbook</td><td>Machine-health alerts belong on dashboards, not in pages — CPU at 85% is not a symptom</td></tr>
+<tr><td>Budgets</td><td>Cardinality budget per metric, log-volume budget per service, sampling policy, retention per signal</td><td>No budget at all is the one option that always fails — the bill arrives during the first traffic spike</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"Observability is the ability to understand a running system from the signals it emits, without deploying new code to ask the question — and it rests on three pillars that answer three different questions. Metrics are numbers over time, and they answer how bad a problem is and how many people it affects, starting from the four golden signals: latency, traffic, errors, and saturation. Logs are timestamped records of what happened, and they answer what the system decided, in what order — structured, levelled, and never containing a payload or a secret. Traces follow one request across every service as a tree of spans, and they answer which hop made it slow — with context propagated through every queue and async job, and tail sampling that keeps one percent of healthy requests and a hundred percent of the errors. The three connect: a metric's spike carries an exemplar to a trace, and the trace's ID unlocks the logs, so one click walks you from how bad to which request to what happened. And the whole thing is a budget problem before it is a tooling problem: a label with a million values turns ten thousand series into ten billion, a debug line in a hot loop writes a terabyte a day, and an SLO of 99.9% allows exactly 43.2 minutes of failure a month — so you set the budgets first, alert on symptoms with burn-rate alerts, and keep every page human and runbooked."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: observability is asking a running system what is happening inside it, and getting a true answer without a new deploy — monitoring watches what you predicted, observability investigates what you did not.</li>
+<li>Back-of-the-envelope: 10,000 series and 57.6M samples a day is ~75 MB a day — until one label makes it 374 GB; logs ~100 GB a day; 1% head sampling plus 100% of errors is ~2 GB of traces a day against ~100 GB at full sampling; 99.9% is 43.2 minutes a month.</li>
+<li>Architecture: instrument once with OpenTelemetry → collect (pull metrics, push logs/traces) → three stores → dashboards and SLI-based alerts → correlate metric to trace to log in one click each.</li>
+<li>Deep dive: the three pillars and their questions, RED and the golden signals, structured logs and levels, context propagation, head vs tail sampling, burn-rate alerting.</li>
+<li>Trade-offs and failure modes: cardinality explosions, sampled-away errors, log blowups, broken trace propagation, alert fatigue, dashboards nobody reads.</li>
+<li>Close: the six decisions — start at the metric, labels are categories, tail sampling, symptom alerts, and budgets before tooling.</li>
+</ol>
+
+<div class="foot">
+<p>Lesson 35 · Next: Design Instagram — media storage, feeds, and the fan-out problem at photo scale.</p>
+<p><a href="../index.html">← All lessons</a></p>
+</div>
+</div>
+<script>
+function computeMetricsStorage(services, seriesPerService, scrapeSec, labelMult) {
+  var series = services * seriesPerService * labelMult;
+  var samplesPerDay = series * (86400 / scrapeSec);
+  var bytesPerDay = samplesPerDay * 1.3;
+  return { series: series, samplesPerDay: samplesPerDay, gbPerDay: bytesPerDay / 1e9, gbPerMonth: bytesPerDay * 30 / 1e9 };
+}
+function computeTracePlan(reqPerSec, spansPerReq, headPct, errorPct, sloPct) {
+  var spansPerSec = reqPerSec * spansPerReq;
+  var headSpansPerDay = spansPerSec * (headPct / 100) * 86400;
+  var errorSpansPerDay = spansPerSec * (errorPct / 100) * 86400;
+  var totalSpansPerDay = headSpansPerDay + errorSpansPerDay;
+  var fullSpansPerDay = spansPerSec * 86400;
+  var errorBudgetMin = 30 * 24 * 60 * (100 - sloPct) / 100;
+  return {
+    headSpansPerDay: headSpansPerDay, errorSpansPerDay: errorSpansPerDay,
+    totalSpansPerDay: totalSpansPerDay, fullSpansPerDay: fullSpansPerDay,
+    gbPerDay: totalSpansPerDay * 100 / 1e9, fullGbPerDay: fullSpansPerDay * 100 / 1e9,
+    errorBudgetMin: errorBudgetMin
+  };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtBig(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + "B";
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
+  return fmtNum(n);
+}
+function renderLabA() {
+  var s = parseFloat(document.getElementById("svcCount").value) || 0;
+  var per = parseFloat(document.getElementById("seriesPerSvc").value) || 0;
+  var scrape = parseFloat(document.getElementById("scrapeSec").value) || 15;
+  var mult = parseFloat(document.getElementById("labelMult").value) || 1;
+  var r = computeMetricsStorage(s, per, scrape, mult);
+  var verdict = mult >= 1000000
+    ? "A user-ID label turns the fleet into <b>" + fmtBig(r.series) + " series</b> — no collector survives that. In practice it hits one metric first (50 endpoints × 1,000,000 users = 50M series, ~374 GB/day), and that alone takes the system down."
+    : mult >= 50
+    ? "That label is affordable only if its values stay bounded — a 50-value endpoint label is fine, a 1,000-value city label is already a 1,000× multiplier on every metric it touches."
+    : "Cheap and safe: labels with a handful of values are what metrics are for.";
+  document.getElementById("labAResult").innerHTML =
+    "Total series: <b>" + fmtNum(r.series) + "</b> (" + fmtNum(s) + " services × " + fmtNum(per) + " series × " + fmtNum(mult) + ")<br>" +
+    "Samples per day: <b>" + fmtBig(r.samplesPerDay) + "</b> at a " + fmtNum(scrape) + "s scrape interval<br>" +
+    "Storage: <b>" + r.gbPerDay.toLocaleString("en-US", { maximumFractionDigits: 2 }) + " GB/day</b> (~" + r.gbPerMonth.toLocaleString("en-US", { maximumFractionDigits: 1 }) + " GB/month) at ~1.3 bytes per compressed sample<br>" + verdict;
+}
+function renderLabB() {
+  var rps = parseFloat(document.getElementById("reqPerSec").value) || 0;
+  var spans = parseFloat(document.getElementById("spansPerReq").value) || 0;
+  var head = parseFloat(document.getElementById("headSample").value) || 0;
+  var err = parseFloat(document.getElementById("errorRate").value) || 0;
+  var slo = parseFloat(document.getElementById("sloAvail").value) || 0;
+  var r = computeTracePlan(rps, spans, head, err, slo);
+  var verdict = head >= 100
+    ? "Keeping everything costs <b>" + r.fullGbPerDay.toFixed(1) + " GB/day</b> — 99% of it healthy requests nobody will ever open."
+    : "Tail sampling keeps every failure replayable for <b>" + r.gbPerDay.toFixed(1) + " GB/day</b> instead of " + r.fullGbPerDay.toFixed(1) + " GB/day at 100% sampling.";
+  document.getElementById("labBResult").innerHTML =
+    "Head-sampled spans: <b>" + fmtBig(r.headSpansPerDay) + "/day</b> (" + head + "% of all requests)<br>" +
+    "Error spans kept (tail sampling): <b>" + fmtBig(r.errorSpansPerDay) + "/day</b> (100% of the " + err + "% that errored)<br>" +
+    "Total stored: <b>" + fmtBig(r.totalSpansPerDay) + " spans/day ≈ " + r.gbPerDay.toFixed(1) + " GB/day</b> at 100 bytes per span<br>" +
+    "Error budget at " + slo + "% availability: <b>" + r.errorBudgetMin.toFixed(1) + " minutes</b> of failure allowed in a 30-day month<br>" + verdict;
+}
+["svcCount", "seriesPerSvc", "scrapeSec", "labelMult"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabA);
+  document.getElementById(id).addEventListener("change", renderLabA);
+});
+["reqPerSec", "spansPerReq", "headSample", "errorRate", "sloAvail"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
