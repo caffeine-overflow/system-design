@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design Instagram — Media, Feeds &amp; Ranking at Photo Scale</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 36</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 36 · Classic designs</span>
+  <h1>Design Instagram — Media, Feeds &amp; Ranking at Photo Scale</h1>
+  <p class="whyline">Full time at the cup final. A fan in the north stand posts one photo of the winning goal — and within a minute it has to reach the feeds of her 800 followers, survive being viewed 15 billion times today alongside everyone else's photos, and never once make the app feel slow on a stadium network with one bar of signal. Instagram is three hard problems wearing one app: storing a photo flood, delivering a feed that is ranked, not chronological, and doing both for a billion people.</p>
+  <div class="meta"><span>Media pipeline &amp; renditions</span><span>Hybrid fan-out</span><span>Ranked feed</span><span>Stories &amp; counters</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is Instagram?</h2>
+<p>Start from zero. <strong>Instagram</strong> is a media-first social network: people post photos and short videos, follow other people, and scroll a personalised feed of what the people they follow posted — plus <strong>Stories</strong> (photos and videos that disappear after 24 hours), an <strong>Explore</strong> page of things they do not follow yet, and <strong>Reels</strong> (short vertical video). The soccer running example: Riverside FC's fan app, <em>Matchday</em>. Fans post photos from the stands, follow players and the club, like and comment, and open the app fifty times a day to see what happened since they last looked. The product is simple to describe; the system behind it is not, because it is three systems at once — a media store, a social graph, and a ranking engine — and each one fails in a different way.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Media object:</strong> one photo or video a user uploads, stored as bytes plus metadata (who posted it, when, the caption, the location). <strong>Rendition:</strong> one resized or re-encoded copy of a media object — a thumbnail, a feed-size image, a full-resolution version — generated once at upload so the read path never resizes anything. <strong>Feed:</strong> the ranked, scrolling list a user sees on opening the app — a mix of followed accounts' posts, ads, and suggested posts, ordered by predicted interest, not by time. <strong>Story:</strong> a media object with a 24-hour lifetime, shown in a separate row, deleted (logically) when the clock runs out. <strong>Follow graph:</strong> the directed graph of who follows whom — the data structure every feed decision starts from. <strong>Fan-out:</strong> copying a new post's ID into the inboxes of the poster's followers, so their feeds are pre-built (the push model from Lesson 16). <strong>Candidate generation:</strong> the step that gathers a few hundred posts a user might like, from their follows and from elsewhere, before ranking picks the order. <strong>Ranking:</strong> scoring each candidate — how likely is this user to like, comment, save, or spend time on this post — and sorting by that score. <strong>Counter:</strong> a number attached to a post, such as the like count, which is read millions of times more often than it is written and does not need to be exact at every instant.</p></div>
+<p>Two facts shape every decision that follows. First, Instagram is <strong>read-heavy in the extreme</strong>: for every post written, it is viewed hundreds of times, and the feed is opened far more often than anything is posted. That means the write path can be slow and careful, and the read path must be fast and cheap — the opposite of a payment system, where the write is the whole point. Second, the feed is <strong>ranked, not chronological</strong>. That single product decision changes the architecture: a chronological feed can be precomputed by fan-out alone (Lesson 16), but a ranked feed cannot, because the right order depends on the moment the user opens the app — what they just liked, what is fresh, what their friends are engaging with right now. So Instagram fan-outs <em>candidate IDs</em> and ranks <em>at read time</em>, and the whole design is a negotiation between how much work to do at write time and how much at read time.</p>
+<p>The one idea to carry through the whole lesson: <strong>Instagram is a media pipeline with a ranking engine bolted on, and the two halves have opposite shapes.</strong> The media half is a write-once, read-forever storage problem — 100 million new objects a day, each read thousands of times, where the cost is dominated by bytes stored and bytes served. The feed half is a fan-out and ranking problem — 300 million people opening the app five times a day, each expecting a fresh, personal list in under half a second, where the cost is dominated by reads and scoring. A design that treats Instagram as "a Twitter feed with photos" gets the media half wrong; a design that treats it as "a photo store with a feed" gets the ranking half wrong. The senior answer holds both halves at once.</p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are designing Matchday at Instagram's scale: <strong>1 billion monthly users, 300 million daily users</strong>, and a match day that concentrates the load — half the day's posts land in the two hours after full time. We are <em>not</em> designing the ads auction, the recommendation model's internals, or direct messaging (Lesson 17 covers chat) — we are designing media storage, the feed, stories, and the counters, and the ranking as a system boundary, not as a machine-learning model.</p>
+<ul>
+<li><strong>Functional:</strong> post a photo or video from a phone on a bad connection and have it appear; open the feed and see a fresh, ranked list in under 500 ms; stories disappear after 24 hours; like and comment counts update; search finds people, places, and hashtags; nothing a user deleted stays visible.</li>
+<li><strong>Non-functional:</strong> the app must work on a stadium network (slow, lossy, congested); a celebrity posting at full time must not take the feed down; media must be served from near the viewer, not from one origin; and the storage bill must grow slower than the user base — storing every byte three times forever is not a strategy.</li>
+</ul>
+<p>The sizing, with every step shown. These are the numbers that decide the shape before any component is named:</p>
+<ul>
+<li><strong>The post flood is a storage problem.</strong> 95 million photos a day, each stored as several renditions totalling about 2 MB, is 95,000,000 × 2 MB = <strong>190 TB a day</strong>. 5 million videos a day, each stored as several renditions totalling about 40 MB, is 5,000,000 × 40 MB = <strong>200 TB a day</strong>. Together that is <strong>390 TB of new media every day</strong>, or 390 × 365 = <strong>~142 PB a year</strong> before replication — and at 3× replication, <strong>~427 PB a year</strong>. The storage decision is therefore the first decision: what you store, how many copies, and for how long, matters more than which database you pick. (Lab A lets you run this yourself.)</li>
+<li><strong>The view flood is a bandwidth problem, and the CDN is the answer.</strong> 300 million daily users viewing about 50 media objects each is <strong>15 billion views a day</strong>. At 2 MB per view that is 15,000,000,000 × 2 MB = <strong>30 PB of egress a day</strong> if every byte came from the origin. At a 95% CDN hit rate the origin serves only 5%: 30 PB × 0.05 = <strong>1.5 PB a day</strong>. At $0.05 per GB of egress, the origin bill is 1,500,000 GB × $0.05 = <strong>$75,000 a day with the CDN, versus $1,500,000 a day without it</strong> — the CDN saves roughly $1.4 million a day, which is why media is a CDN problem before it is a storage problem.</li>
+<li><strong>The feed is a fan-out problem with a celebrity tail.</strong> 100 million posts a day, each fanned out to an average of 1,000 followers, is 100,000,000 × 1,000 = <strong>100 billion inbox writes a day</strong> for ordinary posts. But 0.1% of posts are from celebrities with about 10 million followers each: 100,000 × 10,000,000 = <strong>1 trillion writes a day</strong> from that tail alone — ten times the ordinary total. Pure push therefore costs about <strong>1.1 trillion writes a day</strong>; pure pull costs 300,000,000 users × 5 opens × 500 follows = <strong>750 billion reads a day</strong>; and the hybrid — push the ordinary posts, pull the celebrity posts at read time — costs about 99.9 billion writes + 15 billion reads = <strong>~115 billion operations a day</strong>, roughly a tenth of pure push. (Lab B does this arithmetic.)</li>
+<li><strong>One celebrity post is a storm by itself.</strong> A player with 300 million followers posts the winning-goal photo. Pure push means 300,000,000 inbox writes for that one post. At 1 million writes a second, that is 300,000,000 ÷ 1,000,000 = <strong>300 seconds — five minutes</strong> — before the last follower's feed contains it, and 300,000,000 × 100 bytes = <strong>30 GB of inbox entries for a single photo</strong>. That is the number that kills pure push: it is not the daily average that breaks the system, it is one post.</li>
+<li><strong>The feed open is a ranking problem, not a lookup.</strong> 300 million daily users opening the feed 5 times a day is <strong>1.5 billion feed opens a day</strong>, about 17,000 a second on average and several times that after a goal. Each open gathers a few hundred candidates and scores them; at 500 candidates per open, that is 1.5 billion × 500 = <strong>750 billion scoring operations a day</strong>. Ranking cannot be precomputed for everyone, because the score depends on the moment of the open — so the system precomputes the cheap part (candidate IDs via fan-out) and computes the expensive part (ranking) at read time, inside the 500 ms budget, which is why the feed path is a cache-and-merge problem as much as a model problem.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Storage grows at 390 TB a day and views at 30 PB a day, so media is a tiering and CDN problem: keep hot renditions at the edge, cold originals in cheap storage, and never serve a byte twice from the origin. And fan-out grows at the celebrity tail, not the average, so the feed is a hybrid: push the ordinary posts, pull the celebrity posts, rank at read time. A design that averages either problem away — "100 billion writes, we can handle that" — has designed for the average day and will fall over on the first cup final.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>One fan's photo — posted from the north stand, one bar of signal — flows through the platform in six stages. Every stage exists to protect a different budget: the upload protects the fan's patience, the pipeline protects the storage bill, the feed protects the 500 ms open.</p>
+<ol>
+<li><strong>Upload — the client does the hard work, on a bad network.</strong> The phone compresses the photo before sending it, splits it into chunks, and uploads them with a <strong>resumable upload</strong>: each chunk carries an offset, the server records which chunks arrived, and a dropped connection resumes from the last missing chunk instead of restarting. The upload goes <strong>direct to blob storage</strong> via a short-lived signed URL, so the app servers never touch the bytes. The client sends an <strong>idempotency key</strong> with the upload, so a retry after a lost reply creates one post, not two. The post is <em>not</em> visible yet — the upload only stores the original and returns a media ID. Everything slow happens next, off the critical path.</li>
+<li><strong>Processing pipeline — one upload becomes many renditions.</strong> A queue takes the media ID and fans out to workers: generate a thumbnail, a feed-size image, a full-resolution image, and a compressed video with several bitrate rungs for adaptive playback; run a moderation classifier (nudity, violence, spam) and a perceptual hash against the known-bad-content database; extract a dominant colour and a blurhash placeholder so the feed can paint a preview before the bytes arrive. Each rendition is written to blob storage and its URL recorded in the metadata service. The original is kept — once — for reprocessing later, and it is the only copy that lives in expensive storage. If processing fails, the post stays invisible and the job retries with backoff; the fan sees "processing", never a broken image.</li>
+<li><strong>Storage — two stores, split by access pattern.</strong> Media bytes live in a <strong>blob store</strong> (S3-style object storage) under immutable, content-addressed keys — a rendition never changes, so it can be cached forever and a re-upload of the same bytes can be deduplicated. Metadata lives in a <strong>sharded database</strong>, sharded by <code>user_id</code> for the follow graph and profile data, and by <code>media_id</code> for the post index, with a secondary index on hashtags and places. The split is the point: the blob store is optimised for large, immutable, rarely-changing bytes; the database is optimised for small, mutable, heavily-indexed rows. A design that puts media bytes in the database, or metadata in the blob store, has chosen the wrong tool for both halves.</li>
+<li><strong>Fan-out — push the ordinary, pull the famous.</strong> When processing finishes, the post's ID is written to the poster's own timeline, then fanned out: for followers below a threshold (say 10,000 followers), the ID is pushed into each follower's <strong>inbox</strong> — a per-user, time-ordered list of candidate post IDs, stored in a fast key-value store. For followers above the threshold — the celebrities — no push happens at all; their posts are pulled at read time from their own timeline. The inbox is a cache of IDs, not of media: 100 bytes per entry, not 2 MB. That is what makes 100 billion writes a day affordable, and it is also what makes the celebrity storm survivable — the storm never enters the write path.</li>
+<li><strong>Feed generation — candidates, then ranking, then assembly.</strong> When a user opens the app, the feed service reads their inbox (the pushed candidates), pulls the celebrity timelines they follow (the pulled candidates), and adds a small set of suggested posts from the Explore service — a few hundred candidates in total. A <strong>ranking service</strong> scores each candidate — predicted like, comment, save, and dwell time, with a freshness boost and a diversity rule so one account cannot fill the whole feed — and sorts them. Then an <strong>assembly</strong> step fetches the post metadata, the like counts, the first comments, and the media URLs for the top few dozen, and returns them. The ranking is the only part that runs per open; everything before it is precomputed or cached, which is how the 500 ms budget survives 1.5 billion opens a day.</li>
+<li><strong>Delivery — the CDN serves the bytes, the origin serves the decisions.</strong> Media URLs point at the CDN, not the origin. A fan in Sydney gets the photo from the Sydney edge, which fetched it once from the origin and now serves it to every fan in the city. Cache keys include the rendition size, so a thumbnail and a full image are different objects, and the key is versioned, so a reprocessed image is a new URL rather than a purge. The origin never sees the 30 PB a day — it sees the 1.5 PB of misses, and most of those are the first view of a new post in each region.</li>
+</ol>
+<p>Two supporting pieces complete the picture. <strong>Stories</strong> run on the same pipeline with a shorter life: the same upload and renditions, but the metadata carries a 24-hour expiry, a background sweeper deletes expired rows, and the CDN keys carry a short TTL so an expired story stops being served even if a stale edge copy lingers. And <strong>counters</strong> — likes, comments, views — are kept out of the critical path: a like is written to a per-post counter shard and aggregated asynchronously, so the like count a fan sees may lag the truth by seconds, and nobody notices, because a like count is the one number on the page that does not need to be exact.</p>
+
+<h2>The heart of it: three decisions that make or break the design</h2>
+<h3>1. The media pipeline: process once, serve forever</h3>
+<p>The expensive mistake is doing media work at read time. Resizing a photo on every view costs CPU on every one of the 15 billion daily views; resizing it once at upload costs CPU on 100 million uploads. The pipeline therefore generates every rendition the product will ever need — thumbnail, feed, full, and the video bitrate ladder — at upload time, stores them immutably, and never touches them again. Two subtleties matter. First, <strong>the original is sacred and cold</strong>: it is stored once, in the cheapest tier, because it is the only copy that can regenerate every rendition if a new screen size or codec arrives — and it is almost never read, so paying for fast access to it is waste. Second, <strong>moderation happens before visibility, not after</strong>: a post that fails the classifier never enters a feed, which means the pipeline is also a gate, and the gate's latency is the post's time-to-visible. The soccer analogy: the club photographer develops every print size once, on the night of the match, and files the negative in the archive — nobody re-develops a print every time a fan asks to see it.</p>
+<h3>2. The feed: fan-out buys candidates, ranking buys relevance</h3>
+<p>The Twitter lesson (Lesson 16) settled fan-out: push is cheap for ordinary accounts, pull is the only answer for celebrities, and the hybrid is the production shape. Instagram adds one twist that changes the trade-off: <strong>the feed is ranked, so the fan-out cannot finish the job.</strong> In a chronological feed, the inbox <em>is</em> the feed — read it in order and you are done. In a ranked feed, the inbox is only the candidate list; the order is computed at read time from signals that change by the minute. That has three consequences. First, the inbox can be <em>stale by design</em>: it is fine if a post arrives in the inbox a minute late, because ranking will place it by relevance, not by arrival. Second, the read path must be <em>fast at merging</em>: inbox IDs, celebrity timelines, and suggestions arrive from three places, and the merge — not the model — is usually what blows the 500 ms budget. Third, <strong>ranking freshness is a cache problem</strong>: precompute the scores for the top candidates every few minutes per user, and re-rank only the freshest few at open time — full re-ranking of 500 candidates on every open is the cost the system cannot afford at 1.5 billion opens a day.</p>
+<h3>3. Counters: exact is a trap, approximate is the product</h3>
+<p>A like count looks like a number in a database, and the naive design is a row that every like increments — one row, one lock, every like in the world queuing behind it. A viral post getting a million likes in an hour is ~278 likes a second on a single row, and a single database row cannot take that write rate without serialising every like behind a lock. The production answer is <strong>sharded counters with asynchronous aggregation</strong>: likes are written to one of N counter shards (by hashing the user ID), a background job sums the shards every few seconds, and the displayed count is the last sum. The count a fan sees may be a few seconds stale and may even go down by one during a recount — and nobody cares, because the count is social proof, not money. The rule generalises: <strong>if a number is read a thousand times more than it is written, and nobody's money depends on its exact value at this instant, it is a cache with a background writer, not a transaction.</strong> View counts go further — they are sampled, not counted, because counting 15 billion views exactly is a write problem nobody needs to solve.</p>
+<table>
+<tr><th>Piece</th><th>Write-time work</th><th>Read-time work</th><th>Why the split</th></tr>
+<tr><td><strong>Media</strong></td><td>Generate all renditions, moderate, store immutably</td><td>Serve from CDN by versioned URL</td><td>100M writes, 15B reads — work once, serve forever</td></tr>
+<tr><td><strong>Feed candidates</strong></td><td>Fan-out post IDs to followers' inboxes (ordinary accounts only)</td><td>Merge inbox + celebrity timelines + suggestions</td><td>Fan-out is cheap per post; merging is cheap per open</td></tr>
+<tr><td><strong>Feed order</strong></td><td>Precompute scores for top candidates every few minutes</td><td>Re-rank only the freshest candidates at open</td><td>Ranking depends on the moment of the open; full re-ranking per open is unaffordable</td></tr>
+<tr><td><strong>Counters</strong></td><td>Write likes to sharded counters</td><td>Read the last aggregated sum</td><td>Exact counts serialise on one row; approximate counts scale</td></tr>
+<tr><td><strong>Stories</strong></td><td>Same pipeline, 24-hour expiry stamped at write</td><td>Filter expired rows; short CDN TTL</td><td>Expiry is a metadata fact, not a deletion race</td></tr>
+</table>
+<div class="callout green"><strong>The senior line on the ranked feed</strong><p>Chronological feeds are a fan-out problem; ranked feeds are a fan-out problem plus a ranking problem, and the two halves want opposite things — fan-out wants work done at write time, ranking wants work done at read time. The design that survives is the one that is explicit about the boundary: fan-out produces candidates, ranking produces order, and the only work done per open is merging a few hundred IDs and scoring the freshest few. If your design ranks the whole feed from scratch on every open, you have built a system that works in the demo and falls over on the first match day.</p></div>
+
+<h2>Failure modes — six ways Instagram fails</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>Celebrity write storm</td><td>A 300M-follower post queues 300M inbox writes; fan-out lag grows to minutes; ordinary posts queue behind it</td><td>Hybrid fan-out: celebrities are never pushed; their posts are pulled at read time; fan-out queues are per-tier so a storm cannot starve ordinary posts</td></tr>
+<tr><td>Upload death on a bad network</td><td>Stadium uploads fail, retry from zero, fail again; fans give up and the cup-final photos never arrive</td><td>Chunked resumable uploads, client-side compression before sending, direct-to-blob signed URLs, idempotency keys so retries are safe</td></tr>
+<tr><td>Ranking staleness after a goal</td><td>The feed shows yesterday's posts while the stadium erupts, because precomputed scores are minutes old and the fresh posts have no engagement signal yet</td><td>Freshness boost for new posts, re-rank the newest candidates at open time, degrade to chronological during spikes rather than serving a stale ranking</td></tr>
+<tr><td>Like-counter contention</td><td>A viral post's like row becomes a hot key; like writes time out; the like button feels broken at the exact moment everyone is tapping it</td><td>Sharded counters with async aggregation; the displayed count lags by seconds, which nobody notices and the database survives</td></tr>
+<tr><td>Deleted media still served</td><td>A user deletes a photo and it keeps appearing in feeds, because the CDN edge still holds the rendition and the inbox still holds the ID</td><td>Delete removes the metadata row first (the source of truth), tombstones the media ID so the assembly step drops it, and the CDN keys carry a short TTL for fresh content; versioned URLs mean a re-upload never resurrects the old bytes</td></tr>
+<tr><td>Story expiry race</td><td>A story posted at 19:00 is still visible at 19:05 the next day for some users, because one region's cache or one replica has not caught up</td><td>Expiry is checked at read time against the stamped timestamp, not only by the sweeper — a story past its hour is filtered even if the row still exists; short CDN TTLs on story media bound the stale window to minutes</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"A feed is a feed — just fan out like Twitter."</strong> A chronological feed is a fan-out problem, and Lesson 16 solved it. A ranked feed is a fan-out problem plus a ranking problem, and the ranking changes the answer: the inbox becomes a candidate list, not the feed itself; the order is computed at read time; and the cost moves from writes to scoring. An answer that recites push vs pull without naming ranking has described a different product — and in a room where the interviewer says "the feed is ranked", that is the difference between a pass and a miss.</li>
+<li><strong>"Store the original and serve it."</strong> Serving the original to every viewer means sending a 12 MB phone photo to a fan on a 3G connection, paying the egress on 12 MB instead of 200 KB, and resizing on every view. The production shape is the opposite: generate every rendition once at upload, store the original once in the cheapest tier for reprocessing, and serve versioned rendition URLs from the CDN. The original is an archive, not a serving path — and the moment a design serves it directly, the bandwidth bill and the load times both give the game away.</li>
+<li><strong>"Like counts must be exact — it is a counter in a database."</strong> Exactness is a property you buy with serialisation, and a viral post's like row is the worst place to buy it: a million likes an hour on one row is a queue, a lock, and a hot key. The count is social proof, read a thousand times more than it is written, and nobody's money depends on whether it says 1,000,042 or 1,000,039 at this instant. Shard the writes, aggregate in the background, display the last sum — and save the exactness budget for the ledger, where it belongs (Lesson 31).</li>
+</ul>
+
+<h2>Interactive lab 1: the media storage &amp; CDN planner</h2>
+<div class="lab">
+<h3>Lab A — How much does a day of photos cost to store and serve?</h3>
+<p>Enter your daily post volume and sizes. The planner shows the new storage per day, the yearly total with replication, and what the CDN saves on egress — the two numbers that decide whether media is a storage problem or a bandwidth problem.</p>
+<label for="photosPerDay">Photos posted per day</label>
+<input type="number" id="photosPerDay" value="95000000" />
+<label for="photoMB">Stored MB per photo (all renditions)</label>
+<input type="number" id="photoMB" value="2" step="0.1" />
+<label for="videosPerDay">Videos posted per day</label>
+<input type="number" id="videosPerDay" value="5000000" />
+<label for="videoMB">Stored MB per video (all renditions)</label>
+<input type="number" id="videoMB" value="40" step="1" />
+<label for="replFactor">Replication factor (copies stored)</label>
+<input type="number" id="replFactor" value="3" step="1" />
+<label for="viewsPerDay">Media views per day</label>
+<input type="number" id="viewsPerDay" value="15000000000" />
+<label for="viewMB">Average MB served per view</label>
+<input type="number" id="viewMB" value="2" step="0.1" />
+<label for="cdnHit">CDN hit rate (%)</label>
+<input type="number" id="cdnHit" value="95" step="0.5" />
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the planner reproduces 190 TB/day of photos, 200 TB/day of videos, 390 TB/day total, ~142 PB a year (~427 PB at 3×), and a CDN bill of ~$75,000 a day versus ~$1,500,000 without it. Then drop the hit rate to 80% and watch the origin bill quadruple.</p>
+</div>
+
+<h2>Interactive lab 2: the fan-out planner</h2>
+<div class="lab">
+<h3>Lab B — Push, pull, or hybrid: what does the celebrity tail cost?</h3>
+<p>Enter your post volume, follower counts, and reading habits. The planner compares pure push, pure pull, and the hybrid — and shows what a single celebrity post costs in inbox writes and delivery time.</p>
+<label for="postsPerDay">Posts per day</label>
+<input type="number" id="postsPerDay" value="100000000" />
+<label for="avgFollowers">Average followers per poster</label>
+<input type="number" id="avgFollowers" value="1000" />
+<label for="celebShare">% of posts from celebrities</label>
+<input type="number" id="celebShare" value="0.1" step="0.01" />
+<label for="celebFollowers">Average followers of a celebrity poster</label>
+<input type="number" id="celebFollowers" value="10000000" />
+<label for="dauUsers">Daily active users</label>
+<input type="number" id="dauUsers" value="300000000" />
+<label for="opensPerDay">Feed opens per user per day</label>
+<input type="number" id="opensPerDay" value="5" />
+<label for="followsPerUser">Accounts followed per user</label>
+<input type="number" id="followsPerUser" value="500" />
+<label for="celebFollows">Celebrity accounts followed per user</label>
+<input type="number" id="celebFollows" value="10" />
+<label for="writeThroughput">Fan-out write throughput (writes/sec)</label>
+<input type="number" id="writeThroughput" value="1000000" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example: check that pure push is ~1.1T writes a day, pure pull is ~750B reads a day, and the hybrid is ~115B operations — roughly a tenth of pure push. Then set the celebrity share to 0% and watch pure push become the cheapest option: the hybrid exists for the tail, not the average.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. A fan posts a photo from the stadium on one bar of signal. Walk me through the upload path.</summary>
+<p><strong>Model answer.</strong> I start at the client, because the network is the problem, not the server. The phone compresses the photo before sending anything — there is no reason to push 12 MB up a stadium connection when a 2 MB version is what the feed will serve. It then splits the upload into chunks and uploads them with a resumable protocol: each chunk carries an offset, the server records which chunks arrived, and when the connection drops — and it will drop — the phone resumes from the last missing chunk instead of restarting. The upload goes direct to blob storage via a short-lived signed URL, so the app servers never touch the bytes and never become a bottleneck. The client sends an idempotency key, so a retry after a lost reply creates one post, not two. Critically, the post is not visible yet: the upload only stores the original and returns a media ID. Processing — renditions, moderation, the blurhash placeholder — happens asynchronously off the critical path, and the post enters feeds only when processing completes. I would close by naming the failure I am designing against: a fan who taps "post" three times on a bad connection must get one post, and a fan whose connection dies at 90% must not have to start over — and by naming what I would not do, which is accept the raw 12 MB upload synchronously through the app servers, because that couples the fan's patience to the slowest hop in the system.</p>
+</details>
+<details>
+<summary>Q2. It is 9 p.m., just after a goal, and the feed is slow. How do you find the cause?</summary>
+<p><strong>Model answer.</strong> I start at the metric, because "the feed is slow" is a symptom with five possible homes: candidate gathering, ranking, assembly, the CDN, or the fan-out queue. The feed p99 latency graph tells me how bad it is and whether it is everyone or one region; the per-stage breakdown — inbox read, celebrity pull, ranking time, assembly time — tells me which stage grew. After a goal, the usual suspect is the fan-out queue: a flood of posts arrives at once, the queue depth spikes, and the inbox reads return stale candidate lists while the ranking service waits on fresh data. But I would check the ranking time first, because the spike also changes the input: thousands of brand-new posts with no engagement signal force the ranker to score cold candidates, and if the ranker is re-scoring the full candidate set per open instead of the freshest few, its latency grows with the post flood. The fix depends on the finding: if it is fan-out lag, shed the celebrity push entirely and serve from the pull path; if it is ranking, degrade gracefully — serve the precomputed scores and re-rank only the newest posts, or fall back to chronological for the next ten minutes. I would close with the trade-off I am making explicit: during a spike, a slightly stale but fast feed beats a perfectly ranked but slow one, because a fan who waits two seconds closes the app, and a fan who sees yesterday's ranking for ten minutes does not.</p>
+</details>
+<details>
+<summary>Q3. A celebrity's post takes 20 minutes to reach followers. Why, and what do you change?</summary>
+<p><strong>Model answer.</strong> Twenty minutes means the post is being pushed, and the push queue cannot keep up: a 300-million-follower account means 300 million inbox writes for one post, and at any realistic write throughput that is minutes of queueing before the last follower's feed contains it — and worse, those 300 million writes share the queue with every ordinary post, so the celebrity's photo is also delaying everyone else's. The root cause is treating a celebrity like an ordinary account: push fan-out scales with followers, so its cost is unbounded in exactly the case that matters most. The fix is the hybrid threshold: accounts above, say, 10,000 followers are never pushed. Their posts are pulled at read time from their own timeline, so the cost of one celebrity post becomes zero writes and a single timeline read per follower who opens the app — and the fan-out queue is freed for the ordinary posts it handles well. I would also name the second-order effect: the pull path must be fast, so celebrity timelines live in the same fast key-value store as the inboxes, with a short TTL, and the ranking service must handle a candidate that arrived by pull exactly like one that arrived by push. And I would close with the number that justifies the change: at 1 million writes a second, a 300-million-follower post needs 300 seconds of pure write time even with the queue empty — no amount of scaling the queue fixes that, because the work itself is the problem.</p>
+</details>
+<details>
+<summary>Q4. You store 400 TB of new photos a day. How do you keep the storage bill from eating the company?</summary>
+<p><strong>Model answer.</strong> I start with the arithmetic, because the bill is decided by three numbers: how many bytes per post, how many copies, and for how long. 100 million posts a day at 390 TB a day is ~142 PB a year before replication, ~427 PB at 3× — so the first lever is bytes per post: generate renditions once and serve the smallest one that fits the screen, which is why a phone never receives the 12 MB original. The second lever is copies: the original lives once in the cheapest tier, because it is almost never read — it exists for reprocessing, not for serving — and the hot renditions live at the edge, where the CDN absorbs 95% of reads. The third lever is time: not every photo is equally valuable forever, so storage tiers by age and popularity — the last 30 days at full replication, older media in erasure-coded cold storage at effectively one copy, and unviewed originals candidates for deletion after a retention window. I would also name the two things that look like savings and are not: deduplication helps only for re-uploads of the same bytes, which is a small fraction of posts; and deleting renditions to save space is false economy, because regenerating them on demand costs more in compute than the storage saved. And I would close with the guardrail: the storage budget is reviewed monthly against the post rate, because a bill that grows at 390 TB a day is a design parameter, not a surprise — and the moment it outgrows the revenue per user, the rendition strategy is the first thing to revisit.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — Tier the storage.</strong> A platform posts 50M photos a day at 2 MB stored each and 2M videos a day at 40 MB stored each. Work out the daily new storage, the yearly total at 3× replication, then design a tiering policy — last 30 days at 3×, older media erasure-coded at 1× — and say how much it saves. <em>Rubric: photos are 50M × 2 MB = 100 TB/day, videos 2M × 40 MB = 80 TB/day, total 180 TB/day; × 365 = 65.7 PB a year, × 3 = 197.1 PB at full replication; tiered: hot 30 days is 30 × 180 TB × 3 = 16.2 PB, cold 335 days is 335 × 180 TB × 1 = 60.3 PB, total ~76.5 PB — a saving of ~120.6 PB, about 61%; the answer names the access assumption (media older than 30 days is rarely viewed), the reprocessing caveat (the original must survive in cold storage), and the failure mode (a viral old post must be promotable back to hot tier without a full re-upload).</em></p>
+<p><strong>Drill 2 — Price a feed open.</strong> A user follows 800 accounts, opens the feed 6 times a day, and 12 of the accounts they follow are celebrities. Compare the daily read cost of pure pull, pure push (attributed per user), and the hybrid — and say which number actually decides the design. <em>Rubric: pure pull is 6 opens × 800 follows = 4,800 timeline reads per user per day; at 300M DAU that is 1.44 trillion reads a day; pure push attributed to this user is their own 0.3 posts a day × 1,000 followers = 300 writes a day, but the design number is the platform total, not the per-user one; hybrid pull is 6 × 12 = 72 celebrity reads a day plus the pushed inbox already in hand; the answer names that the deciding number is the platform total under the celebrity tail, not the per-user cost — per user, pull looks fine, and at platform scale it is 1.44 trillion reads a day.</em></p>
+<p><strong>Drill 3 — Survive the cup-final post.</strong> A player with 200M followers posts the trophy photo at full time. Work out the push cost, the delivery time at 500K writes a second, and the inbox storage for that one post — then design the change that makes it a non-event. <em>Rubric: push cost is 200M inbox writes; at 500,000 writes a second that is 200,000,000 ÷ 500,000 = 400 seconds, about 6.7 minutes; inbox storage is 200M × 100 bytes = 20 GB for one post; the change is the hybrid threshold — the player is above it, so the post is never pushed, followers pull it from the player's timeline at read time, delivery time drops to the timeline-read latency, and the fan-out queue is untouched; the answer also names the pre-warming step (the CDN fetches the renditions into each region on first view) and the ranking note (a fresh post with no engagement signal needs a freshness boost or it will rank below yesterday's viral posts).</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Upload path</td><td>Client-side compression, chunked resumable upload, direct-to-blob signed URL, idempotency key</td><td>Never accept raw uploads synchronously through app servers on a mobile network</td></tr>
+<tr><td>Media processing</td><td>Generate all renditions once at upload; moderate before visibility; keep the original once, cold</td><td>Regenerate on demand only for a new screen size or codec — never resize per view</td></tr>
+<tr><td>Storage</td><td>Blob store for bytes, sharded DB for metadata; tier by age and popularity; CDN absorbs reads</td><td>Full replication only for the hot window; erasure-coded cold storage after it</td></tr>
+<tr><td>Fan-out</td><td>Hybrid: push ordinary accounts, pull celebrities above a follower threshold (~10K)</td><td>Pure push only when no account has a large following; pure pull only at small scale</td></tr>
+<tr><td>Feed order</td><td>Fan-out produces candidates; rank at read time; precompute scores, re-rank only the freshest few</td><td>Chronological fallback during spikes — a fast stale feed beats a slow perfect one</td></tr>
+<tr><td>Counters</td><td>Sharded counter writes, async aggregation, display the last sum; sample view counts</td><td>Exact counts only where money depends on them — the ledger, never the like button</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"Instagram is a media pipeline with a ranking engine bolted on, and the two halves have opposite shapes. The media half is write-once, read-forever: a hundred million posts a day become 390 terabytes of new storage a day, 142 petabytes a year, and the answer is renditions generated once at upload, the original kept once in cold storage, and a CDN that turns 30 petabytes of daily egress into 1.5 petabytes from the origin — about $75,000 a day instead of $1.5 million. The feed half is fan-out plus ranking: a hundred million posts fanned out to a thousand followers each is a hundred billion writes a day, but the celebrity tail — a tenth of a percent of posts with ten million followers — adds a trillion more, so the hybrid pushes ordinary posts and pulls celebrity posts at read time, cutting the total to about 115 billion operations a day. And the feed is ranked, not chronological, so fan-out only produces candidates — the order is computed at read time, with scores precomputed and only the freshest few re-ranked inside a 500-millisecond budget. Uploads are chunked and resumable because the network is the problem, counters are sharded and approximate because a like count is social proof, not money, and stories expire by a timestamp checked at read time, not by a sweeper racing the clock."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: Instagram is a media pipeline with a ranking engine bolted on — write-once, read-forever storage on one side, fan-out plus ranking on the other, and the two halves want opposite things.</li>
+<li>Back-of-the-envelope: 95M photos and 5M videos a day is 390 TB of new storage a day, ~142 PB a year (~427 PB at 3×); 15B views a day is 30 PB of egress, 1.5 PB from the origin at a 95% CDN hit rate; pure push is ~1.1T writes a day, the hybrid ~115B.</li>
+<li>Architecture: resumable client upload direct to blob → async processing pipeline (renditions, moderation) → blob store plus sharded metadata → hybrid fan-out → candidate merge and ranking at read → CDN delivery.</li>
+<li>Deep dive: process once and serve forever, fan-out buys candidates while ranking buys relevance, and counters are sharded and approximate because exactness is bought with serialisation.</li>
+<li>Trade-offs and failure modes: celebrity write storms, uploads dying on stadium networks, ranking staleness after a goal, like-counter contention, deleted media still served, story expiry races.</li>
+<li>Close: the six decisions — resumable uploads, renditions once, tiered storage, hybrid fan-out, rank at read with a chronological fallback, and approximate counters.</li>
+</ol>
+
+<div class="foot">
+<p>Lesson 36 · Next: Latency vs Throughput — the two numbers every performance conversation confuses, and the trade-off between them.</p>
+<p><a href="../index.html">← All lessons</a></p>
+</div>
+</div>
+<script>
+function computeMediaPlan(photosPerDay, photoMB, videosPerDay, videoMB, repl, viewsPerDay, viewMB, hitPct) {
+  var photoTB = photosPerDay * photoMB / 1e6;
+  var videoTB = videosPerDay * videoMB / 1e6;
+  var totalTBDay = photoTB + videoTB;
+  var pbYear = totalTBDay * 365 / 1000;
+  var pbYearRepl = pbYear * repl;
+  var egressGB = viewsPerDay * viewMB / 1000;
+  var originGB = egressGB * (100 - hitPct) / 100;
+  var costWithCDN = originGB * 0.05;
+  var costNoCDN = egressGB * 0.05;
+  return {
+    photoTB: photoTB, videoTB: videoTB, totalTBDay: totalTBDay,
+    pbYear: pbYear, pbYearRepl: pbYearRepl,
+    egressPB: egressGB / 1e6, originPB: originGB / 1e6,
+    costWithCDN: costWithCDN, costNoCDN: costNoCDN
+  };
+}
+function computeFanout(postsPerDay, avgFollowers, celebSharePct, celebFollowers, dau, opensPerDay, followsPerUser, celebFollows, writeThroughput) {
+  var celebPosts = postsPerDay * celebSharePct / 100;
+  var normalPosts = postsPerDay - celebPosts;
+  var pushTotal = normalPosts * avgFollowers + celebPosts * celebFollowers;
+  var pullTotal = dau * opensPerDay * followsPerUser;
+  var hybridTotal = normalPosts * avgFollowers + dau * opensPerDay * celebFollows;
+  var onePostWrites = celebFollowers;
+  var stormSeconds = celebFollowers / writeThroughput;
+  var pushInboxTB = pushTotal * 100 / 1e12;
+  var hybridInboxTB = normalPosts * avgFollowers * 100 / 1e12;
+  return {
+    celebPosts: celebPosts, pushTotal: pushTotal, pullTotal: pullTotal,
+    hybridTotal: hybridTotal, onePostWrites: onePostWrites,
+    stormSeconds: stormSeconds, pushInboxTB: pushInboxTB, hybridInboxTB: hybridInboxTB
+  };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtBig(n) {
+  if (n >= 1e12) return (n / 1e12).toFixed(2) + "T";
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + "B";
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
+  return fmtNum(n);
+}
+function fmtMoney(n) {
+  return "$" + Math.round(n).toLocaleString("en-US");
+}
+function renderLabA() {
+  var photos = parseFloat(document.getElementById("photosPerDay").value) || 0;
+  var photoMB = parseFloat(document.getElementById("photoMB").value) || 0;
+  var videos = parseFloat(document.getElementById("videosPerDay").value) || 0;
+  var videoMB = parseFloat(document.getElementById("videoMB").value) || 0;
+  var repl = parseFloat(document.getElementById("replFactor").value) || 1;
+  var views = parseFloat(document.getElementById("viewsPerDay").value) || 0;
+  var viewMB = parseFloat(document.getElementById("viewMB").value) || 0;
+  var hit = parseFloat(document.getElementById("cdnHit").value) || 0;
+  var r = computeMediaPlan(photos, photoMB, videos, videoMB, repl, views, viewMB, hit);
+  var verdict = hit >= 95
+    ? "The CDN is doing the heavy lifting: the origin serves only " + (100 - hit) + "% of views, and the rest never leaves the edge."
+    : "At a " + hit + "% hit rate the origin bill is " + fmtMoney(r.costWithCDN) + " a day — every point of hit rate is worth real money at this volume.";
+  document.getElementById("labAResult").innerHTML =
+    "Photos: <b>" + fmtNum(r.photoTB) + " TB/day</b> (" + fmtBig(photos) + " × " + photoMB + " MB)<br>" +
+    "Videos: <b>" + fmtNum(r.videoTB) + " TB/day</b> (" + fmtBig(videos) + " × " + videoMB + " MB)<br>" +
+    "New storage: <b>" + fmtNum(r.totalTBDay) + " TB/day</b> → <b>" + r.pbYear.toFixed(0) + " PB/year</b>, <b>" + r.pbYearRepl.toFixed(0) + " PB/year</b> at " + repl + "× replication<br>" +
+    "Egress: <b>" + r.egressPB.toFixed(0) + " PB/day</b> of views; origin serves <b>" + r.originPB.toFixed(1) + " PB/day</b> at " + hit + "% CDN hit rate<br>" +
+    "Egress bill: <b>" + fmtMoney(r.costWithCDN) + "/day with the CDN</b> vs <b>" + fmtMoney(r.costNoCDN) + "/day without it</b> — the CDN saves <b>" + fmtMoney(r.costNoCDN - r.costWithCDN) + " a day</b><br>" + verdict;
+}
+function renderLabB() {
+  var posts = parseFloat(document.getElementById("postsPerDay").value) || 0;
+  var avgF = parseFloat(document.getElementById("avgFollowers").value) || 0;
+  var share = parseFloat(document.getElementById("celebShare").value) || 0;
+  var celebF = parseFloat(document.getElementById("celebFollowers").value) || 0;
+  var dau = parseFloat(document.getElementById("dauUsers").value) || 0;
+  var opens = parseFloat(document.getElementById("opensPerDay").value) || 0;
+  var follows = parseFloat(document.getElementById("followsPerUser").value) || 0;
+  var celebFollows = parseFloat(document.getElementById("celebFollows").value) || 0;
+  var throughput = parseFloat(document.getElementById("writeThroughput").value) || 1;
+  var r = computeFanout(posts, avgF, share, celebF, dau, opens, follows, celebFollows, throughput);
+  var verdict = r.pushTotal > r.hybridTotal * 2
+    ? "The celebrity tail dominates pure push: the hybrid saves roughly <b>" + fmtBig(r.pushTotal - r.hybridTotal) + " operations a day</b> by never pushing celebrity posts."
+    : "With almost no celebrity posts, pure push is cheapest — the hybrid exists for the tail, not the average.";
+  document.getElementById("labBResult").innerHTML =
+    "Pure push: <b>" + fmtBig(r.pushTotal) + " inbox writes/day</b> (" + fmtBig(r.celebPosts) + " of them celebrity posts × " + fmtBig(celebF) + " followers) — inbox storage <b>" + r.pushInboxTB.toFixed(0) + " TB/day</b><br>" +
+    "Pure pull: <b>" + fmtBig(r.pullTotal) + " timeline reads/day</b> (" + fmtBig(dau) + " users × " + opens + " opens × " + fmtNum(follows) + " follows)<br>" +
+    "Hybrid: <b>" + fmtBig(r.hybridTotal) + " operations/day</b> — push the ordinary posts, pull the celebrity posts at read time; inbox storage <b>" + r.hybridInboxTB.toFixed(1) + " TB/day</b><br>" +
+    "One celebrity post: <b>" + fmtBig(r.onePostWrites) + " inbox writes</b>, taking <b>" + r.stormSeconds.toFixed(0) + " seconds</b> at " + fmtBig(throughput) + " writes/sec — a 300M-follower post would take " + Math.round(300000000 / throughput) + " seconds<br>" + verdict;
+}
+["photosPerDay", "photoMB", "videosPerDay", "videoMB", "replFactor", "viewsPerDay", "viewMB", "cdnHit"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabA);
+  document.getElementById(id).addEventListener("change", renderLabA);
+});
+["postsPerDay", "avgFollowers", "celebShare", "celebFollowers", "dauUsers", "opensPerDay", "followsPerUser", "celebFollows", "writeThroughput"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
