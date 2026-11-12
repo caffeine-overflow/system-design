@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Latency vs Throughput — the two numbers every performance conversation confuses</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 37</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 37 · Fundamentals</span>
+  <h1>Latency vs Throughput — the two numbers every performance conversation confuses</h1>
+  <p class="whyline">It is ten minutes to kick-off at Riverside FC. Sixty thousand fans are outside the gates, and the turnstiles are the whole system: each fan takes 3 seconds to scan in, and there are 40 turnstiles. One fan's wait and the crowd's flow are two different numbers — and every performance conversation in system design is about exactly these two numbers, whether the system is a stadium gate, a checkout API, or a video stream. Confuse them and you will buy the wrong fix: more turnstiles when the problem is a slow scanner, or a faster scanner when the problem is not enough turnstiles.</p>
+  <div class="meta"><span>Little's Law</span><span>The latency knee</span><span>Tail latency</span><span>Batching trade-off</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is latency? What is throughput?</h2>
+<p>Start from zero. <strong>Latency</strong> is how long <em>one</em> unit of work takes, from start to finish — one fan passing through one turnstile, one request getting its response, one video frame reaching the screen. It is measured in time: milliseconds, seconds. <strong>Throughput</strong> is how much work the system completes per unit of time — fans through all the turnstiles per minute, requests served per second, bytes delivered per second. It is measured in rate: requests per second, fans per minute, megabits per second. The soccer running example: Riverside FC has 40 turnstiles and each fan takes 3 seconds to scan in. The latency for one fan is 3 seconds. The throughput of the gate is 40 turnstiles ÷ 3 seconds = <strong>about 13 fans a second, or 800 a minute</strong>. At that rate, 60,000 fans take 60,000 ÷ 13.3 = <strong>4,500 seconds — 75 minutes</strong> — to get in. That is the whole lesson in one sentence: latency is about the fan, throughput is about the gate, and they move independently.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Latency:</strong> the time one request (or one fan, one frame) takes from start to finish. <strong>Throughput:</strong> the amount of work completed per unit of time — requests per second, fans per minute, bits per second. <strong>Round-trip time (RTT):</strong> the time for a message to travel to a server and back — the latency floor set by distance. <strong>Bandwidth:</strong> the maximum throughput of a link — how many bits per second the pipe can carry, not how fast one bit travels. <strong>Concurrency:</strong> how many units of work are in flight at the same time — fans inside the turnstiles, requests being processed right now. <strong>Utilisation (ρ):</strong> the fraction of a resource's capacity in use — 0.9 means the server is busy 90% of the time. <strong>Service time:</strong> the time a server spends actually working on one request, excluding time spent waiting in a queue. <strong>Queueing delay:</strong> the time a request spends waiting for a busy server to become free. <strong>Percentile (p50 / p99):</strong> a way of describing a distribution — p50 is the median (half of requests are faster), p99 is the value 99% of requests are faster than, so 1% are slower. <strong>Little's Law:</strong> the exact relationship between the three: in-flight work = throughput × latency. <strong>Bandwidth-delay product:</strong> bandwidth × round-trip time — how much data must be in flight to keep a link full.</p></div>
+<p>The motorway analogy is the one that sticks. Widening a motorway from two lanes to four raises throughput — more cars per hour — but it does not make any one car faster; the speed limit (latency) is unchanged. A faster car lowers latency — one driver arrives sooner — but it does not raise throughput; the road still carries the same number of cars per hour. Most performance mistakes are motorway mistakes: a team widens the road when the driver is slow, or buys a faster car when the road is jammed. And the two numbers are connected by a law, not a vibe: <strong>Little's Law says the number of requests in flight equals throughput multiplied by latency</strong> — L = λ × W. If your API serves 8,000 requests a second and each takes 250 ms, there are always 8,000 × 0.25 = <strong>2,000 requests in flight</strong>. That number is not a guess; it is arithmetic, and it is the budget every pool, thread count, and connection limit in the system has to satisfy.</p>
+<p>The one idea to carry through the whole lesson: <strong>latency is a property of one request, throughput is a property of the system, and the bridge between them is concurrency.</strong> You raise throughput by adding concurrency — more turnstiles, more threads, more servers — and you lower latency by removing work from one request's path — fewer hops, less waiting, a closer server. The traps all come from forgetting which one you are fixing: batching raises throughput and hurts latency; running a server at 95% utilisation raises throughput and destroys latency; and the average latency hides the 1% of fans who waited twenty minutes while the median fan walked straight in.</p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are not designing a system today; we are sizing the one request path that every system shares — a fan (a request) travelling from a phone to a server and back, through a queue, some work, and a reply. The numbers below are the ones that decide whether a design is fast, whether it scales, and whether the two answers are the same thing. They are not.</p>
+<ul>
+<li><strong>The turnstiles: throughput is about the gate, latency about the fan.</strong> 40 turnstiles × 3 seconds per fan = 40 ÷ 3 = <strong>13.3 fans a second</strong>. 60,000 fans need 60,000 ÷ 13.3 = <strong>4,500 seconds, 75 minutes</strong>. Open 20 more turnstiles (60 total) and throughput rises to 60 ÷ 3 = <strong>20 fans a second</strong>; the crowd is in after 60,000 ÷ 20 = <strong>3,000 seconds, 50 minutes</strong>. But one fan's latency is still 3 seconds — the widening changed nothing for the individual. Conversely, a faster scanner (1.5 seconds per fan) halves one fan's latency to 1.5 seconds and doubles throughput to 40 ÷ 1.5 = <strong>26.7 fans a second</strong> with the same 40 turnstiles. Same gate, two different levers, two different effects — and knowing which one the queue needs is the job.</li>
+<li><strong>Little's Law: concurrency is the budget.</strong> A checkout API serves 8,000 requests a second at 250 ms latency. In flight at any instant: 8,000 × 0.25 = <strong>2,000 requests</strong>. If each request holds a database connection for the full 250 ms and the pool has 500 connections, the pool caps throughput at 500 ÷ 0.25 = <strong>2,000 requests a second</strong> — a quarter of the target, and the other 6,000 requests queue for a connection before they do any work at all. To hit 8,000 a second you need either 8,000 × 0.25 = <strong>2,000 connections</strong>, or a latency cut to 500 ÷ 8,000 = <strong>62.5 ms</strong>. The pool is not a detail; it is the ceiling, and Little's Law is how you find it before the peak finds it for you. (Lab A does this arithmetic.)</li>
+<li><strong>The speed-of-light floor: some latency cannot be bought away.</strong> Light in fibre travels at roughly 200,000 km a second. Edmonton to Toronto is about 2,700 km, so the one-way floor is 2,700 ÷ 200,000 = <strong>13.5 ms</strong>, and the round trip floor is <strong>27 ms</strong> — before a single line of code runs. London to Sydney is about 17,000 km, so the round-trip floor is <strong>170 ms</strong>. No faster server, no better language, no amount of money moves that number; the only fix is a closer server, which is why CDNs exist (Lesson 32). A design that promises a 20 ms round trip from Sydney to a London database has promised something physics forbids.</li>
+<li><strong>Bandwidth-delay product: a fast pipe can still be empty.</strong> A 1 Gbps link with a 50 ms round trip can hold 1,000,000,000 × 0.05 = 50,000,000 bits = <strong>6.25 MB in flight</strong> before the first acknowledgement comes back. If the sender's window is only 64 KB — a common default — it can only ever have 64 KB outstanding, so the link runs at 64,000 × 8 ÷ 0.05 = <strong>~10 Mbps</strong>, one hundredth of its capacity. The pipe is wide and the latency is long, and the throughput is set by the window, not the pipe. Same shape as the turnstiles: capacity you cannot use is not capacity.</li>
+<li><strong>Percentiles multiply across hops: the tail is the product.</strong> One request fans out to 10 services, each with a p99 latency of 100 ms — that is, each service is slower than 100 ms for 1% of its requests. The chance that <em>at least one</em> of the 10 hops is slow is 1 − 0.99<sup>10</sup> = 1 − 0.904 = <strong>9.6%</strong> of requests. With 100 hops it is 1 − 0.99<sup>100</sup> = 1 − 0.366 = <strong>63%</strong>. So a system whose every component is "99% fast" is slow for nearly one request in ten at 10 hops, and for most requests at 100 hops. The average latency of each hop can look excellent while the p99 of the whole request is terrible — and the fan who experiences the p99 does not care about the average.</li>
+<li><strong>The latency knee: utilisation is a tax that compounds.</strong> For a single server, mean response time is service time ÷ (1 − utilisation). At 10 ms of service time: 50% busy → 10 ÷ 0.5 = <strong>20 ms</strong>; 80% busy → 10 ÷ 0.2 = <strong>50 ms</strong>; 90% busy → 10 ÷ 0.1 = <strong>100 ms</strong>; 95% busy → 10 ÷ 0.05 = <strong>200 ms</strong>; 99% busy → 10 ÷ 0.01 = <strong>1,000 ms</strong>. The last 9 points of utilisation — 90% to 99% — buy 9% more throughput and cost 10× the latency. A system that looks fine at 80% falls off a cliff at 95%, and the cliff is not a bug; it is the mathematics of queueing. (Lab B plots the knee.)</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Throughput and latency are governed by different laws and different levers. Little's Law fixes the concurrency budget — throughput × latency is the number of requests in flight, and every pool and thread count must cover it. The queueing knee fixes the utilisation budget — past about 80% busy, every extra point of throughput is paid for in multiples of latency. And the percentile math fixes the hop budget — every sequential hop you add raises the chance that one slow hop ruins the request. A design that quotes one number for both — "it does 10,000 requests a second at 50 ms" — has not designed anything yet; it has stated a wish. The real design says what the latency is at what throughput, at what utilisation, at which percentile.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Follow one fan's tap — "buy two tickets" — from phone to reply, and count where the milliseconds go. There are six stages, and each one taxes a different number: the network taxes latency, the queue taxes latency, the work taxes both, and the reply taxes latency again.</p>
+<ol>
+<li><strong>Client — the fixed costs, before any work happens.</strong> DNS lookup, TCP handshake, TLS handshake: roughly 20 ms + 60 ms on a decent connection, and two or three times that on a stadium network. None of this is your code, and none of it can be optimised away by a faster server — it can only be avoided (connection reuse, session resumption, a closer edge) or paid once and amortised. A request that does three fresh TLS handshakes to three services pays this tax three times.</li>
+<li><strong>Network — the floor set by distance.</strong> The request travels at roughly two-thirds the speed of light in fibre, so the Edmonton–Toronto floor is 27 ms round trip and the London–Sydney floor is 170 ms, as above. Congestion adds queueing on top: packets wait behind other packets, exactly like fans wait behind other fans at the gate. The network is the one stage where the fix is geography, not engineering — a closer server, an edge cache, a regional deployment.</li>
+<li><strong>Load balancer — one millisecond of work, and the first queue.</strong> The balancer itself adds 1–5 ms, which is nothing — but it is also where the request first meets a busy system. If all backends are at 95% utilisation, the request waits here, and that wait is queueing delay, not service time. The balancer's job at this point is not routing; it is deciding whether to queue, shed, or redirect, and that decision is a latency decision (Lesson 2).</li>
+<li><strong>App server — where Little's Law lives.</strong> The request is picked up by a thread, which does the business logic: validate, compute, call downstream. The server's throughput ceiling is the number of threads divided by the service time — 100 threads × 10 ms of work = 10,000 requests a second, if nothing else is in the way. But each thread holds memory, and each request holds a connection, so the ceiling is also a budget: concurrency is not free, it is the pool, the memory, and the context-switching cost.</li>
+<li><strong>Downstream — where latency adds up, or takes the maximum.</strong> The app calls the database, the cache, the payment service, the seat map. Sequential calls add: five 20 ms calls are 100 ms. Parallel calls take the maximum: five 20 ms calls fired together are about 20 ms plus the merge. This is the single highest-leverage decision on the whole path — and the most common mistake is a chain of sequential calls that nobody noticed, because each one looked fast on its own. Fan-out in parallel, and take the slowest hop's latency, not the sum's.</li>
+<li><strong>Response — serialisation and the pipe.</strong> The reply is serialised (JSON, protobuf), pushed through the network, and rendered. A 2 MB JSON payload on a 10 Mbps connection is 1.6 seconds of transfer — the serialisation is free and the pipe is the bottleneck. This is the bandwidth-delay product again: the reply's size and the link's capacity decide the last stretch of latency, and a smaller payload (a 200 KB rendition instead of a 12 MB original, Lesson 36) is a latency fix, not a bandwidth fix.</li>
+</ol>
+<p>Now the budget, end to end, for a page that must load in 500 ms. The budget is the design contract: every stage gets an allowance, and the sum is the promise.</p>
+<table>
+<tr><th>Stage</th><th>Budget</th><th>What eats it</th></tr>
+<tr><td>DNS + TCP + TLS</td><td>80 ms</td><td>Fresh connections; reuse and resumption cut this to near zero on repeat visits</td></tr>
+<tr><td>Network transit</td><td>40 ms</td><td>Distance — the physics floor; a closer server is the only cure</td></tr>
+<tr><td>App logic</td><td>180 ms</td><td>Serial work, slow loops, unindexed lookups; the part you actually control</td></tr>
+<tr><td>Database / downstream</td><td>120 ms</td><td>Sequential hops add; parallel hops take the max; a slow dependency sets the floor</td></tr>
+<tr><td>Serialisation</td><td>30 ms</td><td>Payload size; big JSON is a latency tax, not a bandwidth tax</td></tr>
+<tr><td>Render</td><td>50 ms</td><td>Client-side work; the last stretch the server never sees</td></tr>
+<tr><td><strong>Total</strong></td><td><strong>500 ms</strong></td><td>Every stage over budget steals from another stage — or from the user</td></tr>
+</table>
+<p>Two supporting facts complete the picture. First, <strong>latency has a distribution, not a value</strong>: the same endpoint is 40 ms at 3 a.m. and 400 ms at full time, because the queueing delay depends on load, and load depends on the match. Quoting one latency number without the load it was measured at is like quoting a turnstile time without saying how long the queue was. Second, <strong>throughput has a ceiling, and the ceiling is a bottleneck</strong>: the system's maximum throughput is the minimum of every stage's ceiling — the slowest turnstile bank, the smallest pool, the narrowest link. Raising any other stage's capacity changes nothing until you raise the bottleneck, which is why "add more servers" so often does nothing: the bottleneck was the database pool, and the servers were never the constraint.</p>
+
+<h2>The heart of it: three decisions that make or break the design</h2>
+<h3>1. Little's Law — concurrency is the budget, not a tuning knob</h3>
+<p>L = λ × W is exact in steady state, not a rule of thumb: the requests in flight always equal throughput times latency. It cuts three ways. First, it sizes every pool: a checkout service at 8,000 requests a second and 250 ms needs 2,000 connections in flight, so a 500-connection pool is a 2,000-requests-a-second service wearing an 8,000-requests-a-second label — and the failure mode is a queue that forms <em>before</em> any work is done, invisible to the app's own latency metrics, because the app only starts its stopwatch once it has a connection. Second, it means every latency cut is a throughput gain at fixed concurrency: halve the latency and the same 2,000 in-flight requests serve 16,000 a second. Third, it is the test for every scaling claim: if someone says a service does 50,000 requests a second at 100 ms with 200 threads, the arithmetic says 50,000 × 0.1 = 5,000 in flight, and 200 threads cannot hold 5,000 requests — the claim fails on paper, before any load test. The soccer analogy: the number of fans inside the turnstile area is always the arrival rate times the time each fan spends there. If 13 fans a second arrive and each spends 3 seconds in the gate, there are always 39 fans in the gate area — and if the gate area only holds 20, the queue forms outside, no matter how fast the scanners are.</p>
+<h3>2. The latency knee — utilisation is a tax, and it compounds</h3>
+<p>Mean response time is service time ÷ (1 − utilisation), and the curve is flat until it is not: at 50% busy the tax is 2×, at 80% it is 5×, at 90% it is 10×, at 95% it is 20×. The practical rule is to run hot services at 70–80% utilisation and no higher, and to treat 90% as an incident, not a target. Three consequences follow. First, <strong>capacity planning is a latency decision</strong>: the extra servers are not there for the average day, they are there to keep utilisation off the knee on the peak day — the cup final is when the knee matters, and the knee is where a 10% traffic rise becomes a 10× latency rise. Second, <strong>autoscaling must trigger on utilisation, not on latency</strong>: by the time latency spikes, the queue is already long, and the new servers arrive after the damage. Third, <strong>shedding is a feature, not a failure</strong>: when utilisation crosses the line, dropping or deferring the lowest-value work — the non-critical analytics write, the optional enrichment call — protects the latency of everything else. A system that refuses to shed at 95% utilisation has chosen to be slow for everyone instead of unavailable for a few, and that is usually the worse trade (Lesson 23).</p>
+<h3>3. Tail latency — the p99 is the product, the average is a press release</h3>
+<p>Users do not experience the average; they experience their own request, and the requests that matter are the slow ones. Three rules. First, <strong>measure p50, p95, and p99 from the client</strong>, never the average from the server: server-side timing excludes the network, the TLS handshake, and the queueing in front of the app — the parts the user actually feels. Second, <strong>every sequential hop multiplies the tail</strong>: 10 hops at p99 100 ms means 9.6% of requests hit a slow hop, and 100 hops means 63% — so the fix for a bad p99 is usually fewer hops, parallel hops, or a timeout with a degraded answer, not a faster hop. Third, <strong>the tail has causes the average hides</strong>: a garbage-collection pause, a cold cache, a retry after a lost packet, a single hot key — each one affects 1% of requests and is invisible in the mean. The soccer analogy: the average fan waits 3 minutes to get in, but the 1% who queued behind the family with the wrong tickets waited 25 minutes, and they are the ones who write the reviews. Design for the fan at the back of the queue, not the fan in the middle.</p>
+<table>
+<tr><th>Lever</th><th>Latency effect</th><th>Throughput effect</th><th>When to pull it</th></tr>
+<tr><td><strong>More concurrency</strong> (threads, servers, turnstiles)</td><td>None per request</td><td>Raises, until the next bottleneck</td><td>When utilisation is high and latency is flat</td></tr>
+<tr><td><strong>Less work per request</strong> (cache, index, smaller payload)</td><td>Lowers</td><td>Raises (same concurrency, faster turns)</td><td>Almost always — the cheapest lever there is</td></tr>
+<tr><td><strong>Parallel fan-out</strong></td><td>Lowers (max, not sum)</td><td>Neutral to slightly lower</td><td>When sequential hops dominate the budget</td></tr>
+<tr><td><strong>Batching</strong></td><td>Raises per item</td><td>Raises</td><td>Background work only — never the interactive path</td></tr>
+<tr><td><strong>Closer server / edge</strong></td><td>Lowers (distance floor)</td><td>Neutral</td><td>When the network, not the code, is the budget</td></tr>
+<tr><td><strong>Shedding / degrading</strong></td><td>Protects the rest</td><td>Caps (by design)</td><td>Past the knee — slow for everyone is worse than dropped for a few</td></tr>
+</table>
+<div class="callout green"><strong>The senior line on the two numbers</strong><p>Never quote one without the other, and never quote either without the conditions: throughput at what latency, latency at what utilisation, at which percentile, measured from where. "10,000 requests a second" is not a performance claim — it is a throughput claim at an unspecified latency, and the system that does 10,000 a second at 900 ms p99 is a worse system than the one that does 5,000 a second at 60 ms p99 for any user-facing path. The interviewer is listening for the sentence that holds both numbers at once: the throughput the system sustains, the latency it sustains it at, and what gives way first when the load rises.</p></div>
+
+<h2>Failure modes — six ways latency and throughput fail</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>Measuring the average only</td><td>Dashboard says 40 ms average; users report the app freezing; the p99 is 900 ms and nobody plotted it</td><td>Track p50/p95/p99 from the client; alert on p99, not the mean — the tail is the product</td></tr>
+<tr><td>Utilisation creep</td><td>Traffic grows 10% after a marketing push; latency grows 10×; the servers are at 96% and the queue is the whole story</td><td>Cap utilisation at 70–80% with headroom; autoscale on utilisation; shed low-value work past the knee</td></tr>
+<tr><td>Batching the latency away</td><td>A batch job is tuned for throughput; the same batching is applied to the live checkout path; every payment now waits 200 ms for the batch to fill</td><td>Batch background work only; the interactive path processes one request at a time, immediately</td></tr>
+<tr><td>The slow dependency</td><td>One downstream service takes 500 ms; every request waits for it in sequence; the endpoint's p99 is 800 ms no matter how fast your code is</td><td>Call it in parallel, cache it, or time it out with a degraded answer — a slow hop in sequence sets the floor</td></tr>
+<tr><td>The pool as the hidden bottleneck</td><td>App servers scale to twenty instances; latency still climbs; the database pool is 100 connections and every request queues for one</td><td>Size the pool with Little's Law (throughput × hold time); shorten the hold; split read and write pools</td></tr>
+<tr><td>Measuring from the server</td><td>Server logs say 50 ms; real users see 400 ms — the missing 350 ms is DNS, TLS, the network, and the queue in front of the app</td><td>Measure from the client (real-user monitoring); the server's stopwatch starts too late to see the user's wait</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"Buy faster servers to fix the latency."</strong> Faster servers raise throughput — more work per second per core — but the latency floor is distance, queueing, and serial work. A 2× faster CPU does nothing for a 170 ms London–Sydney round trip, nothing for a request queued behind 500 others at 95% utilisation, and nothing for five sequential 20 ms hops. The fix for latency is less work on the path, fewer hops, a closer server, or less queueing — and the fastest hardware in the world cannot shorten a queue that exists because the system is busy.</li>
+<li><strong>"Our p50 is 40 ms, so we are fast."</strong> The p50 is the fan in the middle of the queue; the product is experienced by the fan at the back. With 20 downstream hops, each p99 50 ms, about 18% of requests hit at least one slow hop (1 − 0.99<sup>20</sup> = 0.182) — nearly one in five requests is slow while the median looks excellent. An answer that quotes the median as the latency has described the typical case and hidden the case that loses users, and in a room where the interviewer asks about the tail, the median is the wrong number entirely.</li>
+<li><strong>"Just add threads."</strong> Threads are concurrency, and concurrency is only useful up to the next bottleneck — and past it, threads are a cost. Each thread holds memory and a connection; beyond the knee they contend for the CPU, the pool, and the lock, so throughput plateaus while latency grows: more threads, same work, longer queues. The fix is not more threads but less serial work per request, a shorter hold on shared resources, or a bigger pool — and the number that tells you which is Little's Law, not the thread count.</li>
+</ul>
+
+<h2>Interactive lab 1: the Little's Law planner</h2>
+<div class="lab">
+<h3>Lab A — How many requests are in flight, and is the pool the ceiling?</h3>
+<p>Enter your throughput, latency, and connection pool. The planner shows the requests in flight (Little's Law), the maximum throughput the pool allows, and whether the pool — not the code — is the bottleneck.</p>
+<label for="latencyMs">Average latency per request (ms)</label>
+<input type="number" id="latencyMs" value="250" />
+<label for="throughputRps">Throughput (requests/second)</label>
+<input type="number" id="throughputRps" value="8000" />
+<label for="poolSize">Connection pool size</label>
+<input type="number" id="poolSize" value="500" />
+<label for="holdMs">Time each request holds a connection (ms)</label>
+<input type="number" id="holdMs" value="250" />
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the planner reproduces 2,000 requests in flight, a pool ceiling of 2,000 requests a second, and a requirement of 2,000 connections (or a 62.5 ms hold) to reach 8,000 a second. Then set the hold time to 62.5 ms and watch the pool stop being the bottleneck.</p>
+</div>
+
+<h2>Interactive lab 2: the latency knee</h2>
+<div class="lab">
+<h3>Lab B — How much does utilisation cost?</h3>
+<p>Enter the service time per request and the utilisation. The planner shows the queueing wait, the total response time, and the multiplier — the knee in numbers — plus the throughput that utilisation delivers.</p>
+<label for="serviceMs">Service time per request (ms)</label>
+<input type="number" id="serviceMs" value="10" />
+<label for="utilPct">Utilisation (%)</label>
+<input type="number" id="utilPct" value="90" step="1" />
+<label for="workers">Parallel workers (servers × threads)</label>
+<input type="number" id="workers" value="100" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the planner reproduces a 90 ms wait, a 100 ms total, and a 10× multiplier at 90% utilisation. Then slide utilisation from 50% to 99% and watch the total go from 20 ms to 1,000 ms: the last 9 points of utilisation cost 10× the latency.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. The dashboard says average latency is 40 ms, but users complain the app is slow. Where do you look?</summary>
+<p><strong>Model answer.</strong> I start by distrusting the average, because the average is the one number that can look fine while the product is broken. The average hides the distribution: I want p50, p95, and p99, and I want them measured from the client, not the server — the server's stopwatch starts once the request reaches the app, so it never sees the DNS lookup, the TLS handshake, the network transit, or the queue in front of the app, which is exactly the time the user feels. If the p99 is 900 ms while the average is 40 ms, the story is the tail: a small fraction of requests are catastrophically slow, and I would look for the tail's causes — a garbage-collection pause, a cold cache, a retry after a lost packet, a single hot key, or one slow downstream hop in a sequential chain. The percentile math from the lesson tells me where to look next: if the request fans out to 20 services, each p99 50 ms, about 18% of requests hit at least one slow hop, so a "fast" system with many hops is slow for one user in five. I would close with the fix in priority order: plot p99 from the client and alert on it, find the hop or the pause behind the tail, and parallelise or time-box the slow hop — because the fan who waits 25 minutes does not care that the average fan waited 3, and the reviews are written by the fan at the back of the queue.</p>
+</details>
+<details>
+<summary>Q2. Checkout does 8,000 requests a second at 250 ms, with a 500-connection pool, and starts timing out at peak. Why, and what is the fix?</summary>
+<p><strong>Model answer.</strong> I start with Little's Law, because the numbers convict the pool before any log does. At 8,000 requests a second and 250 ms latency, the requests in flight are 8,000 × 0.25 = 2,000 — but each request holds a connection for the full 250 ms, and the pool has 500 connections, so the pool caps throughput at 500 ÷ 0.25 = 2,000 requests a second. The other 6,000 requests a second are not slow; they are queued, waiting for a connection before the app even starts its stopwatch — which is why the app's own latency metrics look fine while users time out. The fix has three options and I would price them: raise the pool to 2,000 connections, which works only if the database can take 2,000 concurrent connections; cut the hold time — hold the connection for the 20 ms database call, not the full 250 ms request, which drops the requirement to 8,000 × 0.02 = 160 connections; or cut the latency itself, since 500 connections at 62.5 ms also serves 8,000 a second. I would pick the hold-time fix first, because it is a code change, not a capacity purchase, and it also protects the database. And I would close with the guardrail: size every pool with Little's Law at peak throughput and peak latency, and alert on pool wait time, not just pool usage — because a pool at 100% utilisation with a growing wait queue is the failure, and a pool at 100% with no wait is fine.</p>
+</details>
+<details>
+<summary>Q3. Service A takes 200 ms per request and serves 10,000 requests a second. Service B takes 20 ms per request and serves 1,000 a second. Which is faster? Which is bigger?</summary>
+<p><strong>Model answer.</strong> The question is a trap, and the answer is that "faster" and "bigger" are two different axes. Service B is faster — its latency is 20 ms against A's 200 ms, so one request finishes ten times sooner. Service A is bigger — its throughput is 10,000 requests a second against B's 1,000, so it completes ten times more work per second. And the two are connected by concurrency: A has 10,000 × 0.2 = 2,000 requests in flight, while B has 1,000 × 0.02 = 20 — A is a wide, slow river and B is a narrow, fast stream. Which one you want depends on the path: for a user tapping "pay", B's shape is the right one, because the user waits for one request; for a background job draining a queue, A's shape is fine, because nobody waits for one item. I would close with the rule the lesson teaches: never compare two systems on one number. Quote latency and throughput together, at a stated utilisation and percentile, and say which one the use case actually needs — because a team that optimises the wrong axis will build a very fast queue-drainer for a checkout page, or a very high-throughput checkout that keeps every user waiting 200 ms.</p>
+</details>
+<details>
+<summary>Q4. Your endpoint fans out to 8 downstream services in sequence, each with p99 60 ms, and your endpoint's p99 is 800 ms. Explain it, and fix it.</summary>
+<p><strong>Model answer.</strong> I start with the two ways the numbers add up. First, sequential hops add: eight 60 ms hops in sequence are 480 ms of service time even when nothing is slow, before queueing, serialisation, and the network — so the p99 of 800 ms is not a mystery, it is the sum plus the tail. Second, the tail multiplies: each hop is slower than 60 ms for 1% of its requests, so the chance that at least one of the eight is slow is 1 − 0.99<sup>8</sup> = about 7.7%, and when a hop is slow it is not 61 ms, it is often several hundred — a cold cache, a retry, a pause — and that slow hop lands on top of the 480 ms sum. The fix is structural, not incremental: fire the eight calls in parallel, so the latency becomes the slowest hop, about 60 ms, instead of the sum, about 480 ms — an 8× improvement from one change. Then bound the tail: give each call a timeout with a degraded answer, so a hung dependency returns a partial result in 100 ms instead of hanging the request for seconds; and cache the slowest hop's answer where the data allows it, because a call you do not make has no latency at all. I would close with the check: after the change, the p99 should sit near the slowest hop plus the merge, around 100 ms, and if it does not, the remaining tail is in the merge step or the queueing — and the lesson's rule applies, that the fix for a bad p99 is usually fewer hops, parallel hops, or a timeout, not a faster hop.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — Size the pool.</strong> An API serves 12,000 requests a second at 150 ms latency, and each request holds a database connection for the full 150 ms. The pool has 300 connections. Work out the requests in flight, the pool's maximum throughput, and the fix — and say which fix you would pick and why. <em>Rubric: in flight = 12,000 × 0.15 = 1,800 requests; the pool caps throughput at 300 ÷ 0.15 = 2,000 requests a second, six times short of the 12,000 target, so the queue forms at the pool; the fixes are 1,800 connections, or a hold time cut to 300 ÷ 12,000 = 25 ms, or a latency cut to 25 ms — the answer picks the hold-time cut (hold the connection only for the database call, not the whole request) because it is a code change that also protects the database, and names the guardrail: size pools with Little's Law at peak latency, not average latency.</em></p>
+<p><strong>Drill 2 — Ride the knee.</strong> A service takes 20 ms per request. Work out the mean response time at 50%, 80%, and 95% utilisation — then say what happens when traffic doubles utilisation from 45% to 90%, and what you would do about it. <em>Rubric: response = 20 ÷ (1 − ρ), so 50% → 40 ms, 80% → 100 ms, 95% → 400 ms; doubling the load from 45% (20 ÷ 0.55 ≈ 36 ms) to 90% (20 ÷ 0.1 = 200 ms) multiplies latency about 5.5× for a 2× load — the knee, not the traffic, is the story; the answer adds capacity to hold utilisation under 80%, autoscales on utilisation rather than latency, and sheds the lowest-value work past the knee rather than letting every request slow down.</em></p>
+<p><strong>Drill 3 — Count the tail.</strong> A request fans out to 25 services, each with p99 50 ms. What fraction of requests hits at least one slow hop? Then redesign the fan-out so the tail stops being the product. <em>Rubric: 1 − 0.99<sup>25</sup> = 1 − 0.778 = 22.2% of requests — more than one in five, while every component is "99% fast"; the redesign fires the calls in parallel so the latency is the slowest hop rather than the sum, puts a timeout with a degraded answer on each call so a hung dependency cannot hold the request, and caches the hottest hop; the answer also names the check — after the change the p99 should sit near one hop's p99 plus the merge, and if it does not, the tail has moved to the merge step or the queue.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Measure</td><td>p50/p95/p99 from the client; never the server-side average</td><td>Server-side timing only for debugging one hop, never for the user experience</td></tr>
+<tr><td>Size concurrency</td><td>Little's Law: in-flight = throughput × latency; size pools and threads to that number</td><td>When the hold time is shorter than the latency — size to the hold, not the request</td></tr>
+<tr><td>Utilisation</td><td>Run hot services at 70–80%; treat 90% as an incident</td><td>Batch and background work can run hotter — nobody waits for one item</td></tr>
+<tr><td>Fan-out</td><td>Parallel calls; latency is the slowest hop, not the sum</td><td>Sequential only when a call genuinely depends on the previous answer</td></tr>
+<tr><td>Batching</td><td>Batch background work; process interactive requests one at a time, immediately</td><td>Never batch on a path a user is waiting on — throughput gained is latency paid</td></tr>
+<tr><td>Budget latency</td><td>End-to-end budget with an allowance per stage; the network floor is physics</td><td>When the network is the budget, move the server closer — do not optimise the code</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"Latency is how long one request takes; throughput is how much work the system does per second — and they are different numbers with different levers. The turnstiles prove it: 40 gates at 3 seconds a fan is 13 fans a second, 60,000 fans take 75 minutes, and adding 20 gates cuts the wait to 50 minutes without making any one fan faster. Little's Law ties the two together: in-flight requests equal throughput times latency, so an API at 8,000 requests a second and 250 ms always has 2,000 requests in flight — and a 500-connection pool caps it at 2,000 a second, which is why the queue forms before any work is done. The latency floor is physics: Edmonton to Toronto is 27 ms round trip at the speed of light, London to Sydney is 170 ms, and no server fixes that — only a closer one does. The queueing knee is the tax: at 10 ms of service time, 50% busy is 20 ms, 90% busy is 100 ms, 99% busy is 1,000 ms, so the last 9 points of utilisation cost 10× the latency. And the tail is the product: 10 hops at p99 100 ms means nearly one request in ten hits a slow hop, and 100 hops means most of them do — so measure p99 from the client, fan out in parallel, and run below 80% utilisation, because the fan at the back of the queue is the one who writes the review."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: latency is about one request, throughput is about the system, and concurrency is the bridge — Little's Law, L = λ × W.</li>
+<li>Back-of-the-envelope: 40 turnstiles at 3 seconds a fan is 13.3 fans a second and 75 minutes for 60,000 fans; 8,000 requests a second at 250 ms is 2,000 in flight and a 500-connection pool caps it at 2,000 a second; the speed-of-light floor is 27 ms Edmonton–Toronto and 170 ms London–Sydney; 10 hops at p99 100 ms means 9.6% of requests hit a slow hop.</li>
+<li>Architecture: the six-stage request path — client fixed costs, network floor, load balancer queue, app server concurrency, downstream hops, response serialisation — and the 500 ms budget split across them.</li>
+<li>Deep dive: Little's Law sizes every pool, the latency knee taxes utilisation past 80%, and the p99 is the product because percentiles multiply across hops.</li>
+<li>Trade-offs and failure modes: measuring the average only, utilisation creep, batching on the interactive path, the slow dependency, the hidden pool bottleneck, and measuring from the server.</li>
+<li>Close: the six decisions — measure p99 from the client, size concurrency with Little's Law, stay under 80% utilisation, fan out in parallel, batch only background work, and budget latency end to end.</li>
+</ol>
+
+<div class="foot">
+<p>Lesson 37 · Next: Design a Key-Value Store — the classic that turns consistent hashing, replication, and quorum into one system.</p>
+<p><a href="../index.html">← All lessons</a></p>
+</div>
+</div>
+<script>
+function computeLittle(latencyMs, throughput, poolSize, holdMs) {
+  var inflight = throughput * latencyMs / 1000;
+  var poolMax = poolSize * 1000 / holdMs;
+  var needed = Math.ceil(throughput * holdMs / 1000);
+  var holdNeededMs = poolSize * 1000 / throughput;
+  return {
+    inflight: inflight, poolMax: poolMax, needed: needed,
+    holdNeededMs: holdNeededMs, bottleneck: poolMax < throughput
+  };
+}
+function computeKnee(serviceMs, utilPct, workers) {
+  var rho = Math.min(utilPct, 99.9) / 100;
+  var wait = rho * serviceMs / (1 - rho);
+  var total = serviceMs + wait;
+  var mult = 1 / (1 - rho);
+  var throughput = workers * rho * 1000 / serviceMs;
+  return { wait: wait, total: total, mult: mult, throughput: throughput };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtMs(n) {
+  if (n >= 1000) return (n / 1000).toFixed(2) + " s";
+  return fmtNum(n) + " ms";
+}
+function renderLabA() {
+  var latency = parseFloat(document.getElementById("latencyMs").value) || 0;
+  var throughput = parseFloat(document.getElementById("throughputRps").value) || 0;
+  var pool = parseFloat(document.getElementById("poolSize").value) || 0;
+  var hold = parseFloat(document.getElementById("holdMs").value) || 0;
+  var r = computeLittle(latency, throughput, pool, hold);
+  var verdict = r.bottleneck
+    ? "<b>The pool is the bottleneck.</b> It caps you at " + fmtNum(r.poolMax) + " req/s — " + fmtNum(throughput - r.poolMax) + " req/s short of target. You need " + fmtNum(r.needed) + " connections, or a hold time of " + r.holdNeededMs.toFixed(1) + " ms or less."
+    : "<b>The pool is not the bottleneck.</b> It allows " + fmtNum(r.poolMax) + " req/s, above your " + fmtNum(throughput) + " req/s target.";
+  document.getElementById("labAResult").innerHTML =
+    "<b>Requests in flight (Little's Law): " + fmtNum(r.inflight) + "</b><br>" +
+    "Pool maximum throughput: " + fmtNum(r.poolMax) + " req/s<br>" +
+    "Connections needed for target: " + fmtNum(r.needed) + "<br>" +
+    "Hold time the current pool can afford: " + r.holdNeededMs.toFixed(1) + " ms<br><br>" + verdict;
+}
+function renderLabB() {
+  var service = parseFloat(document.getElementById("serviceMs").value) || 0;
+  var util = parseFloat(document.getElementById("utilPct").value) || 0;
+  var workers = parseFloat(document.getElementById("workers").value) || 0;
+  var r = computeKnee(service, util, workers);
+  var verdict = util >= 90
+    ? "<b>You are on the knee.</b> Past 90% utilisation, latency explodes — add capacity or shed work before the next traffic bump."
+    : util >= 80
+    ? "<b>Getting warm.</b> At 80%+ the knee is near — keep headroom for the peak, or the next 10% of traffic costs multiples of latency."
+    : "<b>Comfortable headroom.</b> Below 80% utilisation the queue stays short and latency stays near service time.";
+  document.getElementById("labBResult").innerHTML =
+    "<b>Mean response time: " + fmtMs(r.total) + "</b> (" + fmtMs(service) + " service + " + fmtMs(r.wait) + " queueing)<br>" +
+    "Latency multiplier: " + r.mult.toFixed(1) + "× service time<br>" +
+    "Throughput at this utilisation: " + fmtNum(r.throughput) + " req/s<br><br>" + verdict;
+}
+["latencyMs", "throughputRps", "poolSize", "holdMs"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabA);
+});
+["serviceMs", "utilPct", "workers"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
