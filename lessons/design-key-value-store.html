@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design a Distributed Key-Value Store — the engine behind DynamoDB, Cassandra, and every session store</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 38</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 38 · Classic design</span>
+  <h1>Design a Distributed Key-Value Store — the engine behind DynamoDB, Cassandra, and every session store</h1>
+  <p class="whyline">It is the cup final at Riverside FC. One million fans have the app open: the live score, each player's goal tally, every shopping cart, every login session — all of it is just a label with a value attached. One fan's phone asks for <code>match:today:score</code> and expects "Riverside 2–1" back in a few milliseconds, from a store holding a billion such pairs, spread across thirty servers, while servers die mid-match and nobody notices. That store is the key-value store, and it is the quiet engine underneath almost everything else you have designed: the session store in the auth lesson, the cart in the payment lesson, the timelines in the feed lesson. Today you design it from zero.</p>
+  <div class="meta"><span>Consistent hashing</span><span>Quorum (N, W, R)</span><span>Vector clocks</span><span>Hinted handoff</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a key-value store?</h2>
+<p>Start from zero. A <strong>key-value store</strong> is the simplest database there is: it stores pairs — a <strong>key</strong>, which is a unique label, and a <strong>value</strong>, which is whatever you attach to that label — and it offers exactly three operations: <code>put(key, value)</code> to store one, <code>get(key)</code> to fetch one back, and <code>delete(key)</code> to remove one. That is the whole interface. The value is opaque to the store: it does not know whether the value is a JSON shopping cart, a session token, or a number — it just stores the bytes and hands them back. The soccer running example: the Riverside FC kit room has a wall of numbered pegs. Peg <code>player:9:goals</code> holds the number 27. Peg <code>match:today:score</code> holds "Riverside 2–1". Peg <code>session:8f3a…</code> holds a fan's login token. You walk in, read the label, take the item — no searching through shelves, no asking the kit manager to join three tables. A key-value store is that wall of pegs, scaled to a billion pegs, spread across many rooms, where any peg can be found in one hop.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Key:</strong> the unique label for one item — <code>player:9:goals</code>. <strong>Value:</strong> the bytes attached to the key — <code>27</code>, a JSON cart, a session blob. <strong>Put / get / delete:</strong> the only three operations — store, fetch, remove. <strong>Replication factor (N):</strong> how many copies of each key the store keeps — usually 3. <strong>Preference list:</strong> the N nodes responsible for one key, in ring order. <strong>Coordinator:</strong> the node that receives a request and talks to the preference list on the client's behalf. <strong>Quorum:</strong> a number of replicas that must agree — W for writes, R for reads. <strong>Vector clock:</strong> a per-replica version counter that records which writes have seen which — the tool that detects concurrent writes. <strong>Tombstone:</strong> a marker that says "this key was deleted", kept until every replica has seen it. <strong>Hinted handoff:</strong> a write held temporarily by a healthy neighbour when its real owner is down. <strong>Anti-entropy:</strong> the background process that compares replicas and fixes drift — usually with Merkle trees. <strong>Gossip protocol:</strong> nodes periodically exchanging state with a few random peers, so the whole cluster learns about a dead node in seconds. <strong>Sloppy quorum:</strong> letting a healthy node outside the preference list stand in for a dead one, so writes still succeed. <strong>LSM tree:</strong> the storage engine inside most key-value stores — writes go to an in-memory table, then flush to sorted files on disk. <strong>Memtable:</strong> that in-memory table. <strong>SSTable:</strong> the sorted, immutable file on disk that the memtable flushes into.</p></div>
+<p>Why not just use a relational database? A relational database gives you joins, transactions, and ad-hoc queries — and charges you for them in complexity and latency. A key-value store gives those up and gets something in return: lookups in constant time, because the key hashes straight to the node that holds it, with no index to walk and no query planner to consult. That is the trade, and it is the right trade for a huge class of work: sessions, carts, user profiles, feature flags, counters, caches, leaderboards — anything where you always know the key and never need to ask "find all players with more than 20 goals". The moment you need that second kind of question, you need a different store, or a secondary index on top — and knowing which question you are answering is the first design decision. A key-value store is not a worse database; it is a database that chose one job — <em>given this key, give me this value, fast, even when machines die</em> — and does that job better than anything else.</p>
+<p>The one idea to carry through the whole lesson: <strong>a distributed key-value store is three decisions wearing a trench coat — where a key lives, how many replicas must agree, and what happens when two writes disagree.</strong> Where a key lives is consistent hashing on a ring (Lesson 10). How many replicas must agree is the quorum dial (Lesson 5, Lesson 7). What happens when two writes disagree is conflict resolution — vector clocks and the choice between last-write-wins and letting the client merge. Everything else — the gossip, the hints, the Merkle trees, the LSM engine — is machinery that makes those three decisions survive real hardware, which fails constantly and without warning.</p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are designing the store behind Riverside FC's app: sessions, live scores, player stats, shopping carts, feature flags. One billion keys, each with a value of about 1 KB on average. The workload is read-heavy — about 100,000 reads a second, 10,000 writes a second — and the latency target is single-digit milliseconds for a <code>get</code>. Availability matters more than perfect consistency: if a fan's cart shows a stale item for a few seconds, nobody's match is ruined; if the store refuses writes during the cup final, everybody notices. So this is an AP-flavoured store in CAP terms (Lesson 7): it keeps answering during a network partition, and reconciles afterwards.</p>
+<ul>
+<li><strong>Storage: 1 billion keys is about 1 TB, and 3 copies make it about 3 TB.</strong> 1,000,000,000 keys × 1 KB of value = 1,000,000,000 × 1,024 bytes = about <strong>1.02 TB</strong> of values. The keys themselves add 1 billion × 32 bytes ≈ <strong>32 GB</strong> — small next to the values. With a replication factor of 3, the cluster stores about <strong>3.1 TB</strong> in total. Spread across 30 nodes, that is <strong>about 103 GB per node</strong> — a comfortable size for one machine, with room to grow, and small enough that a node can be rebuilt from its neighbours in minutes rather than hours.</li>
+<li><strong>Throughput: the read load is the load.</strong> 100,000 reads a second × 1 KB = <strong>100 MB/s</strong> of values flowing out. But each read touches R = 2 replicas (the quorum dial, below), so the cluster actually performs 200,000 replica-reads a second — about <strong>6,700 replica-reads a second per node</strong> on 30 nodes, or 6.7 MB/s each. Writes are lighter: 10,000 writes a second × 1 KB = <strong>10 MB/s</strong> of new data, × W = 2 replicas = 20 MB/s of replica writes, under 1 MB/s per node. The network is never the constraint; the per-node disk and CPU are, and they are nowhere near their limits — which is the point: the design has headroom for the cup-final spike, and the spike is the day that matters.</li>
+<li><strong>The write path's hidden cost: the LSM engine multiplies writes about 10×.</strong> Inside each node, writes land in the memtable and are later flushed and compacted through the SSTable levels (Lesson 8). A leveled LSM tree rewrites each byte roughly 10 times over its life — so 10,000 writes a second × 1 KB × 10 = <strong>100 MB/s of disk writes cluster-wide</strong>, about 3.3 MB/s per node. That is still trivial for a modern SSD, but it is the number that decides your disk budget, and the number that bites if you ever raise the write rate tenfold without re-checking it. The read path, by contrast, is nearly free once the working set is in the page cache: a <code>get</code> is a hash, a memtable check, and usually one SSTable read — a few milliseconds, most of them network.</li>
+<li><strong>Adding a node: 32 GB moves with consistent hashing, 968 GB with naive hashing.</strong> With 30 nodes and 1 billion keys, each node holds about 33.3 million keys. Add a 31st node: the ring (Lesson 10) hands the new node 1/31 of the key space — about <strong>32.3 million keys, 32 GB</strong> — and only that much moves. With naive <code>hash(key) mod N</code> rehashing, changing N from 30 to 31 moves about 30/31 of all keys — <strong>968 million keys, 968 GB</strong> — nearly the whole dataset, across the network, while the match is on. That 30× difference is the entire case for the ring, and it is why no production key-value store rehashes naively. (Lab B lets you run these numbers yourself.)</li>
+<li><strong>Quorum math: W = 2, R = 2, N = 3 gives you strong reads and one dead node.</strong> The rule is W + R &gt; N: 2 + 2 = 4 &gt; 3, so every read overlaps every write on at least one replica, and a read after a write sees the write — <strong>read-your-writes</strong>. And the store survives one dead node for both reads and writes, because N − R = 1 and N − W = 1: two replicas are still up. How available is one key? If each node is up 99.9% of the time, the chance that at least 2 of 3 replicas are up is 3 × 0.999² × 0.001 + 0.999³ = <strong>0.999997 — 99.9997%</strong>, or about <strong>1.6 minutes of downtime per key per year</strong>. Compare W = 1, R = 1: the key is available unless all three replicas are down — 1 − 0.001³ = 99.9999999% — but reads can return stale values, because a read may miss the replica that got the latest write. Availability and freshness are the same dial, turned opposite ways. (Lab A plots the whole dial.)</li>
+<li><strong>The hot key: one key can break a balanced ring.</strong> At full time, one million fans a minute ask for <code>match:today:score</code> — about 16,667 reads a second on a single key. That key lives on 3 replicas, so each one serves about <strong>5,556 reads a second</strong> for that key alone — before any other key's traffic. Consistent hashing balances <em>key counts</em>, not <em>load</em>; a hot key is a hot partition (Lesson 24) wearing a different shirt. The fixes are the same family: cache the key at the edge or in the client (a 5-second TTL turns 16,667 origin reads a second into one fetch per edge node per 5 seconds), replicate the hot key more widely than RF = 3, or split the key by suffix and aggregate at read time.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Three numbers decide the shape of the store, and they are all dials, not constants. The replication factor decides the storage bill — 3 copies of 1 TB is 3 TB, and every extra copy is a terabyte you pay to store and to keep in sync. The quorum decides the consistency–availability trade — W = 2, R = 2 buys read-your-writes and one dead node at the price of waiting for the second-slowest replica on every operation. And the ring decides the cost of growth — 32 GB moved per added node with consistent hashing, against 968 GB with naive hashing. A design that quotes one of these without the other two has not designed a store; it has picked a favourite number. The interviewer is listening for all three, stated together, with the arithmetic behind them.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Follow one fan's tap — the app asks for <code>player:9:goals</code> — from phone to value and back. There are six stages, and each one exists to answer a different failure.</p>
+<ol>
+<li><strong>Client — hash the key, or ask the router.</strong> The client library hashes the key (MD5 or SHA-1, the same idea as Lesson 10) and walks the ring to find the preference list — the three nodes that own that key. Some stores keep the ring on the client (DynamoDB's client does not, but Cassandra's drivers do); others put a thin routing layer in front. Either way, the client sends the request to the first node on the list, which becomes the <strong>coordinator</strong> for this request. No central directory, no single point of failure: every node knows the whole ring from gossip, and every client can find any key from the hash alone.</li>
+<li><strong>Coordinator — fan the request out, wait for the quorum.</strong> The coordinator forwards the <code>get</code> to all three replicas in the preference list and waits for R = 2 replies — the two fastest, not the two nearest. It does not wait for the slowest replica: the slowest replica is the tail (Lesson 37), and waiting for it would make every read as slow as the worst node in the cluster. For a <code>put</code>, it forwards to all three and waits for W = 2 acknowledgements before telling the client the write succeeded. The third replica gets the write too, eventually — through hinted handoff if it is down, through anti-entropy if it missed it.</li>
+<li><strong>Preference list — three nodes, in ring order, and the sloppy stand-in.</strong> The key's owner is the first node clockwise from the key's hash on the ring; the next two clockwise nodes are the other two replicas. If one of the three is down, the coordinator does not fail the request — it writes to the next healthy node clockwise instead, the <strong>sloppy quorum</strong>, and that node holds the write as a <strong>hint</strong> until the real owner returns. The preference list is also where virtual nodes (Lesson 10) do their quiet work: each physical node owns many small ring segments, so the key space is spread evenly and a new node takes a little from many neighbours instead of a lot from one.</li>
+<li><strong>Storage engine — the LSM tree inside each node.</strong> A write lands in the memtable in memory and in a write-ahead log on disk, and the coordinator is acknowledged — the write is durable before the client hears back. When the memtable fills, it flushes to an immutable SSTable; background compaction merges SSTables and drops overwritten and tombstoned entries. A read checks the memtable, then the newest SSTables, using a Bloom filter per SSTable (Lesson 20) to skip files that cannot contain the key. Deletes are not erasures: a <code>delete</code> writes a <strong>tombstone</strong>, and the key only truly disappears when compaction drops it — after the tombstone has had time to reach every replica, or a returning node would resurrect the deleted value.</li>
+<li><strong>Conflict resolution — when two writes race, someone has to decide.</strong> Two fans update the same cart from two phones at the same time, and the writes land on different replicas before either has seen the other. The store cannot pick a winner by the wall clock — clocks skew (Lesson 21's warning) — so it keeps both versions, each stamped with a <strong>vector clock</strong>, and hands both back on the next read. The client, or the application, merges them: a cart merges by union, a counter merges by taking the max, a "last writer wins" field takes the newest timestamp and accepts the risk. The rule: the store detects the conflict; the application resolves it. A store that silently picks a winner has chosen to lose somebody's write without telling them.</li>
+<li><strong>Background repair — gossip, hints, and Merkle trees.</strong> Three processes run forever. <strong>Gossip</strong> spreads membership and failure news: every node periodically tells a few random peers what it knows, so a dead node is suspected cluster-wide within a few seconds. <strong>Hinted handoff</strong> replays held writes when a node returns. And <strong>anti-entropy</strong> compares replicas with <strong>Merkle trees</strong>: each node builds a hash tree over its key ranges, and two nodes compare roots — if they match, the ranges agree; if they differ, they descend until they find the differing leaves, and only those ranges are exchanged. With 33 million keys per node and leaves of 1,024 keys, the tree is about 15 levels deep: a handful of hashes finds the drift, where a full copy would move 103 GB.</li>
+</ol>
+<p>Two supporting facts complete the picture. First, <strong>there is no master and no leader</strong>: every node can coordinate any request, which is why the store has no single point of failure and no failover event — a dead node is just a node that stops answering, and the ring routes around it. That is the Dynamo design, and it is the opposite of the consensus design in Lesson 14: Raft elects a leader and refuses minority writes to stay strongly consistent, while Dynamo accepts writes on any side of a partition and reconciles later. Same problem, opposite trade — and the right answer depends on whether your data can tolerate a merge. Second, <strong>the store does not do range queries</strong>: asking for "all players sorted by goals" means scanning every node, because the keys are scattered by hash. If you need that question, you add a sort key inside a partition (DynamoDB's partition key + sort key), build a secondary index, or pick a different store. A key-value store that pretends to be a query engine is a store that has forgotten its one job.</p>
+<table>
+<tr><th>Stage</th><th>What it does</th><th>What fails if it is missing</th></tr>
+<tr><td>Client hashing</td><td>Hash the key, find the preference list, pick a coordinator</td><td>A central router becomes the bottleneck and the single point of failure</td></tr>
+<tr><td>Coordinator + quorum</td><td>Fan out to N replicas, wait for W acks / R replies</td><td>Waiting for all replicas makes every operation as slow as the worst node</td></tr>
+<tr><td>Preference list + sloppy quorum</td><td>Three owners in ring order; healthy stand-ins when one is down</td><td>One dead node blocks writes to its keys until it returns</td></tr>
+<tr><td>LSM storage engine</td><td>Memtable + write-ahead log, SSTables, compaction, tombstones</td><td>Random disk writes kill write throughput; deletes resurrect on returning nodes</td></tr>
+<tr><td>Conflict resolution</td><td>Vector clocks detect concurrent writes; the app merges them</td><td>Silent last-write-wins loses somebody's write without telling them</td></tr>
+<tr><td>Background repair</td><td>Gossip, hinted handoff, Merkle-tree anti-entropy</td><td>Replicas drift apart silently and the drift is discovered by users, not by the system</td></tr>
+</table>
+
+<h2>The heart of it: three decisions that make or break the design</h2>
+<h3>1. Where a key lives — the ring, and why virtual nodes matter</h3>
+<p>The ring is the whole addressing scheme: hash the key, hash the nodes, walk clockwise, and the first node you meet owns the key (Lesson 10). The subtlety is not the ring but the <strong>virtual nodes</strong>. Without them, a physical node owns one big arc of the ring, and arcs are never equal — one node gets 5% of the keys and another gets 1%, and the unlucky node carries five times the load. With, say, 100 virtual nodes per physical node, each machine owns 100 small arcs scattered around the ring, and the law of large numbers evens the load out: each node holds close to 1/30th of the keys, within a few percent. Virtual nodes also make growth graceful: adding a node takes 100 small slices from 30 different neighbours instead of one big slice from one, so no single node is hammered by the rebalance and no single node has to stream 32 GB at once. And they make heterogeneous hardware work: give the big machine 200 virtual nodes and the small one 50, and the load follows the capacity. The soccer analogy: one steward covering a whole stand gets swamped when that stand erupts, but a hundred stewards each covering a few rows in different stands spread the surge evenly — and adding a steward takes a few rows from many stands, not a whole stand from one.</p>
+<h3>2. How many replicas must agree — the quorum dial, and what it really buys</h3>
+<p>N = 3, W = 2, R = 2 is the default for a reason: it is the cheapest configuration that buys read-your-writes, and it survives one dead node. But the dial turns both ways, and each setting buys something different. W = 1, R = 1 is the fastest setting — one replica's acknowledgement and you are done, and the key is available unless all three replicas are down — but a read can return a stale value, because it may hit the replica that has not seen the latest write yet. W = 3, R = 1 makes writes strong: every write reaches all three replicas before it succeeds, so any single read sees it — but one dead node blocks every write to its keys, and write availability collapses to the availability of all three nodes at once. W = 1, R = 3 makes reads strong and writes cheap, which is right when reads must never be stale and writes are rare. The rule the dial obeys is simple: <strong>W + R &gt; N buys read-your-writes; W + R ≤ N buys eventual consistency and higher availability.</strong> Two things the dial does <em>not</em> buy: it does not order concurrent writes — two writes can both reach quorum on different replicas and still conflict, which is what vector clocks are for — and it does not make a single replica fast, it only makes the system wait for the second-fastest of three. Tune the dial per use case, not per store: sessions can run W = 1, R = 1, carts want W = 2, R = 2, and the one key that must never be stale gets W = 3.</p>
+<h3>3. What happens when two writes disagree — vector clocks, and the merge that belongs to the application</h3>
+<p>Take the worked example. Two fans edit the same cart at the same moment, from two phones, and the writes land on different replicas. Replica 1 stamps the first write with the vector clock [1, 0, 0] — "replica 1 has seen one write, the others have seen none". Replica 3 stamps the second write [0, 0, 1]. Neither clock dominates the other — each has a count the other lacks — so the clocks are <strong>concurrent</strong>, and the store knows the writes raced. The next <code>get</code> returns both versions, the <strong>siblings</strong>, and the application merges them: for a cart, the union of the items; for a counter, the maximum; for a profile field, the newest timestamp. The merged write goes back with the clock [1, 0, 1] — "both writes seen" — and the conflict is resolved. Compare the alternative, <strong>last-write-wins</strong>: pick the write with the newest wall-clock timestamp and throw the other away. It is simpler, and it silently deletes one fan's cart items whenever two clocks disagree by a millisecond — which, on machines whose clocks skew by tens of milliseconds, is often. The senior rule: <strong>the store detects conflicts, the application resolves them, and last-write-wins is only acceptable when losing a write is genuinely harmless</strong> — a "last seen" timestamp, a cached score, never a cart, a balance, or a booking. Dynamo, Cassandra, and Riak all made this choice, and the interviewer will ask which side of it your data falls on.</p>
+<table>
+<tr><th>Choice</th><th>What you gain</th><th>What you pay</th><th>Use it for</th></tr>
+<tr><td><strong>W = 1, R = 1</strong></td><td>Fastest; available unless all 3 replicas are down</td><td>Stale reads possible; no read-your-writes</td><td>Sessions, caches, feature flags</td></tr>
+<tr><td><strong>W = 2, R = 2</strong></td><td>Read-your-writes; survives 1 dead node</td><td>Waits for the 2nd-fastest replica on every op</td><td>Carts, profiles, the default</td></tr>
+<tr><td><strong>W = 3, R = 1</strong></td><td>Writes strong; any read sees the latest write</td><td>One dead node blocks all writes to its keys</td><td>Rarely — write-rarely, read-must-be-fresh data</td></tr>
+<tr><td><strong>W = 1, R = 3</strong></td><td>Reads strong; writes cheap and fast</td><td>One dead node makes reads slow or unavailable</td><td>Read-critical, write-rare data</td></tr>
+<tr><td><strong>Vector clocks + merge</strong></td><td>No write is silently lost</td><td>Clients must handle siblings; storage holds versions</td><td>Carts, counters, anything mergeable</td></tr>
+<tr><td><strong>Last-write-wins</strong></td><td>Simple; one version, no siblings</td><td>Loses writes on clock skew, silently</td><td>Timestamps, cached values, nothing precious</td></tr>
+</table>
+<div class="callout green"><strong>The senior line on the three decisions</strong><p>Every key-value store is the same three sentences, and the interview is won by saying them with numbers attached. The ring says where a key lives — 1 billion keys over 30 nodes is 33 million a node, and adding a node moves 32 GB, not 968 GB. The quorum says how many replicas must agree — W + R &gt; N buys read-your-writes at 99.9997% per-key availability, and every step away from it trades freshness for speed in a way you can name. The conflict rule says what happens when two writes race — vector clocks detect it, the application merges it, and last-write-wins is a choice to lose data, not a default. Say those three sentences, with the arithmetic, and the rest of the design — the gossip, the hints, the Merkle trees — is machinery that follows.</p></div>
+
+<h2>Failure modes — six ways a key-value store fails</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>The hot key</td><td>One key takes 16,667 reads a second; its three replicas saturate while 27 nodes idle; p99 climbs on every request that touches that key</td><td>Cache it at the edge or in the client with a short TTL; replicate the hot key wider than RF = 3; split it by suffix and aggregate at read time</td></tr>
+<tr><td>Hints pile up on a long outage</td><td>A node is down for an hour; its neighbours hold 3.6 million hinted writes (1,000 a second × 3,600 seconds, about 3.6 GB); their disks fill and they start failing too</td><td>Cap hint storage per node and expire old hints; when the node returns, rely on read repair and Merkle anti-entropy to catch what the hints missed</td></tr>
+<tr><td>Clock skew picks the wrong winner</td><td>Two writes race; last-write-wins keeps the one with the later wall-clock timestamp — but that machine's clock is 40 ms fast, so the older write wins and the newer one vanishes</td><td>Use vector clocks, not wall clocks, to detect concurrency; reserve last-write-wins for data where losing a write is harmless</td></tr>
+<tr><td>Stale reads after a write</td><td>A fan updates the cart, reloads, and sees the old cart — W = 1, R = 1, and the read hit the replica that had not seen the write yet</td><td>Turn the dial to W + R &gt; N for data that needs read-your-writes, or pin the read to the replica that took the write (session stickiness)</td></tr>
+<tr><td>The rebalance storm</td><td>Three nodes are added at once during the match; 100 GB of key movement saturates the network; reads slow down because the network is busy moving data, not serving fans</td><td>Throttle streaming, add nodes one at a time and off-peak, and let virtual nodes spread the transfer across many neighbours</td></tr>
+<tr><td>The deleted key comes back</td><td>A key is deleted, then a node that was down during the delete returns with the old value — and the delete's tombstone has already been compacted away, so the old value wins</td><td>Keep tombstones until the grace period has passed on every replica (longer than any node's longest outage); run anti-entropy before compacting a tombstone away</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"Quorum means strongly consistent."</strong> It does not. W + R &gt; N guarantees that a read overlaps a write on at least one replica, so a read after a write sees it — but it says nothing about two writes that race each other. Both can reach quorum on different replicas, and the store hands you two siblings and asks you to merge them. Quorum is about intersection, not about ordering, and an answer that treats a quorum as a lock has confused a read guarantee with a write guarantee. The follow-on question is always: who resolves the conflict, and what does the merge look like for <em>this</em> data?</li>
+<li><strong>"More replicas means more availability and more speed."</strong> More replicas means more copies to keep in sync: writes wait for W acknowledgements out of a larger set, storage multiplies, repair traffic grows, and a hot key still lives on only N of them. Reads can go to the nearest replica, which helps latency, but writes pay for every extra copy — and with W = 3 out of N = 5, a write waits for the third-fastest of five, which is slower than the second-fastest of three. The right replication factor is the smallest one that survives the failures you actually expect: 3 for one dead node, 5 only when two simultaneous failures are a real scenario, not a theoretical one.</li>
+<li><strong>"Consistent hashing solves hot keys."</strong> It solves the opposite problem: it balances the <em>number</em> of keys per node, so adding a node moves 3% of the data instead of 97%. It does nothing for a single key that takes 16,667 reads a second, because that key lives at one ring position on three replicas, however evenly the other 999,999,999 keys are spread. The fix for a hot key is caching, wider replication of that key, or splitting it — and the engineer who reaches for more virtual nodes when the problem is one hot key has fixed the load balancer and left the fire burning.</li>
+</ul>
+
+<h2>Interactive lab 1: the quorum planner</h2>
+<div class="lab">
+<h3>Lab A — Turn the quorum dial and watch availability move</h3>
+<p>Enter the replication factor, the write quorum, the read quorum, and how reliable one node is. The planner shows whether reads see the latest writes, how many dead nodes reads and writes each survive, and the per-key availability and downtime that follow.</p>
+<label for="quorumN">Replication factor N (copies of each key)</label>
+<input type="number" id="quorumN" value="3" />
+<label for="quorumW">Write quorum W (acknowledgements before a write succeeds)</label>
+<input type="number" id="quorumW" value="2" />
+<label for="quorumR">Read quorum R (replies before a read returns)</label>
+<input type="number" id="quorumR" value="2" />
+<label for="nodeAvail">One node's availability (%)</label>
+<input type="number" id="nodeAvail" value="99.9" step="0.01" />
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the planner reproduces W + R = 4 &gt; 3 (read-your-writes), survival of 1 dead node for both reads and writes, and 99.9997% per-key availability, about 1.6 minutes of downtime a year. Then set W = 1, R = 1 and watch the availability rise while the read-your-writes guarantee disappears.</p>
+</div>
+
+<h2>Interactive lab 2: the ring &amp; rebalance planner</h2>
+<div class="lab">
+<h3>Lab B — How much data moves when the cluster grows?</h3>
+<p>Enter the key count, the average value size, the node count now and after adding nodes, and the replication factor. The planner shows the keys and gigabytes per node, and the data moved under consistent hashing versus naive rehashing.</p>
+<label for="totalKeys">Total keys</label>
+<input type="number" id="totalKeys" value="1000000000" />
+<label for="valueKB">Average value size (KB)</label>
+<input type="number" id="valueKB" value="1" />
+<label for="nodesNow">Nodes now</label>
+<input type="number" id="nodesNow" value="30" />
+<label for="nodesAfter">Nodes after adding</label>
+<input type="number" id="nodesAfter" value="31" />
+<label for="replFactor">Replication factor</label>
+<input type="number" id="replFactor" value="3" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the planner reproduces 33.3 million keys and 100 GB per node, 32.3 million keys (32 GB) moved with consistent hashing, and 968 million keys (968 GB) moved with naive rehashing. Then add 5 nodes instead of 1 and watch the consistent-hashing move grow to 5/35 of the data while the naive move stays near everything.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. Design a session store for 50 million users: put/get by session id, 5-minute TTL, 100,000 reads a second, and a login must never block on the store.</summary>
+<p><strong>Model answer.</strong> I start from the workload, because it picks the dial. Sessions are write-once, read-a-few-times, and a stale session is harmless — the worst case is a fan logging in again — so this data wants availability over freshness, and the store is a key-value store with the key as the session id and the value as the session blob. I size it the same way as the lesson: 50 million sessions × 1 KB = 50 GB of live data, so even with RF = 3 the cluster holds 150 GB, and 10 nodes carry 15 GB each — the store is small, and the read rate is the real load: 100,000 reads a second, R = 1, so each read touches one replica and returns in single-digit milliseconds. I set W = 1, R = 1: a login writes to one replica and succeeds even if two replicas are down, because a login that blocks on the store is a fan locked out of the match, and a session that takes a second to reach the other replicas costs nothing. The TTL lives in the storage engine — the key carries an expiry, the LSM compaction drops it, and a tombstone is unnecessary because expiry is not a delete that a returning node can resurrect. I would add two guards: a client-side cache with a 60-second TTL for the hottest sessions, because the same fan's session is read on every tap; and a hard cap on session size, because a 1 MB session blob turns a 100,000-reads-a-second store into a 100 GB/s store. And I would close with the check: if a session read ever returns stale data, the consequence is a re-login, not lost money — which is exactly why W = 1, R = 1 is the right dial here, and why the same dial would be wrong for a cart.</p>
+</details>
+<details>
+<summary>Q2. Two fans update the same shared cart from two phones at the same moment, and the writes land on different replicas. What does each fan see, and how do you resolve it?</summary>
+<p><strong>Model answer.</strong> I start by naming the race, because the resolution follows from it. The two writes are concurrent: neither replica has seen the other write, so the vector clocks are [1, 0, 0] and [0, 0, 1] — neither dominates the other, and the store cannot pick a winner without losing somebody's items. Each fan sees their own write succeed, because each write reached its quorum, and the next <code>get</code> returns both versions as siblings — the store detects the conflict and refuses to hide it. The resolution belongs to the application, not the store: a cart merges by union, so the merged cart holds both fans' items, and the merged write goes back with the clock [1, 0, 1], which dominates both parents and ends the conflict. I would be explicit about what I would <em>not</em> do: last-write-wins, because it would silently delete one fan's items whenever two wall clocks disagree by a millisecond, and clocks skew by tens of milliseconds. And I would name the case where the merge does not work: if the two writes both removed the same item, or both set the same quantity to different values, the union is ambiguous — and the honest answer is to surface it to the user ("your cart changed on another device") rather than invent a winner. The rule from the lesson: the store detects, the application resolves, and a mergeable data type is the reason a cart can live in an eventually consistent store at all.</p>
+</details>
+<details>
+<summary>Q3. A node dies at the cup final. Walk through what happens to reads and writes for its keys, minute by minute.</summary>
+<p><strong>Model answer.</strong> I start with what does <em>not</em> happen: there is no failover event, because there is no leader to fail over from — every node can coordinate any request, so the ring simply routes around the dead node. In the first seconds, gossip spreads the news: each node tells a few random peers the node is unresponsive, and within a few seconds the whole cluster suspects it. Meanwhile, requests keep flowing: a <code>get</code> for one of its keys goes to the preference list, the dead node does not answer, and the coordinator returns after R = 2 replies from the two surviving replicas — the read succeeds, slightly slower, because it waited for the two replicas that are up. A <code>put</code> is the same shape: the coordinator writes to the two live replicas, and for the dead one it uses the sloppy quorum — the next healthy node clockwise holds the write as a hint. The write succeeds with W = 2, and the fan never knows a node died. Over the next minutes, the hinted writes accumulate — about 1,000 a second for that node's share, 600,000 hints in ten minutes — and the two surviving replicas carry the full read load for those keys. When the node returns, the hints replay, the node catches up, and Merkle-tree anti-entropy compares hash trees and fixes any range the hints missed — a handful of hashes, not a 103 GB copy. And I would close with the guardrail: if the node stays down for an hour, the hints are capped and expired, and anti-entropy — not the hint log — is what brings the node back, because an unbounded hint log is a second outage waiting to happen.</p>
+</details>
+<details>
+<summary>Q4. Your PM asks for "all players sorted by goals" on the key-value store. What do you say?</summary>
+<p><strong>Model answer.</strong> I start by saying the store cannot answer that question efficiently, and why: the keys are scattered across 30 nodes by hash, so "all players sorted by goals" is a scatter-gather over every node — 30 nodes each scanning their keys, sorting locally, and shipping results back to be merged — which is slow, expensive, and gets slower as the cluster grows. The key-value store's one job is <code>get</code> by exact key, and a sorted scan is a different job. Then I offer the three real options, priced. First, a sort key inside a partition: make the partition key the team and the sort key the goal count, so "top scorers for Riverside" is one partition's range scan — cheap, but it only answers the question per team, not across all teams. Second, a secondary index: a separate structure keyed by goal count that points at the players — which is a second store to keep in sync, with its own lag and its own hot-key problem at the top of the table. Third, a different store for the query: keep the key-value store for lookups and put the same data in a search index or an analytics store for ranking queries — two systems, each doing the job it is good at, with the sync between them made explicit. I would close by asking the PM which question they actually need: if it is "top 10 scorers", a cached leaderboard key updated on every goal is a single <code>get</code> — and the cheapest query is the one you precompute.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — Dial the quorum.</strong> A store runs N = 5. (a) Pick W and R for read-your-writes with the lowest write latency. (b) Reads must still work when any 2 nodes are down — what is the largest R you can pick, and what W goes with it? (c) Why is W = 5 a bad default? <em>Rubric: (a) W = 3, R = 3 — W + R = 6 &gt; 5 buys read-your-writes, and 3 is the smallest value that makes both sides equal, so write latency is the third-fastest of five rather than the slowest; (b) reads survive 2 down only if R ≤ 3, because 5 − 2 = 3 replicas are still up — so R = 3, and W = 3 keeps read-your-writes; (c) W = 5 needs all five nodes up, and at 99.9% per node the chance all five are up is 0.999⁵ ≈ 99.5%, so writes are unavailable about 0.5% of the time — roughly 44 hours a year — and a single dead node blocks every write to every key.</em></p>
+<p><strong>Drill 2 — Rebalance math.</strong> A store holds 500 million keys of 1 KB each on 20 nodes, and you add 5 nodes. How many keys and gigabytes move under consistent hashing, and how many under naive <code>hash mod N</code> rehashing? <em>Rubric: consistent hashing moves 5/25 = 20% of the keys — 100 million keys, 100 GB — because each new node takes 1/25 of the ring; naive rehashing moves about 80% — 400 million keys, 400 GB — because a key stays put only when its hash mod 20 equals its hash mod 25, which happens for roughly 1 in 5 keys; the 4× difference is the rebalance storm, and it is why the ring exists.</em></p>
+<p><strong>Drill 3 — Cool the hot key.</strong> A key gets 50,000 reads a second. RF = 3, and each replica can serve 10,000 reads a second. Show the failure, then fix it two ways and price each fix. <em>Rubric: 50,000 ÷ 3 ≈ 16,700 reads a second per replica, above the 10,000 limit — the replicas saturate, queueing grows (Lesson 37's knee), and the p99 for that key climbs while the other 27 nodes idle; fix one, an edge cache with a 5-second TTL: 50 edge nodes each fetch once per 5 seconds, so the origin sees 10 reads a second — the key is now a cache problem, not a store problem, at the price of 5-second staleness; fix two, replicate the hot key to 10 nodes instead of 3, so each serves 5,000 reads a second — no staleness, but the key now costs 10 copies to store and to keep in sync, and every write to it pays 10 replica writes.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Where keys live</td><td>Consistent hashing ring with ~100 virtual nodes per physical node</td><td>Weighted virtual nodes when machines differ in size; more vnodes when the load is uneven</td></tr>
+<tr><td>Replication factor</td><td>N = 3 — survives one dead node at a 3× storage cost</td><td>N = 5 only when two simultaneous failures are a real scenario; N = 2 only for data you can rebuild</td></tr>
+<tr><td>Quorum dial</td><td>W = 2, R = 2 — read-your-writes, survives one dead node</td><td>W = 1, R = 1 for sessions and caches; W = 3 for write-strong; tune per use case, not per store</td></tr>
+<tr><td>Conflict rule</td><td>Vector clocks detect; the application merges</td><td>Last-write-wins only when losing a write is genuinely harmless — timestamps, cached values</td></tr>
+<tr><td>Hot keys</td><td>Cache at the edge or in the client with a short TTL</td><td>Replicate the key wider, or split it by suffix and aggregate, when staleness is not allowed</td></tr>
+<tr><td>Repair</td><td>Gossip for membership, hinted handoff for short outages, Merkle anti-entropy for drift</td><td>Cap and expire hints on long outages; let anti-entropy, not the hint log, bring a node back</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"A key-value store is the simplest database there is: a key, a value, and three operations — put, get, delete — and it trades away joins and queries to do one job fast, even while machines die. Riverside's app holds a billion keys at about 1 KB each, so the raw data is about 1 TB, 3 TB at a replication factor of 3, about 100 GB per node on 30 nodes. The design is three decisions. Where a key lives: the consistent-hashing ring, so adding a node moves 32 GB, not the 968 GB that naive rehashing would move. How many replicas must agree: the quorum dial — W = 2, R = 2 gives read-your-writes and survives one dead node, at 99.9997% per-key availability, about a minute and a half of downtime a year; W = 1, R = 1 is faster and can return stale data. And what happens when two writes race: vector clocks detect the conflict and the application merges it, because last-write-wins silently deletes somebody's cart. The rest is machinery that makes those decisions survive real hardware: gossip to spread the news of a dead node, hinted handoff so writes succeed anyway, and Merkle trees so two replicas can find their differences with a handful of hashes instead of a 100 GB copy. And the trap to name: the ring balances key counts, not load — one hot key at 16,000 reads a second will saturate its three replicas while the other 27 nodes idle, and the fix is a cache, not more virtual nodes."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: a key-value store is put/get/delete on a billion pairs, and it is three decisions — where a key lives, how many replicas must agree, and what happens when two writes disagree.</li>
+<li>Back-of-the-envelope: 1 billion keys × 1 KB is about 1 TB raw, 3 TB at RF = 3, about 103 GB per node on 30 nodes; 100,000 reads a second is 100 MB/s out, 200,000 replica-reads at R = 2; adding a node moves 32 GB with the ring against 968 GB with naive hashing; W = 2, R = 2 is 99.9997% per key, about 1.6 minutes a year.</li>
+<li>Architecture: client hashing to the preference list, coordinator fan-out to the quorum, sloppy quorum and hinted handoff, the LSM engine with memtable and SSTables, vector-clock conflict resolution, and gossip plus Merkle-tree anti-entropy in the background.</li>
+<li>Deep dive: virtual nodes even the load and make growth graceful; the quorum dial trades freshness for availability per use case; vector clocks detect what last-write-wins would silently lose.</li>
+<li>Trade-offs and failure modes: the hot key, hint pile-up on long outages, clock skew under last-write-wins, stale reads, the rebalance storm, and the deleted key that comes back.</li>
+<li>Close: the six decisions — ring with virtual nodes, N = 3, W = 2 / R = 2 as the default, vector clocks with application merges, edge caching for hot keys, and gossip plus hints plus Merkle trees for repair.</li>
+</ol>
+
+<div class="foot">
+<p>Lesson 38 · Next: Design a Typeahead System — the trie, the ranking, and the autocomplete that answers before you finish typing.</p>
+<p><a href="../index.html">← All lessons</a></p>
+</div>
+</div>
+<script>
+function binomCoeff(n, k) {
+  if (k < 0 || k > n) return 0;
+  var r = 1;
+  for (var i = 0; i < k; i++) r = r * (n - i) / (i + 1);
+  return r;
+}
+function probAtLeast(n, k, p) {
+  var sum = 0;
+  for (var i = k; i <= n; i++) {
+    sum += binomCoeff(n, i) * Math.pow(p, i) * Math.pow(1 - p, n - i);
+  }
+  return sum;
+}
+function computeQuorum(N, W, R, availPct) {
+  var p = availPct / 100;
+  var overlap = W + R > N;
+  var readDown = Math.max(0, N - R);
+  var writeDown = Math.max(0, N - W);
+  var readAvail = probAtLeast(N, R, p);
+  var writeAvail = probAtLeast(N, W, p);
+  var readDowntimeMin = (1 - readAvail) * 525600;
+  var writeDowntimeMin = (1 - writeAvail) * 525600;
+  return {
+    overlap: overlap, readDown: readDown, writeDown: writeDown,
+    readAvail: readAvail, writeAvail: writeAvail,
+    readDowntimeMin: readDowntimeMin, writeDowntimeMin: writeDowntimeMin
+  };
+}
+function computeRing(totalKeys, valueKB, nodesNow, nodesAfter, rf) {
+  var keysPerNode = totalKeys / nodesNow;
+  var gbPerNode = totalKeys * valueKB * rf / nodesNow / 1e6;
+  var added = Math.max(0, nodesAfter - nodesNow);
+  var movedConsistent = totalKeys * added / nodesAfter;
+  var movedNaive = totalKeys * nodesNow / nodesAfter;
+  var gbMovedConsistent = movedConsistent * valueKB / 1e6;
+  var gbMovedNaive = movedNaive * valueKB / 1e6;
+  return {
+    keysPerNode: keysPerNode, gbPerNode: gbPerNode,
+    movedConsistent: movedConsistent, gbMovedConsistent: gbMovedConsistent,
+    movedNaive: movedNaive, gbMovedNaive: gbMovedNaive
+  };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtGB(n) {
+  if (n >= 1000) return (n / 1000).toFixed(2) + " TB";
+  if (n >= 1) return n.toFixed(1) + " GB";
+  return (n * 1024).toFixed(0) + " MB";
+}
+function fmtDowntime(min) {
+  if (min < 1) return (min * 60).toFixed(1) + " seconds/year";
+  if (min < 60) return min.toFixed(1) + " min/year";
+  if (min < 1440) return (min / 60).toFixed(1) + " hours/year";
+  return (min / 1440).toFixed(1) + " days/year";
+}
+function renderLabA() {
+  var N = parseInt(document.getElementById("quorumN").value, 10) || 0;
+  var W = parseInt(document.getElementById("quorumW").value, 10) || 0;
+  var R = parseInt(document.getElementById("quorumR").value, 10) || 0;
+  var avail = parseFloat(document.getElementById("nodeAvail").value) || 0;
+  var r = computeQuorum(N, W, R, avail);
+  var verdict = r.overlap
+    ? "<b>Read-your-writes holds.</b> W + R = " + (W + R) + " &gt; N = " + N + ", so every read overlaps every write on at least one replica."
+    : "<b>Eventual consistency only.</b> W + R = " + (W + R) + " ≤ N = " + N + ", so a read can miss the replica that took the latest write and return a stale value.";
+  document.getElementById("labAResult").innerHTML =
+    "<b>" + verdict + "</b><br>" +
+    "Reads survive " + r.readDown + " dead node(s); writes survive " + r.writeDown + " dead node(s)<br>" +
+    "Read availability: " + (r.readAvail * 100).toFixed(4) + "% (" + fmtDowntime(r.readDowntimeMin) + " of downtime)<br>" +
+    "Write availability: " + (r.writeAvail * 100).toFixed(4) + "% (" + fmtDowntime(r.writeDowntimeMin) + " of downtime)";
+}
+function renderLabB() {
+  var keys = parseFloat(document.getElementById("totalKeys").value) || 0;
+  var valueKB = parseFloat(document.getElementById("valueKB").value) || 0;
+  var now = parseFloat(document.getElementById("nodesNow").value) || 0;
+  var after = parseFloat(document.getElementById("nodesAfter").value) || 0;
+  var rf = parseFloat(document.getElementById("replFactor").value) || 0;
+  var r = computeRing(keys, valueKB, now, after, rf);
+  document.getElementById("labBResult").innerHTML =
+    "<b>Keys per node: " + fmtNum(r.keysPerNode) + " (" + fmtGB(r.gbPerNode) + " stored per node at RF = " + rf + ")</b><br>" +
+    "Consistent hashing moves: " + fmtNum(r.movedConsistent) + " keys (" + fmtGB(r.gbMovedConsistent) + ")<br>" +
+    "Naive rehashing moves: " + fmtNum(r.movedNaive) + " keys (" + fmtGB(r.gbMovedNaive) + ")<br><br>" +
+    "<b>Consistent hashing moves " + (r.gbMovedNaive / Math.max(r.gbMovedConsistent, 0.000001)).toFixed(1) + "× less data.</b> The ring hands the new node(s) only their share; naive hashing reshuffles nearly everything.";
+}
+["quorumN", "quorumW", "quorumR", "nodeAvail"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabA);
+});
+["totalKeys", "valueKB", "nodesNow", "nodesAfter", "replFactor"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
