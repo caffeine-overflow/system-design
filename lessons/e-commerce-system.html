@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design an E-Commerce System — the shop that never oversells, never double-charges, and finds any product in milliseconds</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 39</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 39 · Classic design</span>
+  <h1>Design an E-Commerce System — the shop that never oversells, never double-charges, and finds any product in milliseconds</h1>
+  <p class="whyline">It is the morning after Riverside FC won the cup, and the club shop has put 20,000 limited-edition final jerseys on sale. One million fans open the app in the same minute. The shop has to show each fan the right jersey, in the right size, at the right price; it has to let 20,000 of them buy one and tell the other 980,000, politely and instantly, that they missed out; it has to charge exactly 20,000 cards exactly once; and it has to get 20,000 parcels to 20,000 doorsteps without losing a single one. Behind that one minute sits everything you have built so far — a search index, a key-value cart, a payment state machine, a saga across services, a queue absorbing the spike — and three problems that belong to this system alone: inventory that must never go below zero, a checkout that spans five systems that can each fail, and a catalogue of a hundred million products that must answer "running shoes under $100, size 10, in stock" before the fan loses patience. Today you design the shop from zero.</p>
+  <div class="meta"><span>Inventory reservations</span><span>Checkout saga</span><span>Search index</span><span>Sharded catalog</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is an e-commerce system?</h2>
+<p>Start from zero. An <strong>e-commerce system</strong> is the software that lets people find products, buy them, and receive them — a shop with no walls, no closing time, and a million customers arriving at once. It has four jobs, and each one is a system in its own right: <strong>discovery</strong> (search, browse, recommendations — the fan finding the jersey), <strong>the cart</strong> (the fan's shortlist, held while they decide), <strong>checkout</strong> (turning the cart into a paid order), and <strong>fulfilment</strong> (getting the parcel from a warehouse shelf to a doorstep, and handling returns). Around those four sit the supporting cast: the <strong>catalog</strong> (the master list of everything for sale), <strong>inventory</strong> (how many of each item exist, and where), <strong>pricing and promotions</strong> (what it costs, and what discount applies), <strong>payments</strong> (moving the money), and <strong>notifications</strong> (telling the fan the order shipped). The soccer running example: Riverside FC's club shop started as one room under the stand with a rack of shirts and a till. The e-commerce version is that room scaled to a hundred million shirts, a million fans a minute, and a till that has to work while the warehouse is on another continent — and the design question is never "how do I build a shop", it is "which part breaks first when a million fans arrive at once, and what do I do about that part".</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>SKU (stock-keeping unit):</strong> one sellable item in one variant — the home jersey in size L is a different SKU from the same jersey in size M. <strong>Catalog:</strong> the master list of products — name, description, price, images — usually sharded by product id. <strong>Listing:</strong> one catalog entry as a seller offers it; in a marketplace, many sellers can list the same product. <strong>Inventory:</strong> how many units of each SKU exist, in which warehouse, and how many are already promised to someone. <strong>Reservation (hold):</strong> units set aside for one buyer for a short time — the stock is spoken for, but not yet sold. <strong>Oversell:</strong> selling more units than exist — the failure this whole lesson is built to prevent. <strong>Cart:</strong> the buyer's shortlist, usually held in a key-value store with a TTL. <strong>Checkout:</strong> the flow that turns a cart into a paid order: reserve, charge, confirm, fulfil. <strong>Order:</strong> the record of a completed purchase — items, prices, payment, address — immutable once placed. <strong>GMV (gross merchandise value):</strong> the total value of everything sold — orders × average order value — the shop's headline number. <strong>Fulfilment:</strong> picking, packing, and shipping an order from a warehouse. <strong>Warehouse (fulfilment centre):</strong> the building where stock lives and orders are packed. <strong>Search index:</strong> the inverted index (Lesson 30) that maps words to products, so a query finds matches without scanning the catalog. <strong>Facet:</strong> a filter on a search result — size, colour, price range, brand. <strong>Ranking:</strong> the order results are shown in — relevance, popularity, price, or a learned score. <strong>Marketplace:</strong> a shop where third-party sellers list their own products alongside the shop's own stock. <strong>Idempotency key:</strong> a unique token per purchase attempt, so a retried request is recognised as the same attempt and charged once (Lesson 31).</p></div>
+<p>Why is this a hard design, when each piece looks simple? Because the four jobs pull in opposite directions. Discovery wants to be fast and approximate: a search result that is a second stale is fine, and ranking can be a best guess. Checkout wants to be exact: a charge must happen once, an order must exist or not exist, and inventory must never go below zero. Fulfilment wants to be asynchronous and forgiving: a parcel can take a day, a warehouse can be slow, a return can be processed next week. So the system is not one database with one consistency model — it is several systems, each with the consistency its job needs, stitched together by queues and sagas. Search is eventually consistent (Lesson 7). The cart is a key-value store (Lesson 38). Inventory is a strongly consistent counter with reservations. Checkout is a saga (Lesson 21). And the stitching is the design: the shop works when each part uses the right tool and the boundaries between them are explicit about what can be stale, what must be exact, and what happens when a step fails halfway.</p>
+<p>The one idea to carry through the whole lesson: <strong>an e-commerce system is a read-heavy discovery machine wrapped around a write-critical checkout core — and the two halves run on opposite rules.</strong> Discovery serves a hundred page views for every order, tolerates staleness, and is won with caches, indexes, and ranking. Checkout serves a handful of writes per order, tolerates no error at all, and is won with reservations, idempotency keys, and a saga that can undo every step it took. Design the halves separately, and design the seam between them — the moment a fan clicks "buy" — with more care than either half.</p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are designing Riverside Market, a marketplace the size of a national retailer: 100 million products in the catalog, 100 million monthly shoppers, 20 million daily shoppers, 5 million orders a day at an average order value of $60, with 2.5 items per order. The workload is brutally read-heavy — a hundred product views for every order — and the one write that matters, the purchase, is contested: during a cup-final jersey drop, a million fans chase 20,000 units in sixty seconds. Latency targets: search results in under 200 ms, a product page in under 100 ms from cache, checkout completing in a few seconds. Availability: the shop must stay up through the cup final, because the cup final is the day that pays for the year.</p>
+<ul>
+<li><strong>Orders: 5 million a day is about 58 orders a second on average, and about 580 at peak.</strong> 5,000,000 ÷ 86,400 seconds = <strong>57.9 orders a second</strong>. Traffic is not flat: evenings run about 10× the average, so the peak is about <strong>580 orders a second</strong>, and a cup-final drop can run 5× the peak again — about <strong>2,900 orders a second</strong> for a minute. The system must be sized for the peak and the drop, not the average, because the average is a number nobody ever experiences. (Lab A lets you run the drop numbers yourself.)</li>
+<li><strong>Money: 5 million orders a day at $60 is $300 million a day, about $110 billion a year.</strong> 5,000,000 × $60 = <strong>$300,000,000 a day</strong>; × 365 = <strong>$109.5 billion a year</strong> of GMV. At a 3% payment fee (Lesson 31's rate), the shop pays about $9 million a day in payment fees — which is why a 1-point improvement in authorisation rate is worth $3 million a day, and why the payment step gets the care it gets. And 12.5 million items a day (5 million orders × 2.5 items) flow through the warehouses: at 30 seconds to pick one item, that is about <strong>104,000 picker-hours a day</strong> — the fulfilment workforce is the largest cost in the whole system, larger than the servers by an order of magnitude.</li>
+<li><strong>Catalog: 100 million products is about 1 TB of listings and 100 TB of images.</strong> Each listing — name, description, price, attributes — is about 10 KB, so 100,000,000 × 10 KB = 1,000,000,000,000 bytes = <strong>1 TB</strong> of catalog metadata. Each product carries about 5 images at 200 KB, so 100,000,000 × 5 × 200 KB = 100,000,000 × 1 MB = <strong>100 TB</strong> of images. The metadata fits in a sharded database; the images live in blob storage behind the CDN (Lesson 32), because a product photo is the most cacheable object in the system — it never changes, and a million fans look at the same jersey photo. (Lab B sizes the whole catalog.)</li>
+<li><strong>Reads: 500 million product views a day is about 5,800 a second — and search is the front door.</strong> 500,000,000 ÷ 86,400 = <strong>5,787 views a second</strong> on average, and search drives most of them: 40 million searches a day is <strong>463 searches a second</strong> on average, about <strong>2,300 a second at peak</strong>. Compare that with 58 orders a second: the shop serves about <strong>100 reads for every write</strong>, which is why the read path is cached at every layer (Lesson 3) and the write path is the only part that needs to be exact. A product page is a cache lookup; a search is an index lookup; an order is the only operation that touches the database's contested rows.</li>
+<li><strong>The flash sale: 20,000 jerseys, 1 million fans, 60 seconds — and a 1.2-second sellout.</strong> 1,000,000 attempts ÷ 60 seconds = <strong>16,667 attempts a second</strong>. The jerseys sell out in 20,000 ÷ 16,667 = <strong>1.2 seconds</strong>, and only <strong>2%</strong> of the fans get one. The other 98% must be told, fast, with a page that says "sold out" — and the telling is itself load: a million "sold out" responses, each one cheap, is the difference between a shop that survives the drop and one that falls over telling people it has nothing to sell. The race inside that 1.2 seconds is the heart of the lesson: with a 50 ms check-then-act window, about 16,667 × 0.05 = <strong>833 extra orders</strong> would slip through and oversell the jersey — 833 fans charged for a shirt that does not exist. (Lab A runs this race.)</li>
+<li><strong>Orders storage: 5 million orders a day is 10 GB a day, 3.65 TB a year.</strong> Each order record — items, prices, payment reference, address — is about 2 KB, so 5,000,000 × 2 KB = <strong>10 GB a day</strong>, and × 365 = <strong>3.65 TB a year</strong>. Orders are append-only and immutable once placed, which makes them the easiest data in the system to shard: shard by order id, never update in place, and the write load spreads evenly. The hard writes are not orders — they are the inventory counters, where a million fans fight over 20,000 rows.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Three numbers decide the shape of the shop, and they point in different directions. The 100-to-1 read-to-write ratio says the read path must be cached and indexed, and the write path must be protected — never let a product-page view touch the inventory database. The 1.2-second sellout says the flash sale is a queueing and contention problem, not a capacity problem — 16,667 attempts a second is small next to 5,787 page views a second, but all 16,667 fight over the same 20,000 rows. And the $300 million a day says the checkout must never double-charge and never lose an order, because at this scale a 0.1% error rate is 5,000 angry fans a day. A design that sizes the shop for the average order rate, or that treats a purchase like a page view, has designed a shop that works on a quiet Tuesday and fails on the one day that matters.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Follow one fan's purchase — the cup-final jersey, size L — from tap to doorstep. There are seven stages, and each one exists to answer a different failure.</p>
+<ol>
+<li><strong>Storefront and CDN — the page is already waiting.</strong> The fan's tap hits the edge first: product photos, stylesheets, and the cached product page come from the CDN (Lesson 32), and the price on the page is at most a few seconds stale — acceptable, because prices change rarely and a stale price is fixed at checkout. The storefront is a thin layer (a BFF — backend for frontend) that assembles the page from the services below; it holds no business state of its own, so it scales horizontally and any instance can die without losing a fan's cart.</li>
+<li><strong>Search and discovery — the index answers, the database does not.</strong> "Jersey size L under $100" never touches the catalog database. It hits the search service, which runs an inverted index over the catalog (Lesson 30): the words map to product ids, the facets filter by size and price, and the ranking step orders the results. The index is rebuilt continuously from catalog changes, a few seconds behind — so a jersey listed a minute ago may not appear in search yet, and that lag is a known, priced trade-off: search is eventually consistent, and nobody's money depends on it.</li>
+<li><strong>Catalog — the master list, sharded by product id.</strong> The catalog service owns the listings: name, description, price, images, attributes. It is sharded by product id across a relational or document store, because catalog reads are key lookups (one product at a time) and writes are rare (a seller edits a listing). The catalog is the source of truth for <em>what</em> a product is; it knows nothing about <em>how many</em> exist — that is the inventory service's job, and keeping the two apart is what lets each scale on its own terms.</li>
+<li><strong>Cart — a key-value store with a TTL.</strong> The fan's cart lives in the key-value store from Lesson 38: the key is the fan's session or user id, the value is the list of SKUs and quantities, and it expires after a few days of inactivity. The cart holds no money and no promises — putting a jersey in the cart does not reserve it, and the fan who leaves a jersey in the cart for a week has no claim on it. That separation is deliberate: the cart is allowed to be fast and lossy, because the reservation happens later, at checkout, where it can be exact.</li>
+<li><strong>Inventory — the contested counter, and the only part that must never go below zero.</strong> The inventory service owns one number per SKU per warehouse: how many units are available. It is the heart of the lesson (below): a reservation is an atomic decrement with a TTL, and the checkout's first step is to reserve before anything is charged. Inventory reads for the product page come from a cached copy that may be seconds stale — "only 3 left!" is an approximation, not a promise — but the reservation itself is a strongly consistent write on the primary, because the promise is the product.</li>
+<li><strong>Checkout and orders — a saga, not a transaction.</strong> Checkout is the orchestrator from Lesson 21: reserve the items, authorise the payment, create the order, then confirm and release the reservation into a sale — each step in its own service, each with a compensating action. If the payment fails, the reservation is released; if the order creation fails after the charge, the payment is voided; if the response is lost, the idempotency key makes the retry safe (Lesson 31). The order, once created, is immutable and append-only — the record of what happened, not a row to be edited.</li>
+<li><strong>Fulfilment, notifications, and returns — the slow tail, done asynchronously.</strong> The order lands on a queue, and the warehouse picks, packs, and ships it over hours or days (Lesson 9's queue, absorbing the spike). The notification service (Lesson 22) tells the fan it shipped, it is out for delivery, it arrived. Returns run the same pipeline backwards: the parcel comes back, the inventory is incremented, the refund is issued through the payment service, and the order record gains a return entry — appended, never rewritten.</li>
+</ol>
+<p>Two supporting facts complete the picture. First, <strong>recommendations are a batch job, not a checkout dependency</strong>: "fans who bought this also bought" is computed offline from order history and served from a cache — if the recommendation service is down, the product page still loads, just without the suggestions. A shop that blocks checkout on a recommendation is a shop that lets a nice-to-have kill a must-have. Second, <strong>sellers are tenants, not admins</strong>: in a marketplace, each seller manages their own listings and inventory through the same services, isolated by seller id, and the shop's own stock is simply seller number one. The isolation is what keeps one seller's bad data — a listing with a million variants, a price of $0 — from becoming the whole shop's outage.</p>
+<table>
+<tr><th>Stage</th><th>What it does</th><th>What fails if it is missing</th></tr>
+<tr><td>Storefront + CDN</td><td>Serves cached pages and photos from the edge; thin assembly layer</td><td>Every page view hits the origin, and the origin falls over on the cup-final minute</td></tr>
+<tr><td>Search service</td><td>Inverted index + facets + ranking over the catalog</td><td>Every search scans the catalog database, and "size L under $100" takes seconds</td></tr>
+<tr><td>Catalog service</td><td>Master list of products, sharded by product id</td><td>Product data and inventory counts tangle, and neither scales cleanly</td></tr>
+<tr><td>Cart (key-value store)</td><td>Per-fan shortlist with a TTL; holds no promises</td><td>Cart state in the web server's memory dies with the server, and the fan's cart vanishes</td></tr>
+<tr><td>Inventory service</td><td>Atomic reservations with a TTL; the only counter that must never go negative</td><td>Check-then-act races oversell the jersey by hundreds of units</td></tr>
+<tr><td>Checkout + orders</td><td>Saga across reserve, charge, and confirm; immutable order records</td><td>A failure mid-checkout double-charges the fan or loses the order</td></tr>
+<tr><td>Fulfilment + notifications</td><td>Queue-driven picking, packing, shipping, returns, and updates</td><td>The warehouse becomes the checkout's bottleneck, and the fan hears nothing for days</td></tr>
+</table>
+
+<h2>The heart of it: three decisions that make or break the design</h2>
+<h3>1. Inventory — the contested write, and why "check, then act" oversells</h3>
+<p>The jersey drop is the whole lesson in one race. The naive code reads the stock, sees 1 left, and then writes stock = 0 — two steps, and between them another request reads the same 1. With 16,667 attempts a second and a 50 ms gap between the read and the write, about 833 requests read "1 left" in the window where the last jersey is being sold, and all 833 proceed to charge a fan for a shirt that does not exist. The fix is to make the decrement atomic: a single conditional write — <code>UPDATE inventory SET stock = stock - 1 WHERE sku = ? AND stock &gt;= 1</code> — that succeeds for exactly one request and fails for the rest, because the database applies the condition and the decrement in one step. That one line is the difference between a shop and a lawsuit. But the atomic decrement alone is not enough, because a fan who reserves a jersey and then abandons checkout would hold it forever. So the reservation carries a <strong>TTL</strong>: the decrement is a hold for ten minutes, and a background sweeper returns expired holds to stock (the ticket-booking lesson's hold window, Lesson 26, applied to shirts). And the hold is per warehouse: the shop sells from the warehouse nearest the fan, so the reservation decrements that warehouse's count, not a global one — which means the inventory service is really one counter per SKU per warehouse, and the "only 3 left" on the product page is the sum across warehouses, cached and approximate. The three inventory rules, together: <strong>never read-then-write — decrement conditionally in one step; never hold without a TTL — a hold is a loan, not a sale; never show the exact count as a promise — the page shows an approximation, the reservation is the truth.</strong></p>
+<h3>2. Checkout is a saga, not a transaction — and the order of the steps is the design</h3>
+<p>Checkout spans five systems — cart, inventory, payment, orders, fulfilment — and no single database transaction can cover them (Lesson 21: a distributed transaction blocks, and a coordinator is a single point of failure). So checkout is a saga, and the order of its steps is chosen by asking, at each step, "what does it cost to undo this?" The order is: <strong>reserve the items first</strong> (cheap to undo — release the hold), <strong>then authorise the payment</strong> (undoable — void the authorisation, and the fan is never charged), <strong>then create the order</strong> (the point of no return — the order is the record that the sale happened), <strong>then capture the payment and confirm fulfilment</strong> (the money moves, the warehouse is told). The irreversible step — the capture — comes last, and everything before it can be compensated: a failed payment releases the reservation; a failed order creation voids the authorisation; a lost response is retried safely because the idempotency key makes the second attempt the same attempt. The walkthrough that proves it: the fan clicks "buy", the reservation succeeds, the payment authorisation succeeds, and then the order service crashes before creating the order. The fan sees an error. The saga's compensations run: the authorisation is voided, the reservation is released, and the fan is charged nothing and owns nothing — the system is back to the state before the click. The failure the saga cannot fix is the one after the point of no return: the payment is captured, the order exists, and the warehouse burns down. That is not a software problem any more; it is an insurance and customer-service problem, and the honest design says so. The senior line: <strong>a checkout is not a transaction that either happens or doesn't — it is a sequence of reversible steps with one irreversible step at the end, and the design is the choice of which step that is.</strong></p>
+<h3>3. Search — the inverted index, and why the catalogue database must never answer a query</h3>
+<p>"Running shoes under $100, size 10, in stock" is four questions at once — a word match, a price filter, a size filter, and a stock filter — and the catalog database answers it by scanning a hundred million rows, which takes seconds. The search service answers it by never scanning at all. It keeps an inverted index (Lesson 30): the word "running" maps to the list of product ids that contain it, "shoes" maps to its own list, and the query intersects the two lists — rarest term first, so the work shrinks at each step. Facets are precomputed the same way: size 10 is a list, "under $100" is a range in a sorted price list, and "in stock" is a filter against the cached inventory snapshot. The ranking step then orders the survivors — by relevance (how well the words match), by popularity (how often the product sells), and by business rules (sponsored listings, new arrivals) — and the page shows the top twenty. The index is built by a pipeline that watches the catalog for changes and rebuilds the affected entries, a few seconds behind: a jersey listed at 10:00:01 appears in search at 10:00:05, and the lag is the price of not scanning. The three search rules: <strong>index, don't scan — the query intersects lists, it never walks the catalog; filter before you rank — facets cut a hundred million candidates to a thousand before the expensive scoring runs; and accept the freshness lag — a listing that appears in search five seconds late costs nothing, but a search that takes five seconds costs the sale.</strong> And the trap to name: the search index is not the source of truth. If the index says a jersey is in stock and the inventory service says it is not, the inventory service wins — the index is a finding aid, and the reservation is the truth.</p>
+<table>
+<tr><th>Choice</th><th>What you gain</th><th>What you pay</th><th>Use it for</th></tr>
+<tr><td><strong>Atomic conditional decrement</strong></td><td>Exactly one buyer per unit; oversell is impossible</td><td>One contested row per SKU; hot SKUs serialise</td><td>Every purchase — the default</td></tr>
+<tr><td><strong>Reservation with a TTL</strong></td><td>Abandoned carts release stock automatically</td><td>A sweeper, and a fan can lose a hold mid-checkout</td><td>Flash sales, ticket-style drops, any scarce item</td></tr>
+<tr><td><strong>Queue serialisation per SKU</strong></td><td>Requests processed in order; no lost updates at all</td><td>A queue per hot SKU; slower than a single write</td><td>The very hottest SKUs, or when the DB cannot do conditional writes</td></tr>
+<tr><td><strong>Checkout saga, capture last</strong></td><td>Every failure before capture is undoable; no double-charge</td><td>Compensating actions to write and test; eventual consistency between steps</td><td>Every checkout — the default</td></tr>
+<tr><td><strong>Search index + facets</strong></td><td>Sub-200 ms queries over 100M products</td><td>A pipeline to keep the index fresh; a few seconds of lag</td><td>All discovery — the default</td></tr>
+<tr><td><strong>Cached stock on the page</strong></td><td>Product pages never touch the inventory database</td><td>"Only 3 left" can be stale by seconds</td><td>Every product page — the default</td></tr>
+</table>
+<div class="callout green"><strong>The senior line on the three decisions</strong><p>Every e-commerce system is the same three sentences, and the interview is won by saying them with numbers attached. Inventory is a conditional decrement with a TTL — 20,000 jerseys and 16,667 attempts a second sell out in 1.2 seconds, and the 50 ms check-then-act window would oversell 833 of them, so the decrement must be one atomic step. Checkout is a saga with the capture last — reserve, authorise, create the order, then capture — so every failure before the point of no return is undoable, and the idempotency key makes a retried click the same click. Search is an inverted index that intersects lists and filters before it ranks — 100 million products answer in under 200 ms because the query never scans the catalog, and the few seconds of index lag are the price, paid gladly. Say those three sentences, with the arithmetic, and the rest of the design — the CDN, the cart, the warehouse queue — is machinery that follows.</p></div>
+
+<h2>Failure modes — six ways an e-commerce system fails</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>Oversell on the flash sale</td><td>20,000 jerseys, 20,833 orders, 833 fans charged for a shirt that does not exist — and the refunds, the complaints, and the press</td><td>Atomic conditional decrement, never check-then-act; reservations with a TTL; queue serialisation for the hottest SKU</td></tr>
+<tr><td>Double-charge on a retried checkout</td><td>The fan taps "buy" twice on a slow connection; two charges land, one order exists, and support spends a week unwinding it</td><td>An idempotency key on every purchase attempt, checked at every boundary — cart, payment, and order creation (Lesson 31)</td></tr>
+<tr><td>Checkout dies mid-saga</td><td>The payment is authorised, the order service crashes, and the fan is left charged with no order — or holding a reservation that never releases</td><td>Compensating actions for every step before the capture; a sweeper that releases expired holds; reconciliation that voids orphaned authorisations</td></tr>
+<tr><td>The search index goes stale</td><td>A new jersey is listed and invisible for an hour; a discontinued shirt keeps appearing and fans keep trying to buy it</td><td>A change feed from the catalog that rebuilds index entries in seconds; a fallback that serves the last good index; the inventory service as the final truth at checkout</td></tr>
+<tr><td>The hot SKU melts the inventory database</td><td>16,667 attempts a second all write the same row; the row lock serialises them, latency climbs, and the checkout queue backs up behind one jersey</td><td>Shard the counter per warehouse, batch reservations through a per-SKU queue, and shed load with a waiting room (Lessons 23, 26) once the stock is gone</td></tr>
+<tr><td>The warehouse becomes the bottleneck</td><td>Orders pour in at 580 a second; the picking queue grows by the hour; "dispatched in 24 hours" becomes "dispatched in 4 days" and nobody told the fan</td><td>Queue depth as the scaling signal, not order rate; fulfilment capacity planned from items per day, not orders per second; honest delivery estimates shown before the fan pays</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"Inventory is just a number in a row."</strong> It is a reservation with a lifetime, a warehouse, and a state machine — available, held, sold, returned — and the number on the product page is a cached approximation of it. A design that decrements a counter at checkout and calls it done has no answer for the fan who abandons checkout with the last jersey in their cart, no answer for the return that puts a unit back, and no answer for the warehouse that has the stock while the other one does not. The question to ask is always: what state is this unit in, who holds it, and when does the hold expire?</li>
+<li><strong>"Checkout is one transaction."</strong> It spans five services and two companies — yours and the payment provider's — and no transaction can cover a card network. The checkout that pretends otherwise either blocks (Lesson 21's two-phase commit, waiting on a coordinator that can die) or silently loses steps (a charge with no order, an order with no charge). The honest design names the saga, names the point of no return, and writes the compensating action for every step before it — and tests the compensations, because an untested compensation is a hope, not a design.</li>
+<li><strong>"Search is a database query."</strong> A LIKE over a hundred million rows is a full scan, and a full scan at 463 searches a second is a database on fire. Search is an inverted index maintained by a pipeline, and the catalog database is the source of truth the pipeline reads from — not the thing that answers the query. The follow-on question is always: how fresh is the index, and what happens when the index and the truth disagree? The answer is the inventory service, at checkout, as the final arbiter.</li>
+</ul>
+
+<h2>Interactive lab 1: the flash-sale inventory planner</h2>
+<div class="lab">
+<h3>Lab A — Run the jersey drop and watch the oversell appear</h3>
+<p>Enter the stock, how fast the fans arrive, how long the sale runs, the gap between reading the stock and writing it back, and the inventory strategy. The planner shows the sellout time, how many fans get a jersey, how many are turned away, and how many extra orders the race creates.</p>
+<label for="stockUnits">Units in stock</label>
+<input type="number" id="stockUnits" value="20000" />
+<label for="attemptRate">Purchase attempts per second</label>
+<input type="number" id="attemptRate" value="16667" />
+<label for="saleSeconds">Sale duration (seconds)</label>
+<input type="number" id="saleSeconds" value="60" />
+<label for="raceMs">Race window — read-to-write gap (milliseconds)</label>
+<input type="number" id="raceMs" value="50" />
+<label for="strategy">Inventory strategy</label>
+<select id="strategy">
+<option value="atomic">Atomic conditional decrement</option>
+<option value="checkact">Check-then-act (read, then write)</option>
+</select>
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the planner reproduces a 1.2-second sellout, 20,000 successful orders, a 2.0% acceptance rate, and zero oversell under the atomic decrement. Then switch to check-then-act and watch about 833 extra orders appear from the 50 ms race window. Then raise the window to 100 ms and watch the oversell double.</p>
+</div>
+
+<h2>Interactive lab 2: the catalog &amp; search sizing planner</h2>
+<div class="lab">
+<h3>Lab B — Size the catalog, the images, and the search load</h3>
+<p>Enter the catalog size, the listing and image sizes, and the daily traffic. The planner shows the storage bill, the search rate, the order rate, and the money — and the search index that has to answer it all.</p>
+<label for="skuCount">Products in the catalog</label>
+<input type="number" id="skuCount" value="100000000" />
+<label for="listingKB">Listing size (KB)</label>
+<input type="number" id="listingKB" value="10" />
+<label for="imagesPer">Images per product</label>
+<input type="number" id="imagesPer" value="5" />
+<label for="imageKB">Image size (KB)</label>
+<input type="number" id="imageKB" value="200" />
+<label for="searchesDay">Searches per day</label>
+<input type="number" id="searchesDay" value="40000000" />
+<label for="ordersDay">Orders per day</label>
+<input type="number" id="ordersDay" value="5000000" />
+<label for="avgOrder">Average order value ($)</label>
+<input type="number" id="avgOrder" value="60" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the planner reproduces 1 TB of listings, 100 TB of images, 463 searches a second (about 2,315 at peak), 58 orders a second, $300M of GMV a day, and an 8 GB posting list. Then double the catalog to 200M products and watch the image bill pass 200 TB.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. Design the checkout for the cup-final jersey drop: 1 million fans, 20,000 jerseys, no oversell, no double-charge, and the losers told fast.</summary>
+<p><strong>Model answer.</strong> I start from the constraint, because it picks the whole design: the jerseys sell out in 1.2 seconds, and the 980,000 fans who miss out are the load that matters — so the system must fail fast for them. The flow is: the fan taps "buy", and the first step is the inventory reservation — a single atomic conditional decrement on the jersey's row, which succeeds for exactly 20,000 requests and fails instantly for the rest. The losers get their "sold out" in milliseconds, because the failed decrement is one cheap database write, and they never reach the payment step at all — which is the point: the payment provider never sees 980,000 doomed authorisations. The 20,000 winners move to the saga: authorise the payment with an idempotency key, create the immutable order, then capture and confirm fulfilment — and every step before the capture has a compensation, so a crash mid-checkout voids the authorisation and releases the reservation. The reservation carries a 10-minute TTL, so a winner who abandons checkout releases their jersey back to the next fan in the queue. And I would close with the two guards: a waiting room in front of the drop (Lesson 26) that admits fans at the rate the inventory service can actually serve, so the database never sees 16,667 writes a second on one row all at once; and a per-SKU queue for the reservation step itself, so the contested writes serialise cleanly instead of fighting over a row lock. The numbers: 20,000 sold, 980,000 told in milliseconds, zero oversold, zero double-charged — and the check is the lab: switch the strategy to check-then-act and 833 fans get charged for a shirt that does not exist.</p>
+</details>
+<details>
+<summary>Q2. A fan searches "running shoes under $100, size 10, in stock near me". Walk through how the query runs, and why not just a SQL LIKE?</summary>
+<p><strong>Model answer.</strong> I start by saying what the query really is: four filters at once — a word match, a price range, a size, and a stock check — and a SQL LIKE answers it by scanning a hundred million rows, which takes seconds at 463 searches a second and sets the database on fire. The real path never scans. The query hits the search service, which holds an inverted index (Lesson 30): "running" maps to its product list, "shoes" to its own, and the query intersects them rarest-term-first, so the candidate set shrinks at each step. The facets then cut it further: size 10 is a precomputed list, "under $100" is a range in a sorted price list, and "in stock" is checked against the cached inventory snapshot — not the live counter, because a stale stock filter costs nothing and a live one would put every search on the inventory database. What survives — maybe a thousand products — goes to ranking: relevance, popularity, and business rules order them, and the page shows the top twenty. "Near me" is the last filter, and it is a warehouse filter: the shop checks which warehouses hold the product within delivery range of the fan's postcode, and ranks in-stock-nearby above in-stock-far-away. And I would close with the honesty: the index is a few seconds behind the catalog, so a shoe listed a minute ago may not appear yet — and if the index and the inventory service disagree at checkout, the inventory service wins, because the index is a finding aid and the reservation is the truth.</p>
+</details>
+<details>
+<summary>Q3. A fan is charged, but no order appears in their account. Walk through what happened and how the system recovers.</summary>
+<p><strong>Model answer.</strong> I start by naming the failure: the saga got past the payment authorisation and then broke before the order was created — the order service crashed, the network dropped the response, or the deploy landed mid-checkout — and the fan's money is now held by an authorisation with no order attached to it. The first thing to say is what the fan experiences: they see an error, they see a pending charge on their card, and they have no order — which is the worst state a shop can put a fan in, and the reason the design has three safety nets. The first net is the idempotency key: the fan's retry is recognised as the same purchase attempt, so it resumes the saga from the authorisation instead of charging twice (Lesson 31). The second net is the saga's compensation: the orchestrator's timeout fires, sees an authorisation with no order, and voids the authorisation — the hold drops off the card in a day or two, and the fan is charged nothing. The third net is reconciliation: a nightly job compares the payment provider's ledger against the order store, finds authorisations with no order, and voids them — the same three-way reconciliation from the payment lesson, and the reason an orphaned charge is caught even if the orchestrator itself died. And I would close with the check the interviewer is listening for: the design never relies on the fan complaining. The compensation runs automatically, the reconciliation runs nightly, and the fan gets a message — "your payment didn't go through, you haven't been charged" — before they ever have to ask.</p>
+</details>
+<details>
+<summary>Q4. Your PM wants real-time "only 3 left!" counters and the exact stock on every product page. What do you say?</summary>
+<p><strong>Model answer.</strong> I start by saying yes to the feature and no to the implementation: the counter is a good idea, but the exact live count on every page view would put 5,787 reads a second on the inventory database — the one database in the system that must never be slow — and the count would be wrong anyway, because between the page load and the click, another fan can buy the last unit. So the counter is a cached approximation: the inventory service publishes stock snapshots every few seconds, the page shows the snapshot, and the snapshot is honest about what it is — "only 3 left" means "three left a few seconds ago", and the reservation at checkout is the only number that is ever exact. I would price the two alternatives. The exact counter costs a strongly consistent read on every page view, which is 100 reads for every order, all of them on the hottest rows in the system — and it still cannot promise the unit, because the promise is the reservation, not the display. The cached counter costs a few seconds of staleness and a small pipeline, and it scales: the page is a cache lookup (Lesson 3), the inventory database never sees a read that is not a purchase, and the flash sale still works because the reservation is atomic. And I would add the guardrail: below a threshold — say, 10 units — the page stops showing a number and shows "low stock" instead, because the difference between 3 and 2 is the difference most likely to be wrong, and a fan who sees "3 left" and then gets "sold out" at checkout is a fan who stops trusting the counter entirely. The rule from the lesson: the page shows an approximation, the reservation is the truth, and the only exact stock number in the system is the one the checkout just decremented.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — The race, priced.</strong> A flash sale has 50,000 units and 200,000 fans arrive over 5 minutes. The read-to-write gap is 100 ms. (a) How fast do the units sell out? (b) How many units are oversold under check-then-act? (c) Under the atomic decrement? <em>Rubric: (a) 200,000 ÷ 300 seconds = 667 attempts a second, so 50,000 ÷ 667 = 75 seconds to sell out; (b) check-then-act oversells about 667 × 0.1 s = 67 units — every request that reads "in stock" in the 100 ms window after the last unit is sold proceeds to charge; (c) zero — the conditional decrement succeeds for exactly 50,000 requests and fails for the rest, because the condition and the decrement are one step; the 67 oversold fans are the entire case for the atomic write, and the refund and apology each one costs is the price of the naive code.</em></p>
+<p><strong>Drill 2 — Checkout capacity.</strong> The peak is 600 orders a second, and each checkout holds a worker for 800 ms while it waits on the payment provider. (a) How many workers are busy at peak? (b) The checkout pool has 400 workers — what happens? (c) What do you change? <em>Rubric: (a) Little's Law (Lesson 37): 600 × 0.8 = 480 workers in flight at peak; (b) the pool caps throughput at 400 ÷ 0.8 = 500 orders a second, so at 600 a second the queue grows by 100 a second — 6,000 queued in a minute — and latency climbs the knee until checkouts time out and fans retry, which adds more load; (c) raise the pool to at least 600 workers (with headroom, 800), or shorten the hold by authorising asynchronously — the queue, not the order rate, is the signal, and the fix is capacity or less waiting, never telling fans to retry faster.</em></p>
+<p><strong>Drill 3 — Index sizing.</strong> The catalog has 100 million products, each with 20 indexable terms on average, and each posting is 4 bytes. (a) How big is the posting list? (b) With positions and the dictionary, call it 3× — how big is the full index, and how big per shard across 10 shards? (c) With 3 replicas, what does the cluster hold? <em>Rubric: (a) 100,000,000 × 20 = 2 billion postings × 4 bytes = 8 GB; (b) 8 GB × 3 = 24 GB for the full index, so 2.4 GB per shard across 10 shards — small enough to hold in memory, which is why search answers in milliseconds; (c) 24 GB × 3 replicas = 72 GB across the cluster — the index is the cheapest part of the shop, and the reason "just scan the catalog" is never the answer is that the scan is 100 million rows and the index is a 2.4 GB shard in RAM.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Inventory write</td><td>Atomic conditional decrement, one step</td><td>Per-SKU queue serialisation when the database cannot do conditional writes, or the SKU is so hot the row lock melts</td></tr>
+<tr><td>Reservation lifetime</td><td>10-minute TTL, swept back to stock on expiry</td><td>Shorter for flash sales (5 minutes — the drop is fast); longer for high-value items where the fan needs time to decide</td></tr>
+<tr><td>Checkout shape</td><td>Saga — reserve, authorise, create order, capture last</td><td>Never a distributed transaction across services; never capture before the order exists</td></tr>
+<tr><td>Search</td><td>Inverted index + facets, filter before rank, seconds of lag accepted</td><td>Direct database lookup only for "find this exact product id" — never for a word query</td></tr>
+<tr><td>Stock on the page</td><td>Cached snapshot, refreshed every few seconds; "low stock" below 10 units</td><td>Never a live read on the inventory database for a page view</td></tr>
+<tr><td>Cart storage</td><td>Key-value store with a TTL; holds no promises</td><td>Persist the cart to the database only when the fan is logged in and the cart is the record, not a scratchpad</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"An e-commerce system is a read-heavy discovery machine wrapped around a write-critical checkout core, and the two halves run on opposite rules. Riverside Market serves 100 million products to 100 million monthly shoppers: 5 million orders a day at $60 is $300 million a day of GMV, about $110 billion a year, and the shop serves about a hundred page views for every order — so the read path is cached and indexed, and the write path is protected. The design is three decisions. Inventory is an atomic conditional decrement with a 10-minute TTL: the cup-final jersey drop is 20,000 units against a million fans, a 1.2-second sellout, and a 50 ms check-then-act window would oversell 833 jerseys — so the decrement must be one step, and the hold must expire. Checkout is a saga with the capture last — reserve, authorise, create the order, then capture — so every failure before the point of no return is undoable, and the idempotency key makes a retried click the same click. And search is an inverted index that intersects lists and filters before it ranks: 100 million products answer in under 200 ms because the query never scans the catalog, and the few seconds of index lag are the price, paid gladly. The rest is machinery that follows: the CDN serving the photos, the key-value cart that holds no promises, the queue that lets the warehouse work at its own pace. And the trap to name: the number on the product page is an approximation — the only exact stock number in the system is the one the checkout just decremented."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: an e-commerce system is discovery plus checkout plus fulfilment, and the halves run on opposite rules — discovery is fast and approximate, checkout is exact, and the seam between them is the "buy" click.</li>
+<li>Back-of-the-envelope: 5 million orders a day is 58 a second on average, 580 at peak, 2,900 in a cup-final drop; $300M a day of GMV, about $110B a year; 100M products is 1 TB of listings and 100 TB of images; 500M page views a day is 100 reads per order; 20,000 jerseys against a million fans sell out in 1.2 seconds.</li>
+<li>Architecture: CDN storefront, search index, sharded catalog, key-value cart, atomic inventory reservations, the checkout saga, and queue-driven fulfilment with notifications and returns.</li>
+<li>Deep dive: the inventory race and why check-then-act oversells 833 jerseys; the saga order and why the capture comes last; the inverted index and why the catalog database never answers a word query.</li>
+<li>Failure modes and the close: oversell, double-charge, mid-saga crash, stale index, hot-SKU row lock, warehouse bottleneck — and the line to end on: the page shows an approximation, the reservation is the truth.</li>
+</ol>
+
+<p class="foot">Lesson 39 · Design an E-Commerce System · Next: a new lesson lands tomorrow morning.</p>
+</div>
+<script>
+function computeFlashSale(stock, rate, seconds, raceMs, strategy) {
+  var attempts = rate * seconds;
+  var sold = Math.min(stock, attempts);
+  var selloutSec = rate > 0 ? stock / rate : 0;
+  var acceptance = attempts > 0 ? (sold / attempts) * 100 : 0;
+  var oversell = 0;
+  if (strategy === "checkact") oversell = Math.round(rate * (raceMs / 1000));
+  var turnedAway = Math.max(0, attempts - sold - oversell);
+  return {
+    attempts: attempts, sold: sold, selloutSec: selloutSec,
+    acceptance: acceptance, oversell: oversell, turnedAway: turnedAway
+  };
+}
+function computeCatalog(skus, listingKB, imagesPer, imageKB, searchesDay, ordersDay, avgOrder) {
+  var listingBytes = skus * listingKB * 1000;
+  var imageBytes = skus * imagesPer * imageKB * 1000;
+  var searchQps = searchesDay / 86400;
+  var searchPeak = searchQps * 5;
+  var orderQps = ordersDay / 86400;
+  var gmvDay = ordersDay * avgOrder;
+  var gmvYear = gmvDay * 365;
+  var orderStorageDayGB = (ordersDay * 2 * 1000) / 1e9;
+  var postingsGB = (skus * 20 * 4) / 1e9;
+  return {
+    listingTB: listingBytes / 1e12, imageTB: imageBytes / 1e12,
+    searchQps: searchQps, searchPeak: searchPeak, orderQps: orderQps,
+    gmvDay: gmvDay, gmvYear: gmvYear,
+    orderStorageDayGB: orderStorageDayGB, orderStorageYearTB: (orderStorageDayGB * 365) / 1000,
+    postingsGB: postingsGB
+  };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtTB(n) {
+  if (n >= 1000) return (n / 1000).toFixed(1) + " PB";
+  if (n >= 1) return n.toFixed(1) + " TB";
+  return (n * 1024).toFixed(0) + " GB";
+}
+function fmtMoney(n) {
+  if (n >= 1e9) return "$" + (n / 1e9).toFixed(1) + "B";
+  if (n >= 1e6) return "$" + (n / 1e6).toFixed(0) + "M";
+  return "$" + fmtNum(n);
+}
+function renderLabA() {
+  var stock = parseFloat(document.getElementById("stockUnits").value) || 0;
+  var rate = parseFloat(document.getElementById("attemptRate").value) || 0;
+  var seconds = parseFloat(document.getElementById("saleSeconds").value) || 0;
+  var raceMs = parseFloat(document.getElementById("raceMs").value) || 0;
+  var strategy = document.getElementById("strategy").value;
+  var r = computeFlashSale(stock, rate, seconds, raceMs, strategy);
+  var verdict = r.oversell > 0
+    ? "<b>" + fmtNum(r.oversell) + " extra orders slip through.</b> Requests that read \"in stock\" during the " + raceMs + " ms race window all proceed — each one is a fan charged for a jersey that does not exist."
+    : "<b>Zero oversell.</b> The conditional decrement succeeds for exactly " + fmtNum(r.sold) + " requests and fails instantly for the rest — the race has no window to slip through.";
+  document.getElementById("labAResult").innerHTML =
+    "<b>" + verdict + "</b><br>" +
+    "Total attempts: " + fmtNum(r.attempts) + "<br>" +
+    "Sellout time: " + r.selloutSec.toFixed(1) + " seconds<br>" +
+    "Successful orders: " + fmtNum(r.sold) + " (" + r.acceptance.toFixed(1) + "% of attempts)<br>" +
+    "Oversold: " + fmtNum(r.oversell) + "<br>" +
+    "Turned away: " + fmtNum(r.turnedAway);
+}
+function renderLabB() {
+  var skus = parseFloat(document.getElementById("skuCount").value) || 0;
+  var listingKB = parseFloat(document.getElementById("listingKB").value) || 0;
+  var imagesPer = parseFloat(document.getElementById("imagesPer").value) || 0;
+  var imageKB = parseFloat(document.getElementById("imageKB").value) || 0;
+  var searchesDay = parseFloat(document.getElementById("searchesDay").value) || 0;
+  var ordersDay = parseFloat(document.getElementById("ordersDay").value) || 0;
+  var avgOrder = parseFloat(document.getElementById("avgOrder").value) || 0;
+  var r = computeCatalog(skus, listingKB, imagesPer, imageKB, searchesDay, ordersDay, avgOrder);
+  document.getElementById("labBResult").innerHTML =
+    "<b>Catalog listings: " + fmtTB(r.listingTB) + " · Product images: " + fmtTB(r.imageTB) + "</b><br>" +
+    "Searches: " + r.searchQps.toFixed(0) + "/sec average, about " + fmtNum(r.searchPeak) + "/sec at peak<br>" +
+    "Orders: " + r.orderQps.toFixed(0) + "/sec average<br>" +
+    "GMV: " + fmtMoney(r.gmvDay) + "/day · " + fmtMoney(r.gmvYear) + "/year<br>" +
+    "Order records: " + r.orderStorageDayGB.toFixed(1) + " GB/day · " + r.orderStorageYearTB.toFixed(2) + " TB/year<br>" +
+    "Search index posting list: " + r.postingsGB.toFixed(1) + " GB (" + fmtNum(skus * 20) + " postings)<br><br>" +
+    "<b>The read path is the load: about " + Math.round(searchesDay / Math.max(ordersDay, 1)) + " searches and " + Math.round(500000000 / Math.max(ordersDay, 1)) + " page views per order.</b> Cache and index the reads; protect the writes.";
+}
+["stockUnits", "attemptRate", "saleSeconds", "raceMs"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabA);
+});
+document.getElementById("strategy").addEventListener("change", renderLabA);
+["skuCount", "listingKB", "imagesPer", "imageKB", "searchesDay", "ordersDay", "avgOrder"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
