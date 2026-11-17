@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design a Live Streaming Platform — the cup final, live to five million screens, with chat that keeps up and a delay measured in seconds</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 40</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 40 · Classic design</span>
+  <h1>Design a Live Streaming Platform — the cup final, live to five million screens, with chat that keeps up and a delay measured in seconds</h1>
+  <p class="whyline">It is the 89th minute of the cup final and Riverside FC are level. One camera feed leaves the stadium and has to reach five million screens — phones on trains, laptops in offices, TVs in pubs — while a hundred thousand fans type in the chat, and while the striker scores a goal that every one of those five million people must see at almost the same moment, because the fan whose chat says "GOAL!" twenty seconds before the fan next to them sees it has had the match ruined. Behind that one goal sit three systems that barely resemble the video platform from Lesson 18: a live pipeline that cannot pause, rewind, or retry a missed second; a delivery chain whose whole job is shaving seconds off a delay that starts at twenty; and a chat room that is a fan-out problem bigger than the video itself. Today you design the live platform from zero.</p>
+  <div class="meta"><span>Low-latency delivery</span><span>Transcode ladder</span><span>Live chat fan-out</span><span>DVR &amp; clips</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a live streaming platform?</h2>
+<p>Start from zero. A <strong>live streaming platform</strong> is the software that takes a video feed from one place — a camera, a game, a commentary box — and shows it to many people at the same time, while it is still happening. It has four jobs: <strong>ingest</strong> (receiving the streamer's feed), <strong>transcode</strong> (turning that one feed into several versions at different qualities), <strong>deliver</strong> (getting the right version to each viewer, fast), and <strong>interact</strong> (chat, reactions, and the shared moment that makes live different from a recording). The soccer running example: Riverside FC's cup final is filmed by one camera crew and streamed by the club. The difference from the video platform in Lesson 18 is the clock. A recorded video can take its time — upload it, transcode it overnight, serve it tomorrow. A live stream has no tomorrow: every second of video must be encoded, packaged, and delivered within a few seconds of being filmed, or it is not live any more — it is a recording with a queue. And the audience is not watching alone: they are watching together, which is why the chat matters as much as the picture, and why the delay between the stadium and the screen — the <strong>glass-to-glass latency</strong>, from the camera lens to the viewer's glass — is the number the whole design is built around.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Streamer (broadcaster):</strong> the one sending the video — the camera crew, the player, the commentator. <strong>Viewer:</strong> one of the many watching. <strong>Ingest:</strong> the server that receives the streamer's feed, usually over RTMP or SRT. <strong>RTMP (Real-Time Messaging Protocol):</strong> the old workhorse ingest protocol — a persistent TCP connection the streamer pushes video into. <strong>SRT (Secure Reliable Transport):</strong> the newer ingest protocol, built to survive bad networks by retransmitting lost packets. <strong>Transcode:</strong> re-encoding one video feed into several versions at different resolutions and bitrates. <strong>Ladder (rendition ladder):</strong> the set of versions — 1080p, 720p, 480p, 360p, audio-only — that the player picks from. <strong>Rung:</strong> one version on the ladder. <strong>Bitrate:</strong> how many bits per second a version of the video uses — higher means sharper, and more expensive to deliver. <strong>Segment:</strong> a short chunk of video, typically 2–6 seconds, that the player downloads one at a time. <strong>Manifest (playlist):</strong> the small text file that lists the segments available right now, and which ladder rungs exist — the player polls it to find the next segment. <strong>HLS / DASH:</strong> the two segment-based delivery protocols — the player downloads segments over plain HTTP. <strong>LL-HLS (Low-Latency HLS):</strong> HLS with half-second parts instead of whole segments, cutting the delay from ~20 seconds to ~2–5. <strong>ABR (adaptive bitrate):</strong> the player switching rungs up or down as the viewer's connection changes. <strong>Glass-to-glass latency:</strong> the total delay from the camera lens to the viewer's screen. <strong>GOP (group of pictures):</strong> the run of frames between two keyframes — the unit the encoder and the segmenter both cut on. <strong>Keyframe (I-frame):</strong> a full picture that later frames describe as changes from — a segment must start on one, or the player cannot decode it. <strong>Chat room:</strong> the per-stream message channel, delivered over persistent connections. <strong>DVR window:</strong> the recent segments kept on the origin so a viewer who joins late can rewind. <strong>VOD (video on demand):</strong> the recording of the finished stream, served like any uploaded video afterwards.</p></div>
+<p>Why is this a hard design, when the video platform in Lesson 18 already covered upload, transcode, and delivery? Because live changes every assumption that lesson relied on. The transcode cannot be a batch job with a queue — it must keep up with real time, one second of video encoded in less than one second, forever, or the delay grows without bound. The delivery cannot be a static file on a CDN — the file does not exist yet; it is being written one segment at a time, and five million players are all asking for the newest segment at the same moment. The chat cannot be an afterthought — it is a second broadcast system, and it runs faster than the video, which creates the spoiler problem that defines the user experience. And the scale is lopsided in a way no other design in this series is: one feed in, five million feeds out — a fan-out of five million to one, where the ingest is one fragile connection and the egress is 17.5 terabits a second. The one idea to carry through the whole lesson: <strong>a live platform is a race against the clock on the way in and a fan-out problem on the way out — the encoder must never fall behind real time, and the delivery chain must turn one stream into five million without ever touching the origin five million times.</strong></p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are designing Riverside Live, a platform the size of a mid-tier Twitch: 5,000 streamers live at once on a normal evening, 5 million concurrent viewers at the cup-final peak, 1 million concurrent on a normal peak night. The streamers push 1080p60 at 8 Mbps; the platform serves a five-rung ladder. Latency target: under 5 seconds glass-to-glass for the cup final (LL-HLS territory), because at 20 seconds the chat spoils every goal. Availability: the cup final is the day that pays for the year, and a dead ingest at the 89th minute is the one failure that cannot be fixed afterwards.</p>
+<ul>
+<li><strong>Egress: 5 million concurrent viewers at an average 3.5 Mbps is 17.5 terabits a second.</strong> 5,000,000 × 3,500,000 bits per second = <strong>17,500,000,000,000 bits per second = 17.5 Tbps</strong>. That is the headline number, and it is why the origin never serves viewers directly: 17.5 Tbps is the traffic of a small country, and it is served almost entirely from CDN edge caches, because every viewer in the same city watches the same segments. The average bitrate is 3.5 Mbps, not 8, because most viewers watch the 720p or 480p rung, not the top one — the ladder exists precisely so the average is far below the maximum. (Lab A runs the egress numbers.)</li>
+<li><strong>One match: 2 million average concurrent viewers over 2 hours is 6.3 petabytes, about $50,000 of CDN egress.</strong> 2,000,000 × 3.5 Mbps = 7 Tbps; × 7,200 seconds = 50,400,000,000,000,000 bits = <strong>6.3 PB</strong>. At a typical CDN price of $0.008 per GB, 6,300,000 GB × $0.008 = <strong>$50,400 for one match</strong>. The cost is linear in viewers × bitrate × time, which is why the ladder's average bitrate is a money decision as much as a quality one: every 1 Mbps shaved off the average saves about $14,400 per match. (Lab A prices it.)</li>
+<li><strong>Transcode: 5,000 concurrent streams need about 67,500 virtual CPUs, about $2,700 an hour.</strong> The ladder is 1080p60 (8 Mbps), 720p60 (4.5), 480p (2), 360p (1), and 160p audio-led (0.4) — about <strong>15.9 Mbps</strong> in total per stream. Encoding 1080p60 in real time takes roughly 6 vCPUs, 720p60 about 4, 480p about 2, 360p about 1, and 160p about half a vCPU — <strong>about 13.5 vCPUs per stream</strong>. 5,000 × 13.5 = <strong>67,500 vCPUs</strong>, and at $0.04 per vCPU-hour that is <strong>$2,700 an hour</strong> of encoding. The transcode fleet is the platform's largest compute bill, and it is priced per stream, not per viewer — which is why a platform with 5,000 small streamers pays more per viewer than a platform with one cup final: the cup final's 5 million viewers share one transcode bill, while 5,000 small streams each pay their own. (Lab B sizes the fleet.)</li>
+<li><strong>Chat: 200 messages a second to 100,000 viewers is 20 million deliveries a second.</strong> The cup-final chat room has 100,000 viewers with chat open; 2,000 of them are actively typing, one message every 10 seconds each, so the room sees <strong>200 messages a second</strong>. Each message must reach every viewer in the room: 200 × 100,000 = <strong>20,000,000 deliveries a second</strong>. No single server does that: the room is spread across 10 connection servers holding 10,000 sockets each, and each server writes its copy of every message to its own 10,000 sockets — <strong>2 million socket writes a second per server</strong>. The chat fan-out is the product of messages and viewers, and it is the reason chat is a separate system from video, with its own servers, its own rate limits, and its own failure modes. (Lab B runs the fan-out.)</li>
+<li><strong>DVR: keeping the last 2 hours of every live stream costs about 71.5 TB.</strong> One stream's ladder is 15.9 Mbps; × 7,200 seconds = 114,480 megabits = <strong>14.3 GB per stream</strong> for the full two-hour window. 5,000 streams × 14.3 GB = <strong>71,500 GB ≈ 71.5 TB</strong>. The DVR window is a storage decision with a visible product price: a viewer who joins at half-time can rewind to kick-off, but only if the platform kept those segments — and a longer window is more storage for every stream, even the ones nobody rewinds. The finished recording is cheaper: only the 1080p master is kept, 8 Mbps × 7,200 seconds = <strong>7.2 GB per stream</strong>, and the lower rungs are re-encoded on demand if anyone ever watches the replay.</li>
+<li><strong>The manifest: 5 million viewers polling the playlist every 6 seconds is 833,000 requests a second — for a text file.</strong> 5,000,000 ÷ 6 = <strong>833,333 requests a second</strong>, and the playlist is a few hundred bytes that changes once per segment. That is the hidden load of segment-based live: the video is the big traffic, but the manifest polling is the request storm. It is solved the same way the video is — at the edge, with the CDN caching the playlist for a fraction of a second and collapsing the polls — and, for LL-HLS, with delta playlists and blocking reloads, where the edge holds the request open until a new part exists instead of answering "nothing new" a million times a second. A design that lets five million players poll the origin directly has designed an origin that dies of paperwork.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Three numbers decide the shape of the platform, and they pull in different directions. The 17.5 Tbps of egress says the origin must never see a viewer — every segment is written once and read five million times from the edge, because a single origin serving five million identical downloads is not a design, it is a DDoS against yourself. The 67,500 vCPUs of transcode say the encoder is the bottleneck that never sleeps — it must keep up with real time on every stream, and the moment it falls behind, the delay grows by a second for every second it is slow, and never comes back. And the 20 million chat deliveries a second say the chat is not a feature on the video system, it is a second broadcast system with its own fan-out, and it runs faster than the video — which is the spoiler problem in one number: the chat will always know about the goal before the video shows it, unless the video is fast enough to close the gap. A design that sizes the CDN for the average match, or that lets the encoder queue, or that bolts chat onto the video path, has designed a platform that works on a quiet Tuesday and fails on the one night that matters.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Follow one second of the cup final — the striker's shot, from the camera to five million screens. There are seven stages, and each one exists to answer a different failure.</p>
+<ol>
+<li><strong>Ingest — one fragile connection, so bring two.</strong> The camera crew pushes the feed over RTMP or SRT to an ingest server, authenticated by a stream key. The feed is pushed twice — to a primary and a backup ingest in different availability zones — because a single ingest is a single point of failure for the whole match, and a streamer whose upload drops for ten seconds has lost ten seconds of a match that does not wait. The ingest server's job is small and critical: accept the stream, check it is healthy (bitrate, keyframe interval, audio present), and hand it to the transcoder. If the primary ingest dies, the backup is already receiving the same feed, and the switch is a routing change, not a restart — the viewers see a freeze of a second or two, not a dead stream.</li>
+<li><strong>Transcode — the ladder, encoded once, in real time.</strong> The 8 Mbps 1080p60 source is decoded once and re-encoded into the five rungs — 1080p, 720p, 480p, 360p, 160p — on the fleet sized above. The rule that makes the whole ladder work is <strong>keyframe alignment</strong>: every rung cuts its GOPs on the same 2-second boundaries, so a segment on one rung covers exactly the same two seconds as the segment on every other rung. Without that, switching rungs mid-stream would jump the picture forwards or backwards, and the ABR player could never switch cleanly. The encoder runs in real time by definition: one second of video must be encoded in under one second, and the delay budget is measured in frames — if the encoder falls behind by even 5%, the stream's delay grows by 3 seconds every minute, and by half-time the "live" stream is minutes behind the stadium.</li>
+<li><strong>Packager — cutting the stream into segments and writing the manifest.</strong> The packager takes the encoded rungs and cuts each into segments — 6 seconds for plain HLS, or 2-second segments split into 0.5-second parts for LL-HLS — and writes the manifest that lists them. The manifest is the contract with the players: it names the rungs, the segment URLs, and the sequence numbers, and it is rewritten every segment. The packager also maintains the DVR window: the last two hours of segments stay on the origin's storage, so a late joiner can start from kick-off, and when the stream ends, the same segments become the VOD recording. The packager is the only component that writes; everything downstream only reads, which is what lets the read side scale.</li>
+<li><strong>Origin and CDN — write once, read five million times.</strong> The segments and the manifest land on the origin, and the CDN's edge servers fetch each segment exactly once per point of presence — about 200 PoPs × 5 rungs = 1,000 origin fetches per 6-second segment window, roughly <strong>167 requests a second at the origin</strong>, while five million viewers are served from the edge. The segments are immutable — a segment, once written, never changes — so they are cached forever and the cache-hit rate is effectively 100% for video. The manifest is the only mutable object, and it is cached for a fraction of a second, or served with blocking reloads, so the 833,000 polls a second collapse at the edge instead of reaching the origin. An origin shield sits between the edge and the origin so that a cold PoP's first fetch does not become two hundred simultaneous fetches.</li>
+<li><strong>Playback — the player picks its own rung, every few seconds.</strong> The viewer's player downloads the manifest, picks a rung that fits its connection, and downloads segments one at a time, switching rungs whenever the measured throughput changes — down when the train enters a tunnel, up when the Wi-Fi recovers. Because the rungs are keyframe-aligned, the switch is seamless: the next segment simply comes from a different rung. The player also holds a buffer — a few segments' worth of video in reserve — and the buffer is the latency trade-off made visible: a bigger buffer survives a bad connection, but every second of buffer is a second further behind the stadium. For the cup final the buffer is small and the target is LL-HLS; for a quiet stream the buffer is generous and the target is plain HLS, because nobody's chat is spoiling anything.</li>
+<li><strong>Chat and presence — a second broadcast system, running faster than the video.</strong> The chat room lives on connection servers, each holding thousands of persistent WebSocket connections — the same shape as Lesson 17's chat system, but with one brutal difference: the room is a broadcast, not a conversation. A message from one fan is written once to the room's servers and fanned out to every socket in the room, at 20 million deliveries a second for the cup final. The room is rate-limited (slow mode: one message per 10 seconds per fan), moderated (automated filters plus human moderators with ban and timeout powers), and sharded by channel — one channel's flood cannot take down another channel's room. And the viewer count is an approximation, not a census: counting five million sockets exactly, every second, is a write storm of its own, so the count is a sharded estimate that updates every few seconds (Lesson 24's hot-partition lesson, applied to people).</li>
+<li><strong>Discovery, clips, and analytics — the slow tail, done asynchronously.</strong> The browse page, the "live now" list, and the recommendations are served from a cache and a search index, and they never sit on the live path — if discovery is down, the stream still plays. A clip is a slice of the DVR window: the viewer marks a 30-second window, the clip service cuts those segments into a standalone video, and the clip becomes a VOD object served like any other. Analytics — concurrent viewers, chat rate, encoder health, segment delivery latency — are the control room: the numbers that tell the operator the encoder is falling behind or the chat is flooding, while there is still time to act. Nothing in this stage can block a segment from reaching a viewer, because the moment it does, the live path has a dependency on a batch job.</li>
+</ol>
+<table>
+<tr><th>Stage</th><th>What it does</th><th>What fails if it is missing</th></tr>
+<tr><td>Ingest (RTMP/SRT, dual push)</td><td>Receives the streamer's feed, twice, in two zones</td><td>One dead ingest ends the match for five million viewers</td></tr>
+<tr><td>Transcode (live ladder)</td><td>One source into five keyframe-aligned rungs, in real time</td><td>The encoder falls behind, and the delay grows by a second a second, forever</td></tr>
+<tr><td>Packager (segments + manifest)</td><td>Cuts segments, writes the manifest, keeps the DVR window</td><td>Players have nothing to download, and late joiners cannot rewind</td></tr>
+<tr><td>Origin + CDN</td><td>Immutable segments cached at 200 PoPs; manifest collapsed at the edge</td><td>The origin serves five million identical downloads and dies of its own success</td></tr>
+<tr><td>Playback (ABR player)</td><td>Picks a rung per connection, buffers a few segments</td><td>One bad connection freezes the picture instead of dropping a rung</td></tr>
+<tr><td>Chat &amp; presence</td><td>Per-channel rooms on connection servers, rate-limited and moderated</td><td>20 million deliveries a second land on the video path, and the chat spoils the goal</td></tr>
+<tr><td>Discovery, clips, analytics</td><td>Browse, clip cutting, and the control room, all asynchronous</td><td>The live path depends on a batch job, and a slow recommendation kills a live stream</td></tr>
+</table>
+
+<h2>The heart of it: three decisions that make or break the design</h2>
+<h3>1. Latency vs scale — HLS, LL-HLS, or WebRTC, and the delay you are willing to pay for</h3>
+<p>The glass-to-glass latency is not one number, it is a budget, and every line in the budget is a choice. Capture is one frame, about 16 ms at 60 fps — free. Encoding is about 200–300 ms — the price of a good encoder. Then comes the packaging, and this is where the protocols split. Plain HLS cuts 6-second segments and the player holds about three of them before it starts playing, so the delay is about 18 seconds plus encoding and network — <strong>roughly 20–30 seconds</strong>. LL-HLS cuts the same stream into 0.5-second parts and the player holds about three parts, so the delay is about 1.5 seconds plus overhead — <strong>roughly 2–5 seconds</strong>. WebRTC skips segments entirely and streams frames as they arrive, so the delay is <strong>under a second</strong> — but it is a peer-to-peer protocol at heart, and fanning one stream out to five million WebRTC viewers means a server (an SFU) holding five million connections and forwarding every frame to each of them, which does not scale and costs a fortune. So the decision is a table, not a preference: HLS for scale and a delay nobody notices on a quiet stream; LL-HLS for the cup final, where the chat and the picture must agree within a few seconds; WebRTC for the small interactive room — a watch party of fifty friends, a live auction, a call-in show — where sub-second matters and fifty connections is cheap. The senior line: <strong>latency is bought with scale, and scale is bought with latency — pick the protocol by the size of the room and the size of the delay you can afford, and never promise WebRTC to five million people.</strong></p>
+<table>
+<tr><th>Protocol</th><th>Glass-to-glass latency</th><th>How it scales</th><th>Use it for</th></tr>
+<tr><td><strong>HLS (6 s segments)</strong></td><td>~20–30 s</td><td>Plain HTTP + CDN; five million viewers is a cache problem, already solved</td><td>Most streams — the default, and the cheapest</td></tr>
+<tr><td><strong>LL-HLS (0.5 s parts)</strong></td><td>~2–5 s</td><td>HTTP + CDN, with delta playlists and blocking reloads to tame the manifest polling</td><td>The cup final — anywhere the chat must not spoil the picture</td></tr>
+<tr><td><strong>WebRTC</strong></td><td>&lt; 1 s</td><td>SFU forwards every frame to every viewer; cost grows with viewers, not streams</td><td>Small interactive rooms — tens to hundreds of viewers, never millions</td></tr>
+</table>
+<h3>2. The transcode ladder — encode once, serve many, and never let the encoder fall behind</h3>
+<p>The naive design encodes a separate stream for every viewer, or for every quality, on demand. The real design encodes the ladder once, at ingest, and serves it to everyone. The arithmetic is the argument: one transcode of five rungs costs 13.5 vCPUs and serves five million viewers, while per-viewer encoding would cost five million times the same work. But "encode once" only works if the rungs are built to switch between, and that is the keyframe-alignment rule: every rung's GOP boundaries fall on the same 2-second marks, so the segment at 01:23:00–01:23:02 on the 1080p rung is the same two seconds as the segment at 01:23:00–01:23:02 on the 360p rung, and the player can jump rungs at a segment boundary without a glitch. The second half of the decision is the real-time contract: the encoder must finish each second of video in less than a second, and the system must measure that continuously. A batch encoder that is 5% slow is a batch encoder that is late; a live encoder that is 5% slow is a stream whose delay grows by 3 seconds every minute, and by half-time the "live" feed is minutes behind the stadium — and there is no way to catch up except to drop frames, which is a visible glitch for five million people. So the encoder fleet is sized with headroom (Lesson 23's backpressure, applied to video: if the encoder queue grows, shed the lowest rung first — the 160p viewers lose their picture before the 1080p viewers do), and the health signal is not CPU, it is <strong>encoding lag</strong>: the gap between the wall clock and the newest encoded frame, alarmed at one second, paged at five.</p>
+<h3>3. Chat and video must agree — the spoiler problem, and why chat is a second system</h3>
+<p>Chat is faster than video. A fan types "GOAL!" and the message reaches every screen in under a second; the video of the goal arrives 20 seconds later on plain HLS. The fan watching on a 20-second delay learns the result before seeing it, and the shared moment — the whole point of watching live — is ruined. There are three answers, and they are the design. The first is to shrink the video delay: LL-HLS at 2–5 seconds closes the gap to the point where the spoiler is a murmur, not a ruin — which is why the cup final runs LL-HLS and the quiet stream does not need to. The second is to delay the chat: hold chat messages for the same delay as the video, so the room's reaction arrives with the picture — a deliberate, visible choice, and the honest one when the video cannot be made faster. The third is to let the viewer choose: a "spoiler-free" mode that hides chat until the goal is on screen, or a chat that is hidden by default for the biggest matches. And underneath all three sits the fan-out itself: chat is a separate system with its own connection servers, its own rate limits (slow mode, one message per 10 seconds), and its own moderation pipeline, because a message flood — 20 million deliveries a second — must never be able to slow down a segment delivery. The senior line: <strong>the video and the chat are two broadcast systems running at two speeds, and the design is the choice of how far apart they are allowed to be — close the gap with LL-HLS, or hide it with a chat delay, but never pretend the gap is not there.</strong></p>
+<table>
+<tr><th>Choice</th><th>What you gain</th><th>What you pay</th><th>Use it for</th></tr>
+<tr><td><strong>HLS</strong></td><td>Cheapest delivery; CDN-native; huge buffers survive bad networks</td><td>~20–30 s delay; chat spoils every goal</td><td>Most streams — the default</td></tr>
+<tr><td><strong>LL-HLS</strong></td><td>~2–5 s delay; chat and picture nearly agree</td><td>More manifest traffic; smaller buffers mean less tolerance for a bad connection</td><td>Big live events — the cup final</td></tr>
+<tr><td><strong>WebRTC</strong></td><td>Sub-second delay; true two-way interaction</td><td>SFU cost per viewer; does not scale past hundreds</td><td>Small interactive rooms only</td></tr>
+<tr><td><strong>Keyframe-aligned ladder</strong></td><td>Seamless rung switching; encode once, serve many</td><td>All rungs must be encoded together; a slow rung delays the segment</td><td>Every stream — the default</td></tr>
+<tr><td><strong>Chat delay to match video</strong></td><td>No spoilers, ever, whatever the video delay is</td><td>Chat feels sluggish; fans notice the room reacting late</td><td>When LL-HLS is not possible, or for spoiler-sensitive finals</td></tr>
+<tr><td><strong>Dual ingest push</strong></td><td>A dead ingest is a routing change, not a dead stream</td><td>Double the ingest bandwidth; two transcoders must stay in sync</td><td>Every stream that matters — the default for big events</td></tr>
+</table>
+<div class="callout green"><strong>The senior line on the three decisions</strong><p>Every live platform is the same three sentences, and the room is won by saying them with numbers attached. Latency is a budget and a trade: HLS is 20–30 seconds and nearly free, LL-HLS is 2–5 seconds and costs manifest traffic, WebRTC is under a second and costs a fortune per viewer — so the cup final runs LL-HLS, the quiet stream runs HLS, and WebRTC never serves five million people. The ladder is encoded once, keyframe-aligned on 2-second boundaries, and the encoder must never fall behind real time — 5,000 streams need 67,500 vCPUs, and a 5% slow encoder is 3 seconds of extra delay every minute, with no way back. And the chat is a second broadcast system that runs faster than the video — 200 messages a second becoming 20 million deliveries a second — so the spoiler gap is closed with LL-HLS or hidden with a chat delay, but never ignored. Say those three sentences, with the arithmetic, and the rest of the design — the CDN, the DVR window, the clips — is machinery that follows.</p></div>
+
+<h2>Failure modes — six ways a live platform fails</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>Ingest dies mid-match</td><td>The camera crew's connection drops at the 89th minute; five million screens freeze on the same frame, and the match does not wait</td><td>Dual push to primary and backup ingest; the switch is a routing change, and the viewers lose a second, not the match</td></tr>
+<tr><td>Encoder falls behind real time</td><td>The transcode queue grows by a second every twenty seconds; by half-time the "live" stream is minutes behind the stadium, and the chat is spoiling goals that have not happened yet on screen</td><td>Encoding-lag monitoring alarmed at one second; shed the lowest rung first; headroom on the fleet so a slow encode is a warning, not a backlog</td></tr>
+<tr><td>Goal-moment cache-miss storm</td><td>The goal is scored, a million viewers rejoin or rewind at once, and every edge cache misses the same segments at the same moment — the origin sees a thousand simultaneous fetches for one segment</td><td>Immutable segments cached forever at the edge; an origin shield collapsing the first fetches into one; the DVR window served from the same cache, not the origin</td></tr>
+<tr><td>Chat flood drowns the room</td><td>After the goal, 20 million deliveries a second become 100 million as every fan types at once; the connection servers saturate, and the flood slows down segment delivery because the two share a network</td><td>Chat on its own servers and its own network; slow mode and per-user rate limits (Lesson 11); the chat path physically separated from the video path</td></tr>
+<tr><td>Keyframe misalignment breaks ABR</td><td>One rung's GOPs drift off the 2-second boundary; the player switches rungs and the picture jumps, freezes, or shows the wrong two seconds — and it happens only on the rung the train passenger needs most</td><td>Keyframe alignment enforced at the encoder, not assumed; the packager rejects a rung whose segments do not line up; alignment checked on every stream start</td></tr>
+<tr><td>The manifest storm kills the origin</td><td>Five million players poll the playlist every 6 seconds — 833,000 requests a second for a text file — and the origin, which was sized for video, dies of paperwork</td><td>The manifest cached at the edge for a fraction of a second; delta playlists and blocking reloads for LL-HLS; the origin never sees a player directly</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"Live means real-time."</strong> It does not. Live means a delay you have chosen and can name: 20–30 seconds on HLS, 2–5 on LL-HLS, under a second on WebRTC — and each one costs a different amount of scale. A design that says "low latency" without a number has not designed anything; the follow-on question is always: how many seconds, for how many viewers, and what does the chat see in the meantime? The spoiler problem is the test: if your answer does not mention the chat, you have not thought about live at all.</li>
+<li><strong>"Just use WebRTC for everyone."</strong> WebRTC is a peer-to-peer protocol with a server (an SFU) forwarding every frame to every viewer — the cost grows with viewers, not streams, and five million viewers means five million forwarded copies of every frame. It is the right answer for the room of fifty friends and the wrong answer for the stadium of five million. The honest design names the protocol per audience size, and the trap is the engineer who picks the lowest-latency protocol without asking how many people are in the room.</li>
+<li><strong>"Transcode per viewer, or on demand."</strong> Encoding is the most expensive step in the whole platform, and it is paid per stream, not per viewer — 13.5 vCPUs for the ladder, serving five million people. A design that encodes per viewer pays that 13.5 vCPUs five million times; a design that encodes on demand pays it the first time a viewer asks, which is during the goal, when the encoder is already busy. Encode once, at ingest, before anyone asks — and the only per-viewer work is choosing a rung, which is a comparison, not an encode.</li>
+</ul>
+
+<h2>Interactive lab 1: the live-latency &amp; egress planner</h2>
+<div class="lab">
+<h3>Lab A — Pick a delivery protocol and price the cup final</h3>
+<p>Choose the protocol, the segment or part size, and the audience. The planner shows the glass-to-glass latency, the peak egress, how much data one two-hour match moves, and what the CDN charges for it.</p>
+<label for="protocol">Delivery protocol</label>
+<select id="protocol">
+<option value="hls">HLS — 6 s segments (default)</option>
+<option value="llhls">LL-HLS — 0.5 s parts</option>
+<option value="webrtc">WebRTC — sub-second</option>
+</select>
+<label for="segDur">Segment / part duration (seconds)</label>
+<input type="number" id="segDur" value="6" step="0.5" />
+<label for="peakViewers">Peak concurrent viewers</label>
+<input type="number" id="peakViewers" value="5000000" />
+<label for="avgViewers">Average concurrent viewers over the match</label>
+<input type="number" id="avgViewers" value="2000000" />
+<label for="avgBitrate">Average delivered bitrate (Mbps)</label>
+<input type="number" id="avgBitrate" value="3.5" step="0.1" />
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the planner reproduces about 18.4 seconds of glass-to-glass latency on HLS, 17.5 Tbps of peak egress, 6.3 PB for the match, and about $50,400 of CDN egress at $0.008/GB. Then switch to LL-HLS and watch the latency fall to about 2.5 seconds — and switch to WebRTC and ask what five million SFU connections would cost.</p>
+</div>
+
+<h2>Interactive lab 2: the stream-scale planner</h2>
+<div class="lab">
+<h3>Lab B — Size the transcode fleet, the DVR window, and the chat room</h3>
+<p>Enter how many streams are live, how many viewers have the biggest chat room open, and how chatty they are. The planner shows the transcode fleet and its hourly cost, the DVR storage bill, and the chat fan-out — including what each connection server has to write.</p>
+<label for="streamCount">Concurrent live streams</label>
+<input type="number" id="streamCount" value="5000" />
+<label for="vcpuPer">vCPUs per stream (5-rung ladder)</label>
+<input type="number" id="vcpuPer" value="13.5" step="0.5" />
+<label for="chatViewers">Viewers with the biggest chat room open</label>
+<input type="number" id="chatViewers" value="100000" />
+<label for="chatters">Active chatters in that room</label>
+<input type="number" id="chatters" value="2000" />
+<label for="msgInterval">Seconds between messages per chatter</label>
+<input type="number" id="msgInterval" value="10" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the planner reproduces 67,500 vCPUs at $2,700 an hour, 71.5 TB of DVR storage for the two-hour window, 200 messages a second, 20 million deliveries a second, and 2 million socket writes a second on each of the 10 connection servers. Then halve the message interval to 5 seconds and watch the fan-out double.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. Design the cup-final stream: 5 million concurrent viewers, and the chat must not spoil the goal. What latency do you target, and how do you get there?</summary>
+<p><strong>Model answer.</strong> I start from the constraint, because it picks the protocol: the chat delivers a "GOAL!" in under a second, so the video delay is the spoiler gap, and the target is under 5 seconds glass-to-glass. That rules out plain HLS at 20–30 seconds and rules out WebRTC at five million viewers, so the answer is LL-HLS: 2-second segments cut into 0.5-second parts, the player holding about three parts, for roughly 2–5 seconds of delay. The pipeline is: dual ingest (RTMP/SRT, primary plus backup in another zone) into a live transcode of the five-rung ladder, keyframe-aligned on 2-second boundaries so the ABR player can switch rungs cleanly; the packager writes segments and a manifest with delta updates and blocking reloads, so five million players are not polling the origin 833,000 times a second; the CDN serves immutable segments from the edge at effectively 100% cache hit rate, with an origin shield in front of the origin. The numbers: 5 million viewers at 3.5 Mbps average is 17.5 Tbps of egress, and a two-hour match at 2 million average concurrent moves 6.3 PB for about $50,400 of CDN egress. And I would close with the honest residual: even at 2–5 seconds the chat is still faster than the video, so the room gets a visible "chat is delayed to match the video" toggle, and a spoiler-free mode that hides chat until the goal is on screen — the gap is closed as far as physics allows, and named, not hidden.</p>
+</details>
+<details>
+<summary>Q2. A viewer is watching on a train with a flaky 4G connection. How does the player keep the stream alive instead of freezing?</summary>
+<p><strong>Model answer.</strong> I start by saying what the player actually does: it never asks for a quality, it asks for a segment, and it chooses which rung that segment comes from, every few seconds, based on the throughput it just measured. The mechanism is ABR over the keyframe-aligned ladder: the player downloads a segment at 720p, measures that it arrived slowly, and takes the next segment at 360p or 160p — and because every rung cuts its GOPs on the same 2-second boundaries, the switch is seamless, with no jump and no re-buffer. The buffer is the shock absorber: the player holds a few segments in reserve, so a two-second dead spot in the tunnel is covered by video already downloaded, and the cost of that reserve is latency — every second of buffer is a second further behind the stadium, which is why the cup-final buffer is small and the quiet-stream buffer is generous. If the connection collapses entirely, the player drops to the audio-led 160p rung, and if even that stalls, it re-buffers rather than showing a frozen frame — a spinning loader is honest, a frozen frame is a lie. And I would close with the number: the ladder exists so the average delivered bitrate is 3.5 Mbps, not 8 — the train passenger is not a failure case, they are the reason the ladder has five rungs, and the design works when they watch the whole match at 360p without ever noticing the switches.</p>
+</details>
+<details>
+<summary>Q3. The chat spoils the goal 20 seconds before the video shows it. Why does this happen, and what do you do about it?</summary>
+<p><strong>Model answer.</strong> I start with the two speeds: the chat is a message system that delivers in under a second, and the video on plain HLS is a segment system that delivers in 20–30 seconds — three 6-second segments held in the player, plus encoding and network. The fan who types "GOAL!" is watching a faster feed than the fan who is only watching the video, and the 20-second gap is the spoiler, not a bug in either system. The first fix is to shrink the video delay: LL-HLS with 0.5-second parts brings the delay to 2–5 seconds, which closes the gap to the point where the spoiler is a murmur — and that is why the cup final runs LL-HLS and the quiet stream does not need to. The second fix is to delay the chat to match the video: hold messages for the same delay as the picture, so the room's reaction arrives with the goal — a deliberate, visible choice, and the honest one when the video cannot be made faster. The third is to let the viewer choose: a spoiler-free mode that hides chat until the goal is on screen. And I would add the guardrail that is easy to forget: the chat and the video are separate systems with separate servers, so fixing the spoiler never means slowing the video path to wait for chat, or letting a chat flood slow a segment delivery — the two systems agree on a delay, and each keeps its own pace.</p>
+</details>
+<details>
+<summary>Q4. The ingest encoder dies 10 minutes into the final. Walk through what happens and how the stream recovers.</summary>
+<p><strong>Model answer.</strong> I start by naming what the viewers see: the picture freezes, because no new segments are being written, and the players stall when their few seconds of buffer run out. The recovery is already in place before the failure, because the streamer pushes the feed twice — to a primary and a backup ingest in different zones — and both are transcoding the same feed. The switch is a routing change at the packager: the backup's segments continue the same sequence numbers, so the players pick up the next segment from the same manifest and resume after a freeze of a second or two, not a dead stream. The gap is the honest part: the seconds between the primary dying and the switch are lost — live has no rewind for the platform, only the DVR window for the viewer — so the stream resumes a few seconds behind where it would have been, and the manifest's sequence numbers are the proof that nothing was duplicated or skipped. And I would close with the two checks the design needs: the health signal is encoding lag, alarmed at one second, so the team knows the encoder is dying before the viewers do; and the failover is tested on a quiet stream every week, because a backup ingest that has never been switched to is a hope, not a design — and the one failure that cannot be fixed afterwards is a dead ingest at the 89th minute.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — The latency budget, priced.</strong> A stream runs plain HLS with 4-second segments, and the player holds 3 segments before starting. Encoding takes 0.3 s and the CDN adds 0.1 s. (a) What is the glass-to-glass latency? (b) The same stream switches to LL-HLS with 0.5-second parts, 3 parts held, and 1.0 s of overhead. What is the latency now? (c) How much sooner does the LL-HLS viewer see the goal? <em>Rubric: (a) 3 × 4 s = 12 s of segments + 0.3 s encoding + 0.1 s CDN = 12.4 s; (b) 3 × 0.5 s = 1.5 s of parts + 1.0 s overhead = 2.5 s; (c) 12.4 − 2.5 = 9.9 s sooner — the goal arrives almost ten seconds earlier, which is the whole case for LL-HLS on a big match, and the price is smaller buffers and more manifest traffic; the 12.4-second viewer is the one whose chat spoils the goal, and the 2.5-second viewer is the one who sees it almost live.</em></p>
+<p><strong>Drill 2 — Egress and the bill.</strong> A match peaks at 3 million concurrent viewers at an average 4 Mbps, sustained for 90 minutes. (a) What is the peak egress in Tbps? (b) How much data does the match move? (c) What does the CDN charge at $0.008 per GB? <em>Rubric: (a) 3,000,000 × 4 Mbps = 12,000,000 Mbps = 12 Tbps; (b) 3,000,000 × 4,000,000 bits/s = 12 Tbps × 5,400 seconds = 64,800,000,000,000,000 bits = 8.1 PB; (c) 8,100,000 GB × $0.008 = $64,800 for one match — and every 1 Mbps shaved off the average bitrate saves about $16,200, which is why the ladder's average bitrate is a money decision, not just a quality one.</em></p>
+<p><strong>Drill 3 — The chat fan-out.</strong> The cup-final chat room has 250,000 viewers with chat open and 5,000 active chatters, each sending one message every 15 seconds. Each connection server holds 10,000 sockets. (a) How many messages a second does the room see? (b) How many deliveries a second is that? (c) How many connection servers does the room need, and how many socket writes a second does each one do? <em>Rubric: (a) 5,000 ÷ 15 = 333 messages a second; (b) 333 × 250,000 = 83.3 million deliveries a second — the fan-out is messages × viewers, and it is the product that hurts, not either number alone; (c) 250,000 ÷ 10,000 = 25 servers, each writing its copy of every message to its 10,000 sockets: 333 × 10,000 = 3.33 million socket writes a second per server — and slow mode, one message per 30 seconds, halves all three numbers, which is why it is the first lever pulled after a goal.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Delivery protocol</td><td>HLS, 6 s segments, ~20–30 s delay</td><td>LL-HLS for big events where chat must not spoil the picture; WebRTC only for small interactive rooms</td></tr>
+<tr><td>Transcode</td><td>Five-rung ladder, keyframe-aligned on 2 s boundaries, encoded once at ingest</td><td>Fewer rungs for a niche stream; never encode per viewer or on demand</td></tr>
+<tr><td>Ingest</td><td>Dual push (RTMP/SRT) to primary + backup in different zones</td><td>Single ingest only for a stream nobody would miss</td></tr>
+<tr><td>Segments &amp; manifest</td><td>Immutable segments cached at the edge forever; manifest collapsed at the edge</td><td>Delta playlists + blocking reloads for LL-HLS; never let players poll the origin</td></tr>
+<tr><td>Chat</td><td>Separate connection servers, slow mode, per-user rate limits, moderated</td><td>Delay chat to match video latency for spoiler-sensitive events; spoiler-free mode as a viewer choice</td></tr>
+<tr><td>DVR window</td><td>Last 2 hours of segments kept; VOD keeps the 1080p master only</td><td>Longer window for tournaments (more storage); shorter for casual streams</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"A live streaming platform is a race against the clock on the way in and a fan-out problem on the way out. Riverside Live serves a cup final to five million concurrent viewers: the one feed in becomes 17.5 terabits a second out, at an average 3.5 Mbps per viewer, and a two-hour match at two million average concurrent moves 6.3 petabytes for about $50,400 of CDN egress. The design is three decisions. Latency is a budget and a trade: plain HLS is 20–30 seconds and nearly free, LL-HLS is 2–5 seconds and costs manifest traffic, WebRTC is under a second and costs a fortune per viewer — so the cup final runs LL-HLS, the quiet stream runs HLS, and WebRTC never serves five million people. The ladder is encoded once, keyframe-aligned on 2-second boundaries, and the encoder must never fall behind real time — 5,000 streams need 67,500 vCPUs at $2,700 an hour, and a 5% slow encoder adds 3 seconds of delay every minute, with no way back. And the chat is a second broadcast system that runs faster than the video — 200 messages a second becoming 20 million deliveries a second — so the spoiler gap is closed with LL-HLS or hidden with a chat delay, but never ignored. The rest is machinery that follows: the dual ingest that survives a dead encoder, the immutable segments cached at the edge, the DVR window that lets a late joiner rewind to kick-off. And the trap to name: live is not real-time, it is a delay you have chosen and can defend — say the number, say what it costs, and say what the chat sees in the meantime."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: a live platform is a race against the clock on the way in and a fan-out problem on the way out — the encoder must never fall behind real time, and one stream must become five million without touching the origin five million times.</li>
+<li>Back-of-the-envelope: 5 million viewers at 3.5 Mbps is 17.5 Tbps; one match at 2 million average concurrent is 6.3 PB and about $50,400; 5,000 streams need 67,500 vCPUs at $2,700 an hour; the chat room turns 200 messages a second into 20 million deliveries a second.</li>
+<li>Architecture: dual ingest, the live transcode ladder, the packager cutting segments and writing the manifest, origin plus CDN, the ABR player, the chat room on its own servers, and the asynchronous tail of discovery, clips, and analytics.</li>
+<li>Deep dive: the latency budget and why HLS is 20 seconds and LL-HLS is 3; keyframe alignment and the encoder's real-time contract; the spoiler problem and the three answers to it.</li>
+<li>Failure modes and the close: dead ingest, encoder falling behind, goal-moment cache-miss storm, chat flood, keyframe drift, manifest storm — and the line to end on: live is not real-time, it is a delay you have chosen and can defend.</li>
+</ol>
+
+<p class="foot">Lesson 40 · Design a Live Streaming Platform · Next: a new lesson lands tomorrow morning.</p>
+</div>
+<script>
+function computeLatency(protocol, segDur) {
+  if (protocol === "webrtc") return 0.5;
+  if (protocol === "llhls") return 3 * segDur + 1.0;
+  return 3 * segDur + 0.4;
+}
+function computeEgress(peakViewers, avgViewers, avgBitrateMbps) {
+  var peakTbps = (peakViewers * avgBitrateMbps * 1e6) / 1e12;
+  var matchBits = avgViewers * avgBitrateMbps * 1e6 * 7200;
+  var matchPB = matchBits / 8 / 1e15;
+  var matchGB = matchBits / 8 / 1e9;
+  var cost = matchGB * 0.008;
+  return { peakTbps: peakTbps, matchPB: matchPB, cost: cost };
+}
+function computeScale(streams, vcpuPer, chatViewers, chatters, msgInterval) {
+  var vcpus = streams * vcpuPer;
+  var hourlyCost = vcpus * 0.04;
+  var dvrGB = streams * 15.9 * 7200 / 8 / 1000;
+  var msgsPerSec = msgInterval > 0 ? chatters / msgInterval : 0;
+  var deliveries = msgsPerSec * chatViewers;
+  var servers = chatViewers > 0 ? Math.ceil(chatViewers / 10000) : 0;
+  var writesPerServer = msgsPerSec * 10000;
+  return {
+    vcpus: vcpus, hourlyCost: hourlyCost, dvrTB: dvrGB / 1000,
+    msgsPerSec: msgsPerSec, deliveries: deliveries,
+    servers: servers, writesPerServer: writesPerServer
+  };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtMoney(n) {
+  if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
+  if (n >= 1e3) return "$" + fmtNum(n);
+  return "$" + n.toFixed(0);
+}
+function renderLabA() {
+  var protocol = document.getElementById("protocol").value;
+  var segDur = parseFloat(document.getElementById("segDur").value) || 0;
+  var peak = parseFloat(document.getElementById("peakViewers").value) || 0;
+  var avg = parseFloat(document.getElementById("avgViewers").value) || 0;
+  var bitrate = parseFloat(document.getElementById("avgBitrate").value) || 0;
+  var latency = computeLatency(protocol, segDur);
+  var r = computeEgress(peak, avg, bitrate);
+  var label = protocol === "webrtc" ? "WebRTC" : protocol === "llhls" ? "LL-HLS" : "HLS";
+  document.getElementById("labAResult").innerHTML =
+    "<b>Glass-to-glass latency on " + label + ": about " + latency.toFixed(1) + " seconds.</b><br>" +
+    "Peak egress: " + r.peakTbps.toFixed(1) + " Tbps (" + fmtNum(peak) + " viewers × " + bitrate + " Mbps)<br>" +
+    "One 2-hour match at " + fmtNum(avg) + " average concurrent: " + r.matchPB.toFixed(1) + " PB<br>" +
+    "CDN egress for the match: " + fmtMoney(r.cost) + " at $0.008/GB<br><br>" +
+    (latency > 10
+      ? "<b>The chat spoils the goal.</b> At " + latency.toFixed(0) + " seconds behind the stadium, the room knows the result long before the picture shows it — switch to LL-HLS, or delay the chat to match the video."
+      : "<b>The chat and the picture nearly agree.</b> At " + latency.toFixed(1) + " seconds the spoiler gap is a murmur, not a ruin.");
+}
+function renderLabB() {
+  var streams = parseFloat(document.getElementById("streamCount").value) || 0;
+  var vcpuPer = parseFloat(document.getElementById("vcpuPer").value) || 0;
+  var chatViewers = parseFloat(document.getElementById("chatViewers").value) || 0;
+  var chatters = parseFloat(document.getElementById("chatters").value) || 0;
+  var interval = parseFloat(document.getElementById("msgInterval").value) || 0;
+  var r = computeScale(streams, vcpuPer, chatViewers, chatters, interval);
+  document.getElementById("labBResult").innerHTML =
+    "<b>Transcode fleet: " + fmtNum(r.vcpus) + " vCPUs · " + fmtMoney(r.hourlyCost) + "/hour.</b><br>" +
+    "DVR window (2 hours, all rungs): " + r.dvrTB.toFixed(1) + " TB<br>" +
+    "Chat: " + fmtNum(r.msgsPerSec) + " messages/second → " + fmtNum(r.deliveries) + " deliveries/second<br>" +
+    "Connection servers: " + fmtNum(r.servers) + " (10,000 sockets each) · " + fmtNum(r.writesPerServer) + " socket writes/second per server<br><br>" +
+    "<b>The fan-out is the product.</b> Messages × viewers is what hurts — slow mode is the first lever, because doubling the interval halves the deliveries.";
+}
+["segDur", "peakViewers", "avgViewers", "avgBitrate"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabA);
+});
+document.getElementById("protocol").addEventListener("change", renderLabA);
+["streamCount", "vcpuPer", "chatViewers", "chatters", "msgInterval"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
