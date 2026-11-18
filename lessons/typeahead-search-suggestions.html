@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design Typeahead / Search Suggestions — the box that finishes your sentence before you do</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number], .lab input[type=text] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  .sugg { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .sugg:last-child { border-bottom: none; }
+  .bar { height: 8px; border-radius: 999px; background: var(--accent); margin-top: 4px; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 41</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 41 · Classic design</span>
+  <h1>Design Typeahead / Search Suggestions — the box that finishes your sentence before you do</h1>
+  <p class="whyline">It is half-time at the Riverside FC cup final and a fan opens the club app to look up the striker who just scored. She types "h", and before she has finished the second letter the box already offers "Haaland". She never presses search — she taps the suggestion and she is there. That little box is doing a surprising amount of work: every keystroke is a request, every request has about 100 milliseconds before the typing feels broken, and the suggestions have to be the right ten out of ten million possible terms, ranked by what the world is searching for right now — which, in the minute after a goal, is a different list from the one a minute before. Today you design the typeahead from zero.</p>
+  <div class="meta"><span>Trie (prefix tree)</span><span>Precomputed top-k</span><span>Debounce &amp; caching</span><span>Trending freshness</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is typeahead?</h2>
+<p>Start from zero. <strong>Typeahead</strong> — also called <strong>autocomplete</strong> or <strong>search suggestions</strong> — is the search box that offers completions while you are still typing. You type a <strong>prefix</strong> (the letters so far, like "ha"), and the box shows a short list of <strong>suggestions</strong> (complete terms that start with that prefix, like "Haaland", "Harry Kane", "Havertz"), ranked best first. You tap one and you never have to finish typing, spell the name correctly, or press search. The soccer running example: the Riverside FC app's search box, over a dictionary of players, clubs, stadiums, competitions, and merchandise — ten million terms, from "Aaron Ramsey" to "Zlatan Ibrahimović".</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Prefix:</strong> the letters typed so far — "ha" is the prefix of "Haaland". <strong>Suggestion (candidate):</strong> a complete term offered for a prefix. <strong>Trie (prefix tree):</strong> a tree where each level is one letter, so all the terms sharing a prefix share the same path — "Haaland" and "Harry Kane" both pass through the H → a node. <strong>Node:</strong> one step in the trie, holding one letter and pointers to its children. <strong>Top-k list:</strong> the k best suggestions stored at a trie node, precomputed so a query only has to read them, not find them. <strong>Debounce:</strong> waiting a short time (about 150 ms) after the last keystroke before sending a request, so fast typing does not fire a request per letter. <strong>Keystroke:</strong> one typed character. <strong>Latency budget:</strong> the total time a suggestion is allowed to take — about 100 ms per keystroke, the point below which typing feels instant. <strong>Popularity score:</strong> how often a term is searched, the main ingredient in ranking suggestions. <strong>Trending:</strong> a term whose popularity is spiking right now — a player who just scored. <strong>Zipf's law:</strong> the observation that a small number of prefixes get most of the traffic — the top few thousand prefixes cover most searches. <strong>Edit distance:</strong> how many single-letter changes (insert, delete, substitute, swap) turn one word into another — the measure of a typo. <strong>Cold start:</strong> a new term with no search history yet, so it has no popularity score to rank on.</p></div>
+<p>Why is this a hard design, when Lesson 30 already built a search system with an inverted index and autocomplete? Because typeahead is a different problem from search, and the inverted index is the wrong tool for it. A search answers a finished query against billions of documents; a typeahead answers an unfinished prefix, on every keystroke, in under 100 milliseconds, and it has to do it about four times per search. The inverted index from Lesson 30 finds documents containing a word — it cannot efficiently find all the terms that <em>start with</em> "ha", and ranking ten million matches per keystroke would blow the budget a hundred times over. The typeahead's answer is a different data structure — the trie — plus a decision that defines the whole design: <strong>do the ranking work once, when the data changes, and store the answer at every node, so a keystroke costs a walk down a tree and a read of a list that is already sorted.</strong> The one idea to carry through the whole lesson: <strong>typeahead is a race against the typist — the only work allowed per keystroke is walking the prefix and reading a precomputed list, and everything else (counting popularity, rebuilding the tree, chasing trends) happens somewhere else, ahead of time.</strong></p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are designing Riverside Search, the typeahead for a sports app the size of a mid-tier search product: 50 million monthly users, <strong>100 million searches a day</strong>, and a dictionary of <strong>10 million suggestion terms</strong> (players, clubs, stadiums, competitions, merchandise). The latency budget is <strong>under 100 ms per keystroke</strong> — above that, the suggestions lag behind the typing and the box feels broken. Freshness: a player who scores must climb the suggestions within minutes, not tomorrow.</p>
+<ul>
+<li><strong>Requests: 100 million searches a day become about 400 million suggestion requests a day.</strong> A search is not one request, it is one per keystroke. The average query is 6 characters, so a naive box fires 6 requests per search — 600 million a day. With a 150 ms debounce, fast typing collapses to about <strong>4 requests per search</strong>, so 100,000,000 × 4 = <strong>400,000,000 requests a day</strong>. That is 400,000,000 ÷ 86,400 = <strong>about 4,630 requests a second on average</strong>, and search traffic peaks at about 5× the average around kick-off, so <strong>about 23,100 requests a second at peak</strong>. The debounce alone removes a third of the load — 200 million requests a day that never happen. (Lab B runs the request math.)</li>
+<li><strong>Trie size: 10 million terms fit in about 2.9 GB — small enough to hold whole, on every box.</strong> Ten million terms at an average of 12 characters would be 120 million letters if nothing shared, but terms share prefixes — "Manchester City", "Manchester United", and "Manchester" all walk the same first ten letters — so the trie has about <strong>4 nodes per term, roughly 40 million nodes</strong>. Each node costs about 32 bytes (child pointers, a flag, a pointer to its top-k list): 40,000,000 × 32 = <strong>1.28 GB</strong>. And each node stores its precomputed top 10 suggestions as term IDs, 4 bytes each: 40,000,000 × 10 × 4 = <strong>1.6 GB</strong>. Total: <strong>about 2.9 GB per box</strong> — the whole dictionary, ranked, in RAM, on a single ordinary server. That number is the design's central fact: the trie is small enough to replicate, so there is no sharding, no fan-out, no cross-server merge — every box answers every prefix alone. (Lab B sizes the trie.)</li>
+<li><strong>Lookup cost: a keystroke is a walk of about 6 steps and one list read — microseconds, not milliseconds.</strong> The prefix "haalan" is 6 letters, so the lookup walks 6 nodes and reads the top-10 list stored at the last one. There is no scan, no ranking, no database — the ranking was done when the trie was built. A single core does on the order of 50,000 such lookups a second, so one box with 4 cores handles about 200,000 requests a second, and the peak of 23,100 a second is a small fraction of one box. The boxes exist for redundancy and for the cache, not because the trie is hard to serve — the hard part is keeping the trie fresh, not keeping it fast.</li>
+<li><strong>Cache: the top 10,000 prefixes cover about 80% of requests.</strong> Search traffic follows Zipf's law — a few prefixes ("ha", "me", "man", "liv") are typed vastly more often than the long tail of rare ones. Caching the top 10,000 prefix results in front of the trie service absorbs about 80% of requests, so at peak only 23,100 × 0.2 = <strong>about 4,630 requests a second actually reach a trie</strong>. The cache is small — 10,000 prefixes × 10 suggestions × ~30 bytes ≈ 3 MB — and it is the reason the system survives the minute after a goal, when everyone types the same two letters at once. (Lab B shows the cache effect.)</li>
+<li><strong>Latency budget: 100 ms, spent as 30 ms network + 10 ms server + 10 ms rendering, with 50 ms of headroom.</strong> The round trip from the phone to the server and back is about 30 ms; the trie walk and the top-k read take about 2 ms and the ranking adjustment about 3 ms, so the server is about 10 ms including serialisation; the phone needs about 10 ms to render the list. That is <strong>about 50 ms end to end</strong>, half the budget — and the headroom is the point, because the 99th-percentile request, on a bad network, is the one the user feels. A design that spends 95 ms on the happy path has no room for a slow network, and the box feels broken exactly when the stadium Wi-Fi is at its worst.</li>
+<li><strong>Trending: a goal moves a player from 1,000 searches a minute to 1,000,000 — a 1,000× spike on one prefix.</strong> In the minute after the striker scores, "ha" goes from an ordinary prefix to the most-typed two letters in the country. The trie does not care — a lookup is a lookup, and the cache absorbs the repeats — but the <em>ranking</em> cares: the precomputed top-10 for "ha" was built an hour ago, when the striker was third behind two other players. So freshness is a separate pipeline with its own clock (see stage 6), and the design's answer is a delta: the top 1,000 trending terms get their scores refreshed every 5 minutes, while the full trie rebuilds every hour.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Three numbers decide the shape of the typeahead, and they pull in different directions. The 400 million requests a day say the per-keystroke work must be nearly free — a trie walk and a list read, microseconds, because at 23,100 requests a second there is no budget for a scan, a database query, or a ranking pass. The 2.9 GB trie says the whole dictionary fits in RAM on one box, so there is no sharding and no fan-out — every server holds the whole tree, and the system scales by adding identical boxes, not by splitting the data. And the 100 ms budget says the ranking must be done before the keystroke, not during it — the top-10 list is precomputed at build time, and the only ranking left at query time is a cheap adjustment over ten candidates. A design that ranks at query time, or that shards a 2.9 GB trie, or that hits a database per keystroke, has designed a box that works in a demo and lags behind the typist in production.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Follow one keystroke — the fan types "h", then "a", and the box answers. There are seven stages, and each one exists to answer a different failure.</p>
+<ol>
+<li><strong>Client — the box itself: debounce, abort, and a local cache.</strong> The input box waits 150 ms after the last keystroke before sending a request — fast typing of "haaland" fires about 4 requests, not 7, and the 200 million requests a day that never happen are the cheapest capacity in the system. When a new keystroke arrives, the box aborts the in-flight request for the shorter prefix, so a slow answer for "h" can never overwrite the fresh answer for "ha". And the box keeps a small local cache of the last 20 prefixes it asked about, so backspacing from "haa" to "ha" is instant and costs no request at all. The client is where the request storm is prevented, not where it is survived.</li>
+<li><strong>Edge cache — the top prefixes, served without touching a server.</strong> The top 10,000 prefixes ("ha", "me", "man", "liv", "bar") are cached in front of the suggestion service, and they absorb about 80% of requests. The cache key is the prefix plus the user's language and region, because "bar" means Barcelona in Spain and Barnsley in England, and the wrong top-10 is worse than a slow one. The entries expire in minutes, not hours, because the whole point of the cache is the head of the traffic, and the head is exactly where trending terms change fastest.</li>
+<li><strong>Suggestion service — stateless boxes, each holding the whole trie.</strong> The service is a fleet of identical boxes, each holding the full 2.9 GB trie in RAM. A request arrives, the box walks the trie for the prefix, reads the precomputed top-10 at that node, applies the small query-time adjustments, and answers. There is no database on the path, no cross-box call, no fan-out — the box that receives the request is the box that answers it, in about 10 ms. New boxes join by loading the current trie snapshot and serving; dead boxes are removed by the load balancer, and nobody's typing notices, because every box is a complete copy.</li>
+<li><strong>Trie lookup — walk the prefix, read the list, stop.</strong> The lookup is the heart of the design and it is deliberately boring: start at the root, follow one child pointer per letter of the prefix, and at the node you land on, read the top-10 list that was stored there when the trie was built. "ha" is two steps; "haaland" is seven. There is no search, no scan, no ranking pass over thousands of matches — "ha" matches thousands of terms in the dictionary, and the trie never enumerates them, because the ten that matter were chosen at build time. If the prefix has no node — the user typed something that matches nothing — the lookup ends immediately, and the fallback in stage 7 takes over.</li>
+<li><strong>Ranking — global popularity, trending boost, personal boost, over ten candidates only.</strong> The precomputed top-10 is ranked by global popularity: how often the term is searched, over the last 30 days, with recent days weighted more. At query time the service adjusts that list over just ten candidates, which is cheap: a <strong>trending boost</strong> multiplies the score of terms whose searches spiked in the last 5 minutes (the striker who just scored), and a <strong>personal boost</strong> lifts terms the user has searched before — their club, their favourite player. The personal boost is the one piece that must never leak: the user's recent searches live on their device, and the request carries only a small list of term IDs, never the raw history — the server ranks, but it never learns what the user typed last week.</li>
+<li><strong>Data pipeline — logs, counts, build, swap: the ranking happens here, not per keystroke.</strong> Every suggestion tap and every completed search is logged, and an hourly batch job aggregates the logs into a popularity score per term — count, recency-weighted, with spam and bot traffic filtered out. A builder then constructs a fresh trie from the dictionary and the scores, precomputing the top-10 at every node, which takes about 90 seconds for 10 million terms. The new trie is published as a versioned snapshot, and each box swaps to it atomically — the old trie keeps serving until the new one is fully loaded, so there is never a moment with no trie. Between hourly rebuilds, a 5-minute trending job refreshes the scores of the top 1,000 spiking terms and patches their nodes in place, so the striker climbs the list within minutes of the goal, not at the next hour.</li>
+<li><strong>Fallbacks — when the prefix matches nothing, or the service is down.</strong> Three fallbacks, in order. First, if the trie has no node for the prefix, the service tries a <strong>spell correction</strong>: one edit away ("haland" → "haaland") — cheap, because it only explores about 340 one-edit variants of a 6-letter prefix, each a short trie walk. Second, if the suggestion service is down, the edge cache serves its stale entries, and the client shows its local cache — a slightly old suggestion list is far better than an empty box. Third, if there is still nothing, the box stays quiet and lets the user finish typing and press search — the full search from Lesson 30 takes over, and the typeahead has failed gracefully instead of failing loudly.</li>
+</ol>
+<table>
+<tr><th>Stage</th><th>What it does</th><th>What fails if it is missing</th></tr>
+<tr><td>Client (debounce, abort, local cache)</td><td>150 ms debounce, aborts stale requests, caches the last 20 prefixes</td><td>Every keystroke is a request; a slow answer for "h" overwrites the fresh answer for "ha"</td></tr>
+<tr><td>Edge cache (top prefixes)</td><td>Top 10,000 prefixes cached; ~80% of requests never reach a server</td><td>The goal-minute spike hits the trie fleet at full force, 23,100 requests a second and climbing</td></tr>
+<tr><td>Suggestion service (replicated trie)</td><td>Identical boxes, each with the whole 2.9 GB trie in RAM</td><td>One box becomes a single point of failure, or the trie is sharded and every query becomes a fan-out</td></tr>
+<tr><td>Trie lookup</td><td>Walk the prefix, read the precomputed top-10</td><td>Ranking happens per keystroke and the 100 ms budget dies on a scan of thousands of matches</td></tr>
+<tr><td>Ranking (popularity + trending + personal)</td><td>Global score precomputed; trending and personal boosts over 10 candidates</td><td>The striker who just scored sits third, or the box shows the world what the user typed last week</td></tr>
+<tr><td>Data pipeline (logs → build → swap)</td><td>Hourly full rebuild (~90 s), 5-minute trending patch, atomic versioned swap</td><td>Suggestions go stale for a day, or a rebuild takes the box down mid-swap</td></tr>
+<tr><td>Fallbacks</td><td>Spell correction, stale cache, quiet box → full search</td><td>One typo gives an empty box, and one dead service gives a dead search box</td></tr>
+</table>
+
+<h2>The heart of it: three decisions that make or break the design</h2>
+<h3>1. The trie, not the inverted index — pick the data structure by the query shape</h3>
+<p>The query is a prefix, not a word. An inverted index — Lesson 30's structure — maps a word to the documents containing it, and it is excellent for "find pages about Haaland". But the typeahead query is "find terms that <em>start with</em> ha", and an inverted index has no efficient way to answer that: it would have to scan the dictionary for every term starting with "ha", which is thousands of terms, on every keystroke. The trie answers the same question in as many steps as there are letters in the prefix — two steps for "ha", six for "haalan" — because the sharing is the structure: all the terms starting with "ha" live under one node, and the lookup never visits the rest of the dictionary. The comparison that settles it: the inverted index is built for <em>containment</em> (which documents contain this word), the trie is built for <em>prefix</em> (which terms start with these letters), and the typeahead is a prefix problem. The senior line: <strong>name the query shape first, then pick the structure that answers it in steps proportional to the query, not to the data — a trie walk costs the length of the prefix, and that is why a keystroke costs microseconds.</strong></p>
+<table>
+<tr><th>Structure</th><th>Prefix query cost</th><th>What it is for</th></tr>
+<tr><td><strong>Trie (prefix tree)</strong></td><td>O(prefix length) — walk the letters, read the top-10</td><td>Typeahead — the query is a prefix</td></tr>
+<tr><td><strong>Inverted index</strong></td><td>No prefix index — would scan the dictionary for matches</td><td>Full-text search (Lesson 30) — the query is a finished word</td></tr>
+<tr><td><strong>Hash map of all prefixes</strong></td><td>O(1) lookup, but one entry per prefix of every term — ~120M entries, ~10× the trie</td><td>Never worth it — the trie shares prefixes, the map duplicates them</td></tr>
+<tr><td><strong>Database LIKE 'ha%'</strong></td><td>Index range scan, then rank thousands of rows per keystroke</td><td>The demo that dies at 23,100 requests a second</td></tr>
+</table>
+<h3>2. Precompute the top-k at every node — do the ranking once, at build time, not per keystroke</h3>
+<p>The prefix "ha" matches thousands of terms. Ranking them at query time means scoring thousands of candidates, sorting them, and taking ten — on every keystroke, at 23,100 requests a second, inside a 100 ms budget. The design's answer is to move that work to the one place where time is cheap: the build. When the hourly builder constructs the trie, it computes the top 10 suggestions for every node and stores the list at the node, so the query-time work is a walk and a read. The price is memory — 1.6 GB of top-10 lists on top of the 1.28 GB trie — and the price is freshness: the list is as old as the last build, which is why the 5-minute trending patch exists. The trade is the right one, because memory is cheap and keystroke time is not: 1.6 GB buys a lookup that is a read instead of a sort. The senior line: <strong>when the answer set is small and the query rate is huge, precompute the answer and store it where the query lands — the trie node is the cache, and the build is the only time anyone ranks anything.</strong></p>
+<h3>3. Freshness on two clocks — hourly rebuilds for the world, 5-minute patches for the moment</h3>
+<p>Popularity has two speeds. The slow speed is the world: which players and clubs people search for, week to week — that changes slowly, and an hourly rebuild tracks it fine. The fast speed is the moment: the striker scores in the 89th minute and his searches jump 1,000× in sixty seconds — an hourly rebuild would leave him third on the list for an hour, which is the whole match. So the design runs two clocks: the full trie rebuilds every hour, and a trending job every 5 minutes re-scores the top 1,000 spiking terms and patches their nodes in place. The patch is small and safe — it rewrites top-10 lists, never the tree structure — so a bad patch can be rolled back by republishing the last full build. And the honest residual: even 5 minutes is not instant, so the design never promises real-time ranking — it promises that the suggestion list reflects the world as of a few minutes ago, and the interview answer says the number out loud instead of claiming the list is live. The senior line: <strong>freshness is a schedule, not a property — name the two clocks, say what each one catches, and say what falls between them.</strong></p>
+<table>
+<tr><th>Choice</th><th>What you gain</th><th>What you pay</th><th>Use it for</th></tr>
+<tr><td><strong>Trie, whole, replicated</strong></td><td>O(prefix) lookups; no sharding, no fan-out; every box answers alone</td><td>2.9 GB RAM per box; every box reloads on every rebuild</td><td>The default — the dictionary fits, so replicate it</td></tr>
+<tr><td><strong>Precomputed top-10 per node</strong></td><td>Query time is a walk and a read; no ranking per keystroke</td><td>1.6 GB of lists; rankings age until the next build or patch</td><td>Every node — the default</td></tr>
+<tr><td><strong>Hourly rebuild + 5-min trending patch</strong></td><td>Fresh world ranking hourly; the goal-scorer climbs within minutes</td><td>Two pipelines to maintain; a patch can only touch scores, never structure</td><td>The default — one clock for the world, one for the moment</td></tr>
+<tr><td><strong>Edge cache on the top prefixes</strong></td><td>80% of requests never reach a server; survives the goal-minute spike</td><td>Stale-by-minutes answers on the hottest prefixes; cache key must include language and region</td><td>The default — the head of the traffic is the cache's whole job</td></tr>
+<tr><td><strong>Debounce 150 ms + abort</strong></td><td>A third of requests never happen; stale answers never overwrite fresh ones</td><td>150 ms of waiting before the first suggestion; too long feels laggy, too short fires a storm</td><td>The default — tune it, never remove it</td></tr>
+<tr><td><strong>One-edit spell correction</strong></td><td>"haland" still finds Haaland; typos do not give an empty box</td><td>~340 trie walks per typo — bounded, but only for short prefixes</td><td>When the trie has no node for the prefix — never on the common path</td></tr>
+</table>
+<div class="callout green"><strong>The senior line on the three decisions</strong><p>Every typeahead is the same three sentences, and the room is won by saying them with numbers attached. The query is a prefix, so the structure is a trie — a walk of as many steps as there are letters, microseconds per keystroke, where an inverted index would scan thousands of matches and a database LIKE would die at 23,100 requests a second. The ranking is precomputed — the top 10 stored at every node, 1.6 GB of lists on top of a 1.28 GB tree, so a keystroke is a walk and a read, and the only ranking left at query time is a cheap adjustment over ten candidates. And freshness runs on two clocks — the full trie rebuilds every hour for the world, and a 5-minute trending patch lifts the goal-scorer within minutes, because popularity has a slow speed and a fast one, and one clock cannot catch both. Say those three sentences, with the arithmetic — 400 million requests a day, 23,100 a second at peak, 2.9 GB per box, 50 ms against a 100 ms budget — and the rest of the design — the debounce, the edge cache, the spell correction — is machinery that follows.</p></div>
+
+<h2>Failure modes — six ways a typeahead fails</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>Goal-minute spike on one prefix</td><td>The striker scores, a million fans type "ha" in the same minute, and the suggestion service sees 10× its peak on a single prefix</td><td>The edge cache absorbs the repeats — the same prefix, the same answer — and the trie lookup is a lookup whatever the prefix, so the spike is a cache problem, already solved</td></tr>
+<tr><td>Stale suggestions after a big moment</td><td>The striker scores and stays third on the list for an hour, because the top-10 was built before the match</td><td>The 5-minute trending patch re-scores the top 1,000 spiking terms; the list reflects the goal within minutes, not at the next hourly rebuild</td></tr>
+<tr><td>Debounce misconfigured</td><td>Debounce set to 0 and every keystroke fires — 600 million requests a day instead of 400 million; or set to 500 ms and the box feels dead, fans type the whole name before a suggestion appears</td><td>Debounce at 150 ms, measured against the typing: it removes a third of requests and the delay is below what a typist notices</td></tr>
+<tr><td>Rebuild swap goes wrong</td><td>A bad build publishes a trie with a corrupted node, and every box swaps to it at once — the search box breaks everywhere, simultaneously</td><td>Versioned snapshots and a staged swap: one box loads the new trie and serves a canary share first, the old snapshot stays available, and the swap is a rollback, not a rebuild</td></tr>
+<tr><td>Cache stampede on a new trending prefix</td><td>A new prefix goes viral, its cache entry expires, and ten thousand requests hit the trie for the same prefix in the same second</td><td>Single-flight coalescing at the edge — one request fills the cache, the rest wait for it — and a short stale-while-revalidate window so the entry is never truly empty</td></tr>
+<tr><td>Typo gives an empty box</td><td>The fan types "haland", the trie has no node, and the box shows nothing — she assumes the player is not in the app</td><td>One-edit spell correction on the fallback path only: about 340 trie walks for a 6-letter prefix, bounded and off the common path, so "haland" still finds Haaland</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"Just query the database with LIKE 'ha%'."</strong> It works in the demo and dies in production. The database scans an index range, returns thousands of rows, and the service ranks and sorts them — per keystroke, at 23,100 requests a second. The trie does the same job in six steps and a list read, because the ranking was done at build time. The follow-on question is always: what does one keystroke cost, in steps, and who pays it? If the answer is "the database, per keystroke", the design has not understood the request rate.</li>
+<li><strong>"Cache everything."</strong> The number of possible prefixes is effectively infinite — every string a fan can type is a prefix — so caching everything is caching nothing, and the cache fills with one-off prefixes that are never asked again. Zipf's law is the discipline: cache the top 10,000 prefixes, which cover 80% of traffic, and let the long tail go to the trie, which is cheap enough to serve it. The trap is the engineer who treats the cache as the system instead of as the shield in front of it.</li>
+<li><strong>"Rank at query time, so the list is always fresh."</strong> Freshness is real, but ranking thousands of candidates per keystroke inside a 100 ms budget is not a trade, it is a refusal to choose. The precomputed top-10 is fresh enough — hourly, plus a 5-minute trending patch — and the only ranking left at query time is a cheap adjustment over ten candidates. The trap is the engineer who buys freshness with the one resource the design cannot spare: the typist's 100 milliseconds.</li>
+</ul>
+
+<h2>Interactive lab 1: the trie playground</h2>
+<div class="lab">
+<h3>Lab A — Type a prefix and watch the trie walk it</h3>
+<p>Type a prefix — try "ha", "man", or "me" — and the playground walks the trie, counts the nodes visited, and shows the top suggestions with their popularity. Then flip the "just scored" switch and watch the scores change while the walk stays exactly the same length.</p>
+<label for="prefixInput">Prefix (try "ha", "man", "me", "li")</label>
+<input type="text" id="prefixInput" value="ha" />
+<label><input type="checkbox" id="trendingToggle" /> Haaland just scored in the 89th minute — trending boost ×3</label>
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Check the defaults: "ha" visits 2 nodes and returns Haaland, Harry Kane, Havertz, and Hakimi, in popularity order. Flip the trending switch and Haaland's score triples to 3,600,000 a day — the bars stretch, the order for "ha" stays the same, and the walk is still 2 nodes, because the ranking lives in the stored list, not in the walk.</p>
+</div>
+
+<h2>Interactive lab 2: the typeahead load &amp; latency planner</h2>
+<div class="lab">
+<h3>Lab B — Size the fleet, the trie, and the latency budget</h3>
+<p>Enter the search volume, the typing behaviour, and the cache. The planner shows the request rate with and without debounce, the peak load, how many boxes the fleet needs, how big the trie is, and whether the 100 ms latency budget holds.</p>
+<label for="searchesPerDay">Searches per day</label>
+<input type="number" id="searchesPerDay" value="100000000" />
+<label for="keystrokes">Keystrokes per search (average query length)</label>
+<input type="number" id="keystrokes" value="6" />
+<label for="debounce">Debounce</label>
+<select id="debounce">
+<option value="on">On — 150 ms, about 4 requests per search</option>
+<option value="off">Off — one request per keystroke</option>
+</select>
+<label for="peakFactor">Peak factor (× average)</label>
+<input type="number" id="peakFactor" value="5" step="0.5" />
+<label for="cacheHit">Edge-cache hit rate (%)</label>
+<input type="number" id="cacheHit" value="80" />
+<label for="terms">Dictionary terms</label>
+<input type="number" id="terms" value="10000000" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the planner reproduces 400 million requests a day with debounce (600 million without), about 4,630 requests a second on average, about 23,148 a second at peak, about 4,630 trie lookups a second after the 80% cache, a 2.9 GB trie, and 4 boxes (3 for peak plus 1 for redundancy). Then turn the debounce off and watch a third of the load come back.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. Design typeahead for a football app: 100 million searches a day, suggestions in under 100 ms per keystroke. Walk through the design.</summary>
+<p><strong>Model answer.</strong> I start from the request rate, because it picks the data structure: 100 million searches a day at 6 keystrokes each is 600 million requests naive, and a 150 ms debounce brings it to about 4 per search, so 400 million requests a day — about 4,630 a second on average and about 23,100 a second at peak around kick-off. The latency budget is 100 ms per keystroke, so the per-keystroke work has to be nearly free, and that rules out ranking at query time and rules out a database LIKE. The design is a trie: 10 million terms, about 40 million nodes after prefix sharing, 32 bytes a node, so 1.28 GB, plus the precomputed top-10 suggestions stored at every node, another 1.6 GB — about 2.9 GB total, which fits in RAM on one box, so every box holds the whole trie and there is no sharding and no fan-out. A keystroke walks the prefix — 2 steps for "ha" — and reads the top-10 list stored at that node; the ranking was done at build time, and the only query-time work is a trending and personal adjustment over ten candidates. The client debounces 150 ms, aborts stale requests, and caches the last 20 prefixes; an edge cache on the top 10,000 prefixes absorbs about 80% of requests, so only about 4,630 a second reach a trie at peak. The numbers close the loop: 30 ms network + 10 ms server + 10 ms rendering is about 50 ms against the 100 ms budget, and 4 boxes cover the peak at 10,000 requests a second each plus one for redundancy. And I would close with the honest residual: the list is as fresh as the last build — hourly, with a 5-minute trending patch — so the design promises minutes, not real time, and says so.</p>
+</details>
+<details>
+<summary>Q2. A player scores in the 89th minute and his searches jump 1,000× in a minute. How does the design handle the spike, and how fast does he climb the suggestions?</summary>
+<p><strong>Model answer.</strong> I split the question in two, because the spike and the ranking are different problems. The spike is easy: a million fans typing "ha" are all asking for the same prefix, so the edge cache absorbs the repeats — the same prefix, the same answer — and the trie lookup underneath is a lookup whatever the prefix, two steps for "ha" whether one person types it or a million do. The system sees more requests, but no request gets more expensive, which is the property that matters. The ranking is the harder half: the precomputed top-10 for "ha" was built an hour ago, when the striker was third, so the spike alone does not move him — and that is the freshness pipeline's job. The trending job runs every 5 minutes, re-scores the top 1,000 spiking terms from the live logs, and patches their nodes in place, so the striker climbs within minutes of the goal. And I would add the guardrail: the patch only rewrites top-10 lists, never the tree structure, and it is versioned, so a bad patch rolls back by republishing the last full hourly build — and the honest number is that the list reflects the world as of a few minutes ago, which is fast enough for a suggestion box and honest enough for the room.</p>
+</details>
+<details>
+<summary>Q3. A fan types "Haland" — missing an 'a'. What happens, and how far do you go fixing typos?</summary>
+<p><strong>Model answer.</strong> I start with what the trie does: it walks H-a-l-a-n-d, and there is no node for that path, because the dictionary has "Haaland" and no term starting "haland" — so the lookup ends immediately with no suggestions, and the box would be empty. The fix is a fallback, not a change to the common path: one-edit spell correction. For a 6-letter prefix there are about 340 one-edit variants — 6 deletions, 150 substitutions, 182 insertions, 5 transpositions — and each variant is a short trie walk, so checking all of them is still microseconds, and "haaland" is one substitution away. The design applies it only when the exact prefix has no node, so the common path — the correctly spelled prefix — never pays the cost. And I would draw the line the interviewer is testing for: one edit, not two, because two edits on a 6-letter prefix is tens of thousands of variants and the box starts guessing — "haland" is clearly Haaland, but a two-edit correction of "ha" could be anything, and a suggestion box that guesses wrong is worse than one that stays quiet. If even the one-edit pass finds nothing, the box stays quiet and the full search from Lesson 30 takes over when the user presses enter.</p>
+</details>
+<details>
+<summary>Q4. Lesson 30 built a search system with an inverted index. Why can't the typeahead just use that index?</summary>
+<p><strong>Model answer.</strong> I start by naming the query shape, because that is what decides the structure. The inverted index answers "which documents contain this finished word" — it maps a word to a posting list of documents, and it is the right structure for a search over billions of pages. But the typeahead query is "which terms start with these letters", and the inverted index has no prefix index: to answer "ha" it would have to scan the dictionary for every term starting with "ha", which is thousands of terms, and then rank and sort them — on every keystroke, at 23,100 requests a second, inside 100 ms. The trie answers the same question in as many steps as there are letters, because the sharing is the structure — every term starting with "ha" lives under one node, and the lookup never visits the rest of the dictionary. The two systems are complements, not competitors: the typeahead finishes the sentence, the search answers the finished query, and the box that finds nothing hands over to the search. And I would close with the general rule: pick the structure by the query shape, and make the cost proportional to the query, not to the data — a trie walk costs the length of the prefix, and that is why a keystroke costs microseconds.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — Size the trie.</strong> A dictionary has 10 million terms. After prefix sharing, the trie has 4 nodes per term on average. Each node costs 32 bytes, and each node stores a precomputed top-10 list of term IDs at 4 bytes per ID. (a) How many nodes is that, and how much memory does the trie structure cost? (b) How much do the top-10 lists cost? (c) What is the total, and what is it if the lists grow to top-20? <em>Rubric: (a) 10,000,000 × 4 = 40,000,000 nodes; 40,000,000 × 32 bytes = 1,280,000,000 bytes ≈ 1.28 GB; (b) 40,000,000 × 10 × 4 = 1,600,000,000 bytes = 1.6 GB; (c) total ≈ 2.88 GB, about 2.9 GB — and top-20 doubles the lists to 3.2 GB for a total of about 4.5 GB, which still fits in RAM, so the question is never "can we afford it" but "does the eleventh suggestion ever get tapped" — and the answer is almost never, which is why ten is the default.</em></p>
+<p><strong>Drill 2 — The request math.</strong> A typeahead serves 100 million searches a day. The average query is 6 characters, debounce cuts it to 4 requests per search, traffic peaks at 5× the average, and one box handles 10,000 requests a second. (a) How many requests a day with and without debounce? (b) What is the average requests a second with debounce? (c) The peak? (d) How many boxes, including one spare? <em>Rubric: (a) without debounce 100,000,000 × 6 = 600,000,000; with debounce 100,000,000 × 4 = 400,000,000 — the debounce deletes 200 million requests a day; (b) 400,000,000 ÷ 86,400 ≈ 4,630 a second; (c) 4,630 × 5 ≈ 23,148 a second; (d) ceil(23,148 ÷ 10,000) = 3 boxes for the peak, plus 1 spare = 4 — and the spare is not waste, it is the box that takes over when one dies during the cup final.</em></p>
+<p><strong>Drill 3 — The cache dies.</strong> The edge cache covers the top 10,000 prefixes at an 80% hit rate, and the peak is 23,148 requests a second. (a) How many requests a second reach the trie at peak? (b) The cache goes down entirely — how many trie lookups a second now, and how many boxes does that need at 10,000 lookups a second per box? (c) Does the fleet from Drill 2 survive? <em>Rubric: (a) 23,148 × 0.2 = about 4,630 lookups a second — the cache is doing 80% of the work; (b) 23,148 lookups a second, so ceil(23,148 ÷ 10,000) = 3 boxes; (c) yes — the fleet of 4 still holds, with one spare, which is the point: the cache is a shield, not the system, and a design that needs its cache to survive has designed a cache, not a typeahead. The honest follow-up is that latency rises — every request now pays the trie walk instead of a cache hit — but nothing falls over.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Data structure</td><td>Trie — a lookup costs the length of the prefix</td><td>Inverted index for finished-word search (Lesson 30), never for prefixes; database LIKE never at this request rate</td></tr>
+<tr><td>Top-k</td><td>Precomputed top-10 stored at every node; rank at query only over 10 candidates</td><td>Larger k only if taps show users scrolling past ten; ranking at query time only if the list must be personal per user</td></tr>
+<tr><td>Freshness</td><td>Hourly full rebuild (~90 s) + 5-minute trending patch on the top 1,000 spiking terms</td><td>Faster patches for a live event; slower rebuilds for a stable dictionary</td></tr>
+<tr><td>Client</td><td>150 ms debounce, abort stale requests, local cache of the last 20 prefixes</td><td>Shorter debounce on fast networks, never zero; longer only if the server is struggling</td></tr>
+<tr><td>Scale</td><td>Replicate the whole ~2.9 GB trie on every box; edge-cache the top 10,000 prefixes</td><td>Shard only if the dictionary outgrows RAM — at 10 million terms it does not, and sharding would turn every query into a fan-out</td></tr>
+<tr><td>Typos</td><td>One-edit correction on the fallback path only, when the exact prefix has no node</td><td>Two edits only with a strict score threshold; never on the common path</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"Typeahead is a race against the typist. Riverside Search serves 100 million searches a day, and each one is about 4 requests after a 150 ms debounce — 400 million requests a day, about 4,630 a second on average and about 23,100 a second at peak — and every request has 100 milliseconds before the typing feels broken. The design is three decisions. The query is a prefix, so the structure is a trie: 10 million terms, about 40 million nodes, 1.28 GB of tree plus 1.6 GB of precomputed top-10 lists, about 2.9 GB total, which fits in RAM on one box — so every box holds the whole trie, there is no sharding and no fan-out, and a keystroke is a walk of as many steps as there are letters and a read of a list that is already sorted. The ranking is precomputed at build time, so the only ranking left at query time is a cheap adjustment over ten candidates — global popularity, a trending boost, and a personal boost that never leaves the user's device. And freshness runs on two clocks — the full trie rebuilds every hour, and a 5-minute trending patch lifts the goal-scorer within minutes, because popularity has a slow speed and a fast one. The rest is machinery that follows: the edge cache on the top 10,000 prefixes that absorbs 80% of requests, the debounce that deletes 200 million requests a day, the one-edit spell correction that only runs when the exact prefix matches nothing. And the trap to name: a database LIKE or an inverted index answers the wrong query shape — the cost must be proportional to the prefix, not to the dictionary, or the box lags behind the typist."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: typeahead is a race against the typist — the only work allowed per keystroke is walking the prefix and reading a precomputed list, and everything else happens ahead of time.</li>
+<li>Back-of-the-envelope: 100 million searches a day become 400 million requests with debounce (600 million without); about 4,630 a second average, about 23,100 a second at peak; the trie is about 2.9 GB per box; the budget is 100 ms and the design spends about 50.</li>
+<li>Architecture: the debouncing client, the edge cache on the top prefixes, the replicated trie on stateless boxes, the walk-and-read lookup, the three-part ranking, the hourly rebuild with a 5-minute trending patch, and the three fallbacks.</li>
+<li>Deep dive: why the trie and not the inverted index; why the top-10 is precomputed at every node; why freshness needs two clocks.</li>
+<li>Failure modes and the close: the goal-minute spike, stale suggestions, debounce misconfiguration, a bad rebuild swap, a cache stampede, the empty box on a typo — and the line to end on: the cost of a keystroke must be proportional to the prefix, not to the dictionary.</li>
+</ol>
+
+<p class="foot">Lesson 41 · Design Typeahead / Search Suggestions · Next: a new lesson lands tomorrow morning.</p>
+</div>
+<script>
+var TERMS = [
+  { name: "Haaland", pop: 1200000 },
+  { name: "Harry Kane", pop: 800000 },
+  { name: "Havertz", pop: 300000 },
+  { name: "Hakimi", pop: 250000 },
+  { name: "Højlund", pop: 180000 },
+  { name: "Henderson", pop: 120000 },
+  { name: "Messi", pop: 2000000 },
+  { name: "Mbappé", pop: 1500000 },
+  { name: "Ronaldo", pop: 1800000 },
+  { name: "Manchester City", pop: 900000 },
+  { name: "Manchester United", pop: 850000 },
+  { name: "Liverpool", pop: 700000 },
+  { name: "Arsenal", pop: 650000 },
+  { name: "Real Madrid", pop: 750000 },
+  { name: "Barcelona", pop: 600000 },
+  { name: "Chelsea", pop: 500000 },
+  { name: "Bayern Munich", pop: 400000 },
+  { name: "Bellingham", pop: 600000 },
+  { name: "Salah", pop: 900000 },
+  { name: "Saka", pop: 450000 },
+  { name: "Son", pop: 500000 },
+  { name: "De Bruyne", pop: 550000 },
+  { name: "Foden", pop: 350000 },
+  { name: "Palmer", pop: 300000 },
+  { name: "Rice", pop: 280000 },
+  { name: "Ødegaard", pop: 220000 },
+  { name: "Van Dijk", pop: 200000 },
+  { name: "Rodri", pop: 260000 },
+  { name: "Vinícius", pop: 420000 },
+  { name: "Yamal", pop: 380000 },
+  { name: "Musiala", pop: 240000 },
+  { name: "Wirtz", pop: 180000 },
+  { name: "Pedri", pop: 200000 },
+  { name: "Gavi", pop: 150000 },
+  { name: "Alisson", pop: 150000 },
+  { name: "Ederson", pop: 140000 },
+  { name: "Anfield", pop: 300000 },
+  { name: "Old Trafford", pop: 280000 },
+  { name: "Wembley Stadium", pop: 260000 },
+  { name: "Etihad Stadium", pop: 240000 },
+  { name: "Camp Nou", pop: 220000 },
+  { name: "Bernabéu", pop: 200000 },
+  { name: "Premier League", pop: 1100000 },
+  { name: "Champions League", pop: 1000000 },
+  { name: "World Cup", pop: 950000 },
+  { name: "FA Cup", pop: 400000 },
+  { name: "La Liga", pop: 380000 },
+  { name: "Bundesliga", pop: 300000 },
+  { name: "Serie A", pop: 280000 },
+  { name: "Cup final", pop: 500000 }
+];
+function computeSuggestions(prefix, trending) {
+  var p = (prefix || "").trim().toLowerCase();
+  var matches = [];
+  for (var i = 0; i < TERMS.length; i++) {
+    if (p !== "" && TERMS[i].name.toLowerCase().indexOf(p) === 0) {
+      var score = TERMS[i].pop;
+      if (trending && TERMS[i].name === "Haaland") score = score * 3;
+      matches.push({ name: TERMS[i].name, pop: TERMS[i].pop, score: score });
+    }
+  }
+  matches.sort(function (a, b) { return b.score - a.score; });
+  return { nodesVisited: p.length, matches: matches.slice(0, 10), total: matches.length };
+}
+function computeLoad(searchesPerDay, keystrokes, debounceOn, peakFactor, cacheHitPct, terms) {
+  var reqPerSearch = debounceOn ? 4 : keystrokes;
+  var requestsPerDay = searchesPerDay * reqPerSearch;
+  var avgPerSec = requestsPerDay / 86400;
+  var peakPerSec = avgPerSec * peakFactor;
+  var trieLookupsPeak = peakPerSec * (1 - cacheHitPct / 100);
+  var boxCapacity = 10000;
+  var boxesForPeak = Math.ceil(peakPerSec / boxCapacity);
+  var boxes = boxesForPeak + 1;
+  var nodes = terms * 4;
+  var trieGB = (nodes * 32) / 1e9;
+  var topkGB = (nodes * 10 * 4) / 1e9;
+  var latencyMs = 30 + 10 + 10;
+  return {
+    reqPerSearch: reqPerSearch, requestsPerDay: requestsPerDay,
+    avgPerSec: avgPerSec, peakPerSec: peakPerSec,
+    trieLookupsPeak: trieLookupsPeak, boxes: boxes, boxesForPeak: boxesForPeak,
+    trieGB: trieGB, topkGB: topkGB, totalGB: trieGB + topkGB,
+    latencyMs: latencyMs, headroomMs: 100 - latencyMs
+  };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtMoney(n) {
+  if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
+  if (n >= 1e3) return "$" + fmtNum(n);
+  return "$" + n.toFixed(0);
+}
+function renderLabA() {
+  var prefix = document.getElementById("prefixInput").value;
+  var trending = document.getElementById("trendingToggle").checked;
+  var r = computeSuggestions(prefix, trending);
+  var html = "";
+  if (prefix.trim() === "") {
+    html = "Type a prefix above — the trie has nothing to walk yet.";
+  } else if (r.total === 0) {
+    html = "<b>Trie walk: " + r.nodesVisited + " nodes — no node for \"" + prefix + "\".</b><br>" +
+      "No suggestions. This is where the one-edit spell correction would run on the fallback path (about 340 trie walks for a 6-letter prefix) — try \"haland\": the correction is one substitution from \"haaland\".";
+    var fixed = computeSuggestions(prefix, false);
+    var near = null;
+    var variants = [];
+    var p = prefix.toLowerCase();
+    for (var i = 0; i < TERMS.length; i++) {
+      if (TERMS[i].name.toLowerCase().indexOf(p.slice(0, 3)) === 0) variants.push(TERMS[i].name);
+    }
+    if (variants.length) {
+      html += "<br><br>Closest terms sharing the first three letters: " + variants.slice(0, 5).join(", ") + ".";
+    }
+  } else {
+    var maxScore = r.matches[0].score;
+    html = "<b>Trie walk: " + r.nodesVisited + " node" + (r.nodesVisited === 1 ? "" : "s") + " visited — " + r.total + " term" + (r.total === 1 ? "" : "s") + " match" + (r.total === 1 ? "es" : "") + " \"" + prefix + "\", top " + r.matches.length + " shown.</b><br>" +
+      (trending ? "Trending boost on: Haaland's score is tripled (1,200,000 → 3,600,000 searches/day).<br>" : "") +
+      "<br>";
+    for (var j = 0; j < r.matches.length; j++) {
+      var m = r.matches[j];
+      var pct = Math.max(4, Math.round((m.score / maxScore) * 100));
+      html += "<div class=\"sugg\"><div style=\"flex:1;\">" + m.name +
+        "<div class=\"bar\" style=\"width:" + pct + "%;\"></div></div>" +
+        "<div style=\"white-space:nowrap;\">" + fmtNum(m.score) + " / day</div></div>";
+    }
+    html += "<br><b>The walk is the whole cost.</b> " + r.nodesVisited + " steps and one list read — no scan, no ranking pass over " + fmtNum(r.total) + " matches, because the top-10 was precomputed at build time.";
+  }
+  document.getElementById("labAResult").innerHTML = html;
+}
+function renderLabB() {
+  var searches = parseFloat(document.getElementById("searchesPerDay").value) || 0;
+  var keys = parseFloat(document.getElementById("keystrokes").value) || 0;
+  var debounceOn = document.getElementById("debounce").value === "on";
+  var peakFactor = parseFloat(document.getElementById("peakFactor").value) || 0;
+  var cacheHit = parseFloat(document.getElementById("cacheHit").value) || 0;
+  var terms = parseFloat(document.getElementById("terms").value) || 0;
+  var r = computeLoad(searches, keys, debounceOn, peakFactor, cacheHit, terms);
+  var withoutDebounce = searches * keys;
+  document.getElementById("labBResult").innerHTML =
+    "<b>Requests: " + fmtNum(r.requestsPerDay) + " / day (" + r.reqPerSearch + " per search).</b><br>" +
+    "Without debounce that would be " + fmtNum(withoutDebounce) + " / day — debounce deletes " + fmtNum(withoutDebounce - r.requestsPerDay) + " requests a day.<br>" +
+    "Average: " + fmtNum(r.avgPerSec) + " requests/second · Peak (×" + peakFactor + "): " + fmtNum(r.peakPerSec) + " requests/second<br>" +
+    "Trie lookups at peak after the " + cacheHit + "% edge cache: " + fmtNum(r.trieLookupsPeak) + " / second<br>" +
+    "Trie size: " + r.trieGB.toFixed(2) + " GB tree + " + r.topkGB.toFixed(2) + " GB of top-10 lists = <b>" + r.totalGB.toFixed(2) + " GB per box</b> — the whole dictionary, replicated, no sharding<br>" +
+    "Fleet: " + r.boxesForPeak + " boxes for the peak + 1 spare = <b>" + r.boxes + " boxes</b> at 10,000 requests/second each<br>" +
+    "Latency budget: " + r.latencyMs + " ms spent (30 network + 10 server + 10 render) against 100 ms — " + r.headroomMs + " ms of headroom<br><br>" +
+    (r.latencyMs <= 100
+      ? "<b>The box keeps up with the typist.</b> Half the budget is headroom, and the 99th-percentile request on stadium Wi-Fi still lands in time."
+      : "<b>Over budget.</b> The suggestions would lag behind the typing — move work to build time or add cache.");
+}
+document.getElementById("prefixInput").addEventListener("input", renderLabA);
+document.getElementById("trendingToggle").addEventListener("change", renderLabA);
+["searchesPerDay", "keystrokes", "peakFactor", "cacheHit", "terms"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+document.getElementById("debounce").addEventListener("change", renderLabB);
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
