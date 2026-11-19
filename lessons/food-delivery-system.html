@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design a Food Delivery System — three sides, one hot meal, thirty minutes</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #d84a2f; --accent-soft: #fde9e4;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #ff775e; --accent-soft: #3c2421;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number], .lab input[type=text] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  .sugg { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .sugg:last-child { border-bottom: none; }
+  .bar { height: 8px; border-radius: 999px; background: var(--accent); margin-top: 4px; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 42</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 42 · Classic design</span>
+  <h1>Design a Food Delivery System — three sides, one hot meal, thirty minutes</h1>
+  <p class="whyline">It is half-time at the Riverside FC cup final and 60,000 fans are hungry at once. One of them opens the club's food app, orders butter chicken from the stall two blocks away, and watches the little bike icon crawl across the map. Behind that icon are three different people who all have to agree, in the right order, in about thirty minutes: a customer who wants hot food, a restaurant that needs twelve minutes to cook it, and a courier on a bike who has to arrive at the kitchen at the exact minute the food is ready — not ten minutes early, standing in the rain, and not ten minutes late, carrying a cold curry. Today you design that three-sided machine from zero.</p>
+  <div class="meta"><span>Three-sided marketplace</span><span>Dispatch &amp; batching</span><span>Order saga</span><span>ETA promise</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a food delivery system?</h2>
+<p>Start from zero. A <strong>food delivery system</strong> is a <strong>three-sided marketplace</strong>: it matches a <strong>customer</strong> (the fan who is hungry), a <strong>restaurant</strong> (the kitchen that cooks), and a <strong>courier</strong> (the rider who carries the food from the kitchen to the fan). The platform itself owns no kitchens and employs no riders in the classic design — it owns the matching, the money, and the promise. The soccer running example: Riverside Eats, the food app for the Riverside FC stadium district, with 50,000 restaurants, 60,000 couriers online at dinner, and one million orders a day. An <strong>order</strong> is the customer's request — items, a delivery address, a payment — and it moves through a <strong>lifecycle</strong>: placed → confirmed by the restaurant → assigned to a courier → picked up → delivered, with a refund if anything fails along the way.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Three-sided marketplace:</strong> a platform with three kinds of users — customer, restaurant, courier — where each side's experience depends on the other two being there. <strong>Prep time:</strong> the minutes a kitchen needs to cook an order, from confirmation to the food being bagged and ready — typically 10–20 minutes, and the single most important number in the whole design. <strong>Dispatch:</strong> choosing which courier gets which order, and when. <strong>Batching (stacked orders):</strong> giving one courier two (or more) orders on one trip, usually from nearby restaurants to nearby customers. <strong>ETA (estimated time of arrival):</strong> the promised delivery time shown to the customer — the platform's public commitment, and the number the whole system is judged by. <strong>Order saga:</strong> an order as a sequence of steps across services (payment, restaurant confirmation, courier assignment), each with a compensating step if a later one fails — Lesson 21's saga pattern. <strong>Ghost courier:</strong> a courier whose app shows them online but who is not actually available — phone dead, app crashed, gone home — so their location is stale. <strong>Surge (busy fee):</strong> a temporary extra charge (or extra courier pay) when demand outruns couriers, to pull more couriers online and slow demand down. <strong>Live index:</strong> an in-memory map of where every courier is right now, updated by their location pings — answered from memory, never from a database scan. <strong>Idempotency key:</strong> a unique key the customer app attaches to an order attempt, so a retried tap can never create two orders — Lesson 31's double-charge guard. <strong>Geohash:</strong> a short string that encodes a location into a grid cell, so "couriers near this restaurant" is a lookup of a few neighbouring cells — Lesson 19 built it from zero.</p></div>
+<p>Why is this a hard design, when Lesson 19 already built Uber's dispatch and Lesson 21 already built sagas? Because food delivery is Uber's dispatch with two extra constraints that change every answer. First, the order is <em>perishable</em>: a passenger can wait in a car, but a curry cannot wait in a bag — every minute between the kitchen finishing and the customer opening the door is quality lost, so the system is racing a clock that starts the moment the food is ready, not the moment the order is placed. Second, the dispatch has a <em>third party with its own clock</em>: the kitchen. Uber dispatches a driver to a rider who is ready now; food delivery dispatches a courier to a kitchen that will be ready in twelve minutes, and the courier who arrives at minute four stands idle for eight minutes — idle courier-minutes are the system's most expensive waste, because a courier waiting at a restaurant is a courier not delivering. The one idea to carry through the whole lesson: <strong>the food, not the courier, sets the schedule — dispatch is timed so the courier arrives at the kitchen the minute the food is ready, and everything else (batching, surge, ETA) is built around that meeting point.</strong></p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are designing Riverside Eats at the scale of a large city food-delivery platform: <strong>10 million monthly users</strong>, <strong>50,000 restaurants</strong>, <strong>60,000 couriers online at dinner</strong>, and <strong>1 million orders a day</strong> at an average order value of <strong>$25</strong>. The promise is a <strong>30-minute delivery</strong> from order to door, and the quality bar is food that arrives hot — the courier must not wait long at the kitchen, and the food must not wait long in the bag.</p>
+<ul>
+<li><strong>Orders: 1 million a day is about 11.6 orders a second on average — and about 55.6 a second in the busiest fifteen minutes of dinner.</strong> 1,000,000 ÷ 86,400 = <strong>about 11.6 orders a second</strong> on average. But food is not spread evenly: dinner, 6–8pm, carries 20% of the day, so 200,000 orders in 2 hours, or 200,000 ÷ 7,200 = <strong>about 27.8 orders a second during the rush</strong>. And inside the rush, the busiest fifteen minutes carry a quarter of it — 50,000 orders in 900 seconds, or <strong>about 55.6 orders a second</strong>, a <strong>4.8× peak factor</strong> over the daily average. The order service is sized for 55.6 a second, not 11.6 — the dinner rush is the system, and the rest of the day is the easy part. (Lab B runs the rush math.)</li>
+<li><strong>Money: $25 million of food a day, $6.25 million of it the platform's.</strong> 1,000,000 orders × $25 = <strong>$25,000,000 a day</strong> of food, or about $9.1 billion a year. The platform takes about 25% — its commission from the restaurant plus the delivery fee — so 0.25 × $25,000,000 = <strong>$6,250,000 a day</strong> of platform revenue. That number is why the dispatch matters in money, not just in minutes: every idle courier-minute and every late delivery is paid for out of that $6.25 million, and a courier who completes 2 deliveries an hour earns the platform about $12.50 an hour in take — so utilisation is the business, not a nice-to-have.</li>
+<li><strong>Courier capacity: 60,000 couriers at 2 deliveries an hour cover the rush at 83% utilisation — with almost no slack.</strong> The dinner rush needs 200,000 deliveries in 2 hours, or 100,000 an hour. One courier completes about 2 deliveries an hour — a 30-minute round trip of riding, waiting, and handing over — so 60,000 couriers × 2 = <strong>120,000 deliveries an hour of capacity</strong> against 100,000 an hour of demand: 100,000 ÷ 120,000 = <strong>about 83% utilisation</strong>. That is healthy but tight: if 10,000 couriers log off, capacity falls to 100,000 an hour and the rush queues. Batching is the release valve — two orders per trip lifts a courier to about 2.7 effective deliveries an hour, so the same 60,000 couriers cover 162,000 an hour and utilisation falls to 62%. (Lab B sizes the fleet.)</li>
+<li><strong>Location stream: 60,000 couriers pinging every 5 seconds is 12,000 updates a second — a stream, never a database write.</strong> 60,000 ÷ 5 = <strong>12,000 location updates a second</strong> at dinner, each about 100 bytes, or about 1.2 MB a second. That is a firehose, and the design's answer is that almost none of it is stored: the latest position of each courier lives in an in-memory live index with a short TTL, and only a 1-per-minute sample goes to cold storage — 60,000 × 1,440 × 100 bytes = <strong>about 8.6 GB a day</strong> of history, kept for disputes and ETAs, not for dispatch. Anyone who writes 12,000 rows a second into a relational database to answer "who is near this restaurant" has built a system that falls over at dinner and answers a question about where couriers <em>were</em>, not where they are.</li>
+<li><strong>Order storage: 1 million orders a day at 2 KB each is 2 GB a day, 730 GB a year.</strong> 1,000,000 × 2 KB = <strong>2 GB a day</strong>, or about 730 GB a year — small, because an order is a short record (items, addresses, timestamps, status) and the heavy data (photos, menus) lives elsewhere. Orders are sharded by order ID and kept hot for about 90 days; after that they move to cold storage, because nobody re-reads a three-month-old curry order except an accountant. The menu catalog is the bigger read problem, not the orders: 50,000 restaurants × 200 items, cached at the edge, because 5 million browse sessions a day each load a dozen menus.</li>
+<li><strong>ETA budget: 30 minutes, spent as 15 minutes of cooking + 4 minutes of riding to the kitchen + 8 minutes to the door, with 3 minutes of slack.</strong> The average order is 15 minutes of prep, a courier 2 km away at 30 km/h takes 4 minutes to reach the restaurant, and the ride to the customer takes about 8 minutes: 15 + 4 + 8 = 27 minutes, inside the 30-minute promise with 3 minutes of slack. But note what the arithmetic says: the 15 minutes of cooking dominates everything, and the courier's 4-minute ride to the kitchen is only worth paying if the courier arrives <em>when the food is ready</em>. A courier dispatched the second the order is placed arrives at minute 4 and waits 11 minutes — 11 minutes of a 30-minute trip wasted standing still, and the food still arrives at minute 23. Dispatch the courier at minute 11 instead, and the food still arrives at minute 23, with 11 courier-minutes freed for another order. That is the whole lesson in one subtraction, and Lab A makes you run it.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Three numbers decide the shape of the food delivery system, and they pull in different directions. The 55.6 orders a second at the dinner peak say the order path must be cheap and asynchronous — the customer taps "order", the system takes the order in milliseconds and does the work (payment, restaurant confirmation, dispatch) off the request path, because at 4.8× the daily average there is no budget for a slow synchronous chain. The 83% courier utilisation at dinner says dispatch is a capacity problem, not a distance problem — the courier who waits 11 minutes at a kitchen is a courier who cannot take the next order, so the system is timed around the food's clock, not the courier's. And the 12,000 location updates a second say courier positions are a stream held in memory with a TTL, never rows in a database — the "who is nearby" question is answered from the live index in microseconds, and the only location data ever written to disk is a 1-per-minute sample for disputes. A design that dispatches on distance alone, that writes every ping to a database, or that holds the customer on a synchronous call while it finds a courier, has designed a system that works at lunch and queues at dinner.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Follow one order — the fan orders butter chicken at 18:42, half-time of the cup final. There are seven stages, and each one exists to answer a different failure.</p>
+<ol>
+<li><strong>Three client apps — customer, restaurant tablet, courier — three contracts, one order.</strong> The customer app browses menus, places the order, and watches the bike on the map. The restaurant tablet receives the order, shows a confirm button with a prep-time estimate, and prints the ticket — it is the only app in the system that can say "we can cook this", and its confirmation is a hard gate: no confirmation, no charge, no courier. The courier app shows the offer (restaurant, pay, distance), an accept button, and turn-by-turn navigation. The three apps talk to the platform through one API gateway, but their contracts are different: the customer needs a fast, honest ETA; the restaurant needs an order it can actually cook in the time it promised; the courier needs one clear offer at a time, with the pay visible before they accept. A courier who is shown three offers at once will cherry-pick the best and leave the other two waiting.</li>
+<li><strong>Order service — take the order in milliseconds, do the work off the request path.</strong> The customer taps "order" and the order service does exactly four things synchronously: validate the order, attach the <strong>idempotency key</strong> (so a double-tap or a retried request can never create two orders — Lesson 31's guard), write the order as PLACED, and return a 202 with the order ID and the ETA promise. Everything else — charging the card, asking the restaurant to confirm, finding a courier — happens asynchronously, driven by events. The customer is never left staring at a spinner while the system negotiates with a kitchen: the order is accepted first, and the status channel (websocket, or the notification system from Lesson 22) tells the customer what happens next. The order service owns the order's <strong>state machine</strong> — PLACED → CONFIRMED → ASSIGNED → PICKED_UP → DELIVERED, with CANCELLED and REFUNDED as exits — and every transition is a conditional write, so two services can never move the same order to two different states.</li>
+<li><strong>Restaurant service &amp; menu catalog — the menu is a cache problem, the confirmation is a deadline problem.</strong> Menus are read far more than they are written: 5 million browse sessions a day against 50,000 restaurants, so the catalog is cached at the edge and the restaurant service is mostly a cache invalidation problem — when a dish sells out, the "86'd" flag must reach the edge in seconds, or customers order food that does not exist. The confirmation is the sharp edge: when an order arrives, the restaurant has about 60 seconds to confirm with a prep time, or the system auto-cancels and refunds, because an unconfirmed order is a customer waiting for food that was never started. The prep time the restaurant gives is a promise the dispatch is built on — if the kitchen says 12 minutes and takes 25, every courier timed to minute 12 waits 13 minutes, so restaurants that lie about prep time get their estimates overridden by the system's own history of their actual cook times.</li>
+<li><strong>Dispatch — the heart: match courier to order, timed to the food, not to the tap.</strong> Dispatch runs on a loop every few seconds, not once per order, because batching needs a pool to choose from. For each unassigned order it scores candidate couriers on three numbers: the ride to the restaurant, the ride to the customer, and — the number Uber never had — the wait at the restaurant, which is prep time minus ride time. The winning courier is the one whose arrival lines up with the food being ready, and the offer is sent with a 15-second accept window enforced by an atomic conditional write (Lesson 19's Lua soft-reserve, reused here), so two orders can never claim the same courier. The dispatch is <em>delayed on purpose</em>: an order with 15 minutes of prep is not dispatched at minute 0, it is dispatched at minute 11, when a courier 4 minutes away will arrive exactly as the bag is handed over. And dispatch looks for batches first: two orders from restaurants within a few hundred metres, going to customers in the same direction, ride together — one trip, two deliveries, about 25% fewer courier-minutes per order (Lab A measures it).</li>
+<li><strong>Courier location stream — pings in, live index out, ghosts evicted by TTL.</strong> Every courier app sends a location ping every 5 seconds over a websocket to a connection server (Lesson 15's socket layer), which publishes the ping to a stream; a processor updates the live index — a geohash-keyed in-memory map of courier ID to position, held in Redis — and the dispatch reads it, never a database. Each entry carries a TTL of about 15 seconds: a courier who stops pinging — dead battery, tunnel, app killed — disappears from the index automatically, so dispatch never offers an order to a courier who is not there. This is the ghost-courier fix, and it is structural: the system does not trust a "courier is online" flag, it trusts a ping that arrived in the last fifteen seconds. The 1-per-minute sample that goes to cold storage exists for one reason: when a customer disputes "the courier never came", the platform can replay the ride.</li>
+<li><strong>Payment &amp; fulfilment — charge once, capture last, reconcile daily.</strong> Payment follows Lesson 31 exactly: the card is authorised when the restaurant confirms (not when the order is placed — an unconfirmed order must never take money), captured when the food is picked up, and the courier and restaurant are paid out of the platform's ledger afterwards. The payout math is the business model in one line: the customer pays $25, the restaurant keeps about $17.50, the courier earns about $5, and the platform keeps about $2.50 — and surge changes the split, not the structure: when couriers are scarce, the busy fee goes to the courier first, because a courier who is paid more logs on, and a customer who is charged more orders less. Every payment event lands in the append-only ledger, and a daily reconciliation catches the one failure that matters most: a customer charged for food that was never delivered.</li>
+<li><strong>Notifications &amp; tracking — the customer watches the order, the system watches the promise.</strong> The customer sees five status updates — placed, confirmed, courier assigned, picked up, delivered — pushed over the websocket, with SMS as the fallback when the app is backgrounded (Lesson 22's notification system). The ETA the customer sees is not a single number, it is a live recomputation: prep time from the restaurant's actual progress, the courier's real position from the live index, and the remaining ride from the road network. And the system watches the same promise from the inside: every order carries a deadline (30 minutes), and an order that is 5 minutes from its deadline with no courier assigned is escalated — offered to couriers further away, at higher pay, before it becomes a late delivery instead of after. The ETA is a commitment the system manages, not a guess it displays.</li>
+</ol>
+<table>
+<tr><th>Stage</th><th>What it does</th><th>What fails if it is missing</th></tr>
+<tr><td>Three client apps</td><td>Customer orders, restaurant confirms with a prep time, courier accepts one offer at a time</td><td>The restaurant cannot say no, the courier cherry-picks, the customer orders food that was never cooked</td></tr>
+<tr><td>Order service</td><td>Validates, dedupes by idempotency key, writes PLACED, returns in milliseconds; owns the state machine</td><td>A double-tap creates two orders; the customer waits on a spinner while the system negotiates with a kitchen</td></tr>
+<tr><td>Restaurant service &amp; catalog</td><td>Edge-cached menus, sold-out flags in seconds, 60-second confirm deadline, prep-time history overrides</td><td>Customers order dishes that do not exist; unconfirmed orders sit forever; kitchens lie about prep time and couriers wait</td></tr>
+<tr><td>Dispatch</td><td>Scores couriers on ride + wait-at-kitchen, delayed to meet the food's clock, batches nearby orders, 15-second atomic offers</td><td>Couriers arrive early and wait 11 minutes; two orders claim one courier; every order is a solo trip and the fleet runs out</td></tr>
+<tr><td>Courier location stream</td><td>5-second pings into a geohash live index with a 15-second TTL; 1-per-minute sample to cold storage</td><td>Dispatch offers orders to ghost couriers; "who is nearby" becomes a database scan of where couriers were</td></tr>
+<tr><td>Payment &amp; fulfilment</td><td>Authorise on confirm, capture on pickup, ledger payouts, daily reconciliation</td><td>Unconfirmed orders take money; a charged-but-undelivered order is never caught</td></tr>
+<tr><td>Notifications &amp; tracking</td><td>Five status pushes, live ETA recomputation, deadline escalation before lateness</td><td>The customer is blind, the ETA is a stale guess, and late orders are discovered by complaints, not by the system</td></tr>
+</table>
+
+<h2>The heart of it: three decisions that make or break the design</h2>
+<h3>1. The order is a saga, not a transaction — because three independent parties have to agree</h3>
+<p>The order touches three services that no single transaction can span: the payment service charges the card, the restaurant service confirms the kitchen can cook, and the dispatch service assigns a courier. A two-phase commit across them (Lesson 21) would lock the customer's money and the restaurant's kitchen while waiting for a courier to accept — and a courier has 15 seconds to answer, which is an eternity to hold a lock. So the order is a <strong>saga</strong>: charge the card, then ask the restaurant, then find a courier, and each step has a <strong>compensating action</strong> if a later step fails — restaurant does not confirm within 60 seconds, refund the card; courier cancels after pickup, re-dispatch and, if no courier is found, refund and apologise. The order of the steps is the design: the card is authorised only after the restaurant confirms, and the money is captured only after the courier picks up, so the failure that hurts most — a customer charged for food that never arrived — requires two independent failures, not one. The senior line: <strong>when the parties are independent and one of them is a human with 15 seconds to answer, you do not transact, you saga — and you put the irreversible step (taking the money) last, behind every step that can say no.</strong></p>
+<table>
+<tr><th>Step</th><th>What happens</th><th>If it fails</th></tr>
+<tr><td>Place order</td><td>Validate, dedupe by idempotency key, write PLACED</td><td>Reject immediately — nothing has been charged or promised</td></tr>
+<tr><td>Restaurant confirms</td><td>60-second window, prep time promised</td><td>Auto-cancel, no charge — the customer is told at once, not after waiting</td></tr>
+<tr><td>Authorise payment</td><td>Hold the funds on the card</td><td>Cancel the order, tell the restaurant to stand down</td></tr>
+<tr><td>Dispatch courier</td><td>Offer, 15-second accept, timed to the food's clock</td><td>Re-offer to the next courier, then widen the radius and raise the pay</td></tr>
+<tr><td>Pickup</td><td>Courier scans the bag, capture the payment</td><td>Courier cancels: re-dispatch; no courier at all: refund, food is the restaurant's loss, not the customer's</td></tr>
+<tr><td>Deliver</td><td>Hand over, customer confirms, close the order</td><td>Customer unreachable: courier waits 5 minutes, returns the food, refund minus a small fee</td></tr>
+</table>
+<h3>2. Dispatch is timed to the food, not to the tap — the prep time is the schedule</h3>
+<p>The naive dispatch is Uber's dispatch: the order arrives, find the nearest courier, send them now. In food delivery that wastes the system's scarcest resource, because the courier arrives at the kitchen 11 minutes before the food is ready and stands there — 11 courier-minutes spent producing nothing, while other orders wait for a courier who is busy standing still. The correct dispatch holds the order in a <strong>dispatch window</strong>: it knows the prep time (15 minutes) and the ride time (4 minutes), so it dispatches at minute 11, and the courier arrives at minute 15, exactly as the bag comes off the pass. The ETA is identical — the food still arrives at minute 23 — but the courier is free for 11 minutes in between, and at 83% utilisation those 11 minutes are the difference between covering the rush and queueing it. The rule generalises: <strong>dispatch time = prep time − ride time</strong>, never the order time, and the dispatch loop re-checks the prep estimate every few seconds, because a kitchen that falls behind moves the dispatch later, and a kitchen that finishes early pulls it forward. The senior line: <strong>the courier is not dispatched to an order, they are dispatched to a moment — the minute the food is ready — and every minute they arrive early is capacity the rush cannot afford.</strong></p>
+<h3>3. Location is a stream with a TTL, not rows in a database — the live index is the dispatch's eyes</h3>
+<p>Dispatch needs one question answered in microseconds, thousands of times a minute: who is near this restaurant, right now? A database cannot answer it — a scan of 60,000 courier rows, filtered by distance, on every dispatch cycle, is a query that gets slower exactly when the rush gets busier, and its answer is already stale, because the courier has moved since the row was written. The design's answer is the live index: couriers ping every 5 seconds, the pings land in a geohash-keyed in-memory map, and dispatch reads the handful of cells around the restaurant — the same geohash lookup Lesson 19 built for Uber, with one addition that food delivery needs and Uber did not: a 15-second TTL on every entry, so a courier who stops pinging vanishes from the index on their own, without anyone noticing or cleaning up. The index is also the reason the ETA is honest: the courier's position in the index is at most 5 seconds old, so the "courier is 4 minutes away" on the customer's screen is a live fact, not a stale row. The senior line: <strong>positions that change every five seconds belong in memory with an expiry, not in a table with a query — the TTL is not a cache optimisation, it is the ghost-courier fix, and a dispatch that trusts a database row about a moving bike is dispatching to where the bike was.</strong></p>
+<table>
+<tr><th>Choice</th><th>What you gain</th><th>What you pay</th><th>Use it for</th></tr>
+<tr><td><strong>Order as a saga</strong></td><td>Three independent parties can each say no; failures compensate cleanly</td><td>Intermediate states are visible; compensations must be idempotent</td><td>The default — every order</td></tr>
+<tr><td><strong>Dispatch timed to the food</strong></td><td>Zero courier waiting at the kitchen; 11 courier-minutes freed per order at the rush</td><td>Needs a trustworthy prep time; a kitchen that lies breaks the timing</td><td>The default — dispatch at prep time minus ride time</td></tr>
+<tr><td><strong>Batching (stacked orders)</strong></td><td>About 25% fewer courier-minutes per order; the fleet covers the rush at 62% instead of 83%</td><td>Second customer waits ~6 minutes longer; a bad batch delays two orders, not one</td><td>Orders from nearby restaurants to customers in the same direction, at the rush</td></tr>
+<tr><td><strong>Live index with TTL</strong></td><td>Microsecond "who is nearby", ghost couriers evicted automatically</td><td>12,000 pings a second to ingest; the index is lost if the store restarts (rebuilt from pings in seconds)</td><td>The default — the only source of courier positions dispatch reads</td></tr>
+<tr><td><strong>Authorise on confirm, capture on pickup</strong></td><td>No customer is ever charged for food that was never cooked or picked up</td><td>Two payment steps to reconcile; authorisation holds expire and must be re-done</td><td>The default — the money follows the food, not the tap</td></tr>
+<tr><td><strong>Surge (busy fee)</strong></td><td>More couriers log on, fewer customers order — demand and supply meet</td><td>Customers pay more at exactly the moment they are hungriest; over-surge kills the order</td><td>When utilisation passes ~85% or the dispatch queue grows — and the extra goes to the courier first</td></tr>
+</table>
+<div class="callout green"><strong>The senior line on the three decisions</strong><p>Every food delivery system is the same three sentences, and the room is won by saying them with numbers attached. The order is a saga across three parties who can each say no — charge the card only after the restaurant confirms, capture only after the courier picks up, so a customer is never charged for food that never arrived, and every failure has a compensation, not a lock. The dispatch is timed to the food, not to the tap — prep time minus ride time is the dispatch moment, so the courier arrives at the kitchen the minute the bag is ready, the food still arrives at minute 23, and the 11 courier-minutes that would have been wasted standing still are free for the next order. And location is a stream, not a table — 60,000 couriers pinging every 5 seconds into a geohash live index with a 15-second TTL, so dispatch asks "who is nearby right now" in microseconds and ghost couriers evict themselves. Say those three sentences, with the arithmetic — 1 million orders a day, 55.6 a second at the dinner peak, 83% courier utilisation, 12,000 pings a second, 30 minutes promised and 27 spent — and the rest of the design — the batching, the surge, the live ETA — is machinery that follows.</p></div>
+
+<h2>Failure modes — six ways a food delivery system fails</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>Dinner-rush queue</td><td>55.6 orders a second hit a fleet at 83% utilisation, the dispatch queue grows, and ETAs slip from 30 minutes to 50</td><td>Batching first (two orders per trip lifts capacity to ~162,000 an hour), then surge to pull couriers on and slow orders down, then degrade the promise honestly — show 45 minutes instead of pretending 30</td></tr>
+<tr><td>Restaurant never confirms</td><td>The tablet is offline or the kitchen is slammed, the 60 seconds pass, and the customer is waiting for food that was never started</td><td>The 60-second auto-cancel: refund, tell the customer at once, and offer the next-nearest restaurant — a fast no is a better experience than a slow silence</td></tr>
+<tr><td>Courier cancels after pickup</td><td>The courier's bike breaks down with the food in the bag, and the order is stranded halfway to the customer</td><td>Re-dispatch immediately from the live index — the food's location is known, the replacement courier goes to the courier, not the restaurant — and the customer sees the new ETA, not an error</td></tr>
+<tr><td>Cold food</td><td>Prep finished at minute 12, the courier arrived at minute 22, and the curry spent ten minutes in a bag</td><td>Dispatch timed to the food's clock, and a hard rule: the courier waits at the restaurant, never the food — if the courier is late, re-dispatch the order to a nearer courier rather than letting the bag cool</td></tr>
+<tr><td>Duplicate order / double charge</td><td>The customer double-taps, the request retries on a flaky network, and two orders for the same butter chicken appear</td><td>The idempotency key: the second attempt carries the same key and returns the first order instead of creating a second — Lesson 31's guard, applied at the order service before any money moves</td></tr>
+<tr><td>Ghost courier</td><td>Dispatch offers an order to a courier whose phone died ten minutes ago, the 15 seconds expire, and the order is re-offered late</td><td>The 15-second TTL on the live index: a courier who stops pinging disappears on their own, and the offer goes to a courier who is actually there — the system never trusts an "online" flag, only a fresh ping</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"Dispatch the nearest courier the moment the order is placed."</strong> It feels fast and it wastes the fleet. The nearest courier arrives at the kitchen in 4 minutes, the food is ready in 15, and the courier stands still for 11 minutes — at 83% utilisation, those 11 minutes are an order that does not get delivered. The right dispatch is prep time minus ride time, and the follow-on question is always: what is the courier doing between the order and the food being ready? If the answer is "waiting at the restaurant", the dispatch is timed to the tap, not to the food.</li>
+<li><strong>"Store courier locations in the database and query by distance."</strong> It works at lunch and dies at dinner. 12,000 location writes a second into a relational table, then a distance scan over 60,000 rows on every dispatch cycle, returns an answer that was stale when it was computed — the courier has moved since the row was written. Positions that change every five seconds belong in a geohash live index in memory with a TTL, and the database keeps only the 1-per-minute sample for disputes. The trap is the engineer who treats a moving bike as a row.</li>
+<li><strong>"One transaction across order, payment, and restaurant."</strong> The three parties are three services with three owners, and one of them — the courier — is a human who needs 15 seconds to answer an offer. A distributed transaction would hold the customer's money and the restaurant's kitchen locked while waiting for a human to tap accept, and a single slow accept would block the whole chain. The order is a saga: each step commits locally, each failure compensates, and the irreversible step — taking the money — goes last, after every step that can say no has said yes.</li>
+</ul>
+
+<h2>Interactive lab 1: the dispatch timing simulator</h2>
+<div class="lab">
+<h3>Lab A — When should the courier leave?</h3>
+<p>One order: butter chicken, a restaurant, and a courier 2 km away. Set the prep time and the distance, then compare three dispatch strategies. The food arrives at the same minute either way — the difference is what the courier was doing in between.</p>
+<label for="prepTime">Prep time (minutes the kitchen needs)</label>
+<input type="number" id="prepTime" value="15" />
+<label for="courierDist">Courier distance to the restaurant (km)</label>
+<input type="number" id="courierDist" value="2" step="0.5" />
+<label for="courierSpeed">Courier speed (km/h)</label>
+<input type="number" id="courierSpeed" value="30" />
+<label for="dropOff">Ride from restaurant to customer (minutes)</label>
+<input type="number" id="dropOff" value="8" />
+<label for="strategy">Dispatch strategy</label>
+<select id="strategy">
+<option value="immediate">Dispatch now — courier leaves immediately</option>
+<option value="wait">Dispatch timed to the food — courier leaves at prep time minus ride time</option>
+<option value="batch">Batched — courier takes a second order from a nearby restaurant too</option>
+</select>
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Check the defaults: prep 15 minutes, courier 2 km away at 30 km/h. Dispatch-now wastes 11 minutes of the courier standing at the kitchen; timed dispatch frees those 11 minutes and the food still arrives at minute 23; batching cuts the courier-minutes per order from 12 to 9. Then raise the prep time to 25 and watch the wasted wait grow — that is why the dispatch is timed to the food, not to the tap.</p>
+</div>
+
+<h2>Interactive lab 2: the dinner-rush planner</h2>
+<div class="lab">
+<h3>Lab B — Size the fleet for the dinner rush</h3>
+<p>Enter the order volume, the dinner share, and the courier fleet. The planner shows the peak order rate, whether the fleet covers the rush, the utilisation, the location-stream load, and the money.</p>
+<label for="ordersPerDay">Orders per day</label>
+<input type="number" id="ordersPerDay" value="1000000" />
+<label for="dinnerShare">Dinner rush share of the day (%)</label>
+<input type="number" id="dinnerShare" value="20" />
+<label for="couriers">Couriers online at dinner</label>
+<input type="number" id="couriers" value="60000" />
+<label for="deliveriesPerHour">Deliveries per courier per hour</label>
+<input type="number" id="deliveriesPerHour" value="2" step="0.1" />
+<label for="orderValue">Average order value ($)</label>
+<input type="number" id="orderValue" value="25" />
+<label for="batching">Batching</label>
+<select id="batching">
+<option value="off">Off — one order per trip</option>
+<option value="on">On — about 2.7 effective deliveries per courier per hour</option>
+</select>
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the planner reproduces 55.6 orders a second in the busiest fifteen minutes, 120,000 deliveries an hour of capacity against 100,000 an hour of demand (83.3% utilisation), 12,000 location updates a second, $25M of food a day and $6.25M of platform take. Then turn batching on and watch utilisation fall to about 61.7% — that is the release valve. Then drop the fleet to 40,000 couriers and watch the rush queue.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. Design a food delivery system: 1 million orders a day, 50,000 restaurants, 60,000 couriers at dinner, 30-minute delivery promise. Walk through the design.</summary>
+<p><strong>Model answer.</strong> I start from the dinner rush, because it sizes everything: 1 million orders a day is about 11.6 a second on average, but dinner carries 20% of the day — 200,000 orders in 2 hours, about 27.8 a second — and the busiest fifteen minutes carry a quarter of that, about 55.6 orders a second, a 4.8× peak over the average. The order path is asynchronous: the customer taps order, the order service validates, dedupes by idempotency key, writes PLACED, and returns in milliseconds — payment, restaurant confirmation, and dispatch all happen off the request path, driven by events. The order is a saga, not a transaction: the card is authorised only after the restaurant confirms within its 60-second window, and captured only after the courier picks up, so a customer is never charged for food that was never cooked, and every failure has a compensation — no confirmation means an instant refund, no courier means re-dispatch, then refund. The heart is dispatch, timed to the food: prep time minus ride time is the dispatch moment, so a courier 4 minutes away is sent at minute 11 for a 15-minute prep and arrives exactly as the bag is ready — the food still arrives at minute 23, but the 11 courier-minutes that would have been wasted waiting are free for the next order. Courier positions live in a geohash live index in memory with a 15-second TTL — 60,000 couriers pinging every 5 seconds is 12,000 updates a second, a stream, never a database write — and the fleet covers the rush at 83% utilisation, with batching as the release valve: two orders per trip lifts a courier to about 2.7 effective deliveries an hour and drops utilisation to about 62%. And I would close with the honest residual: the whole timing depends on the prep time being true, so the system tracks each restaurant's actual cook times and overrides the estimate when the kitchen lies — the dispatch is only as good as the clock it is timed to.</p>
+</details>
+<details>
+<summary>Q2. A courier is dispatched to a restaurant, but the kitchen is running 10 minutes behind. What happens, and how does the design keep the food hot?</summary>
+<p><strong>Model answer.</strong> I start with what the system knows and when it knows it: the restaurant's tablet reports progress, and the dispatch loop re-checks the prep estimate every few seconds, so a kitchen falling behind is visible before the courier arrives, not after. If the courier has not left yet, the dispatch simply moves later — the dispatch moment is prep time minus ride time, and prep time just grew by 10, so the courier leaves 10 minutes later and still arrives as the food is ready. If the courier is already on the way, the system has a choice, and the rule is that the food waits for no one: if the courier will arrive more than a few minutes before the food is ready, reassign the order to a nearer courier or let the first courier take a different order and send a fresh one when the food is actually ready. The hard rule is that the courier waits at the restaurant, never the food in the bag — a courier standing still is wasted capacity, but food sitting in a bag is a ruined order, and the second failure is worse because the customer tastes it. And I would add the systemic fix: the restaurant's prep-time history is updated, so a kitchen that quoted 15 and took 25 gets its estimates overridden next time — the dispatch learns the kitchen's real clock, and the customer never has to.</p>
+</details>
+<details>
+<summary>Q3. It is the cup final, the dinner rush hits, and the fleet is at 83% utilisation with the dispatch queue growing. What breaks first, and what do you do — in order?</summary>
+<p><strong>Model answer.</strong> I start with what breaks first: the dispatch queue, not the order service. The order service takes orders in milliseconds and the queue absorbs the burst, but the couriers are the bottleneck — at 83% utilisation there are only 20,000 deliveries an hour of slack, and a queue of unassigned orders means ETAs slipping past the 30-minute promise. The first move is batching: dispatch looks for two orders from nearby restaurants going in the same direction and stacks them, which lifts each courier to about 2.7 effective deliveries an hour and takes utilisation from 83% to about 62% — the same fleet, a third more capacity, at the cost of the second customer waiting about 6 minutes longer. The second move is surge: a busy fee that goes to the courier first, because a courier paid more logs on, and a customer charged more orders less — supply up, demand down, the two sides meeting in the middle. The third move is to degrade honestly: show 45 minutes instead of 30, because an honest 45 keeps the customer and a lying 30 loses them when the food arrives late. And the move I would not make is shedding orders silently — a food platform that refuses orders at dinner is a platform the customer deletes, so the queue is allowed to grow and the ETA is allowed to stretch, and the system sheds by price, not by refusal. The queue is monitored by depth and by age, and an order 5 minutes from its deadline with no courier is escalated — wider radius, higher pay — before it becomes a late delivery instead of after.</p>
+</details>
+<details>
+<summary>Q4. Lesson 19 built Uber's dispatch and Lesson 21 built sagas. What is actually different about food delivery — why can't you reuse the Uber design as-is?</summary>
+<p><strong>Model answer.</strong> I start with the two constraints Uber never had, because they change every answer. First, the order is perishable: a passenger can wait in a car, but a curry cannot wait in a bag — every minute between the kitchen finishing and the customer opening the door is quality lost, so the system races a clock that starts when the food is ready, not when the order is placed, and the rule is that the courier waits at the restaurant, never the food. Second, the dispatch has a third party with its own clock: Uber dispatches a driver to a rider who is ready now, but food delivery dispatches a courier to a kitchen that will be ready in twelve minutes, so the dispatch moment is prep time minus ride time — dispatch at minute 11 for a 15-minute prep and a 4-minute ride — and the naive "dispatch the nearest courier now" wastes 11 courier-minutes per order standing still. The saga is also different in shape: Uber's ride is two parties, but the order is three — customer, restaurant, courier — and the restaurant's 60-second confirmation is a gate the whole order depends on, with the money authorised only after it says yes and captured only after pickup. The parts that do carry over are the geohash live index for "who is nearby" and the atomic 15-second offer, and the parts that do not are the timing and the third party — the food, not the courier, sets the schedule, and that one sentence is the difference between the two designs.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — Time the dispatch.</strong> An order has a prep time of 18 minutes. The nearest courier is 3 km away, riding at 30 km/h. The ride from the restaurant to the customer takes 8 minutes. (a) How long is the courier's ride to the restaurant? (b) At what minute should the courier be dispatched? (c) What is the delivery ETA? (d) If the courier is dispatched the moment the order is placed, how many minutes do they stand waiting at the kitchen? <em>Rubric: (a) 3 ÷ 30 × 60 = 6 minutes; (b) dispatch at prep minus ride = 18 − 6 = minute 12; (c) ETA = prep + drop-off = 18 + 8 = 26 minutes; (d) the courier arrives at minute 6 and the food is ready at minute 18, so 12 minutes standing still — at the dinner rush, that is 12 minutes a courier is not delivering, and the food still arrives at minute 26 either way.</em></p>
+<p><strong>Drill 2 — Size the fleet.</strong> A food platform does 800,000 orders a day, and dinner carries 25% of them in 2 hours. 50,000 couriers are online at dinner, each completing 2 deliveries an hour. (a) How many orders an hour does dinner demand? (b) How many deliveries an hour can the fleet complete? (c) What is the utilisation? (d) With batching, each courier manages 2.7 effective deliveries an hour — what is the utilisation now? <em>Rubric: (a) 800,000 × 0.25 = 200,000 orders in 2 hours, so 100,000 an hour; (b) 50,000 × 2 = 100,000 an hour; (c) 100,000 ÷ 100,000 = 100% — the fleet is exactly saturated, so the first courier who logs off queues the rush; (d) 50,000 × 2.7 = 135,000 an hour, so 100,000 ÷ 135,000 ≈ 74% — batching is the difference between a rush that queues and a rush that holds.</em></p>
+<p><strong>Drill 3 — The location stream.</strong> 45,000 couriers ping their location every 4 seconds, each ping about 100 bytes. (a) How many updates a second is that? (b) If every ping were stored, how much storage a day? (c) The design stores only a 1-per-minute sample per courier — how much a day? <em>Rubric: (a) 45,000 ÷ 4 = 11,250 updates a second; (b) 11,250 × 86,400 × 100 bytes = 97,200,000,000 bytes ≈ 97.2 GB a day — and that is only the location history, which nobody reads; (c) 45,000 × 1,440 × 100 = 6,480,000,000 bytes ≈ 6.5 GB a day — a 15× saving, and the only location data the system ever needs on disk, because dispatch reads the live index, not history.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Order shape</td><td>Saga: confirm → authorise → dispatch → capture on pickup, with a compensation for every failure</td><td>A single database transaction only inside one service — never across customer, restaurant, and courier</td></tr>
+<tr><td>Dispatch timing</td><td>Dispatch at prep time minus ride time, so the courier arrives as the food is ready</td><td>Dispatch immediately only when the food is already ready (a re-dispatch, or a restaurant with near-zero prep)</td></tr>
+<tr><td>Courier positions</td><td>Geohash live index in memory, 5-second pings, 15-second TTL; 1-per-minute sample to cold storage</td><td>Database storage only for the dispute sample — never as the source dispatch reads</td></tr>
+<tr><td>Batching</td><td>Stack two orders from nearby restaurants to customers in the same direction, at the rush</td><td>Solo trips off-peak, or when the second order would make the first one late</td></tr>
+<tr><td>Money</td><td>Authorise on restaurant confirmation, capture on pickup, daily ledger reconciliation</td><td>Prepay in full only for a trusted, instant-confirm flow — never before the kitchen says yes</td></tr>
+<tr><td>Surge</td><td>Busy fee when utilisation passes ~85% or the dispatch queue grows; the extra goes to the courier first</td><td>Cap it, and degrade the ETA honestly instead of surging without limit — a price that kills the order helps no one</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"Food delivery is a three-sided marketplace — a customer, a restaurant, and a courier — and the whole design is timed around the one clock that matters: the food's. Riverside Eats does one million orders a day at twenty-five dollars, and dinner carries twenty percent of it, so the busiest fifteen minutes see about 55.6 orders a second, 4.8 times the daily average. The design is three decisions. The order is a saga across three parties who can each say no — the card is authorised only after the restaurant confirms, and captured only after the courier picks up, so a customer is never charged for food that never arrived. The dispatch is timed to the food, not to the tap — prep time minus ride time is the dispatch moment, so the courier arrives at the kitchen the minute the bag is ready, the food still arrives at minute 23, and the eleven courier-minutes that would have been wasted standing still are free for the next order. And location is a stream, not a table — sixty thousand couriers pinging every five seconds into a geohash live index with a fifteen-second TTL, so dispatch asks who is nearby in microseconds and ghost couriers evict themselves. The rest is machinery that follows: batching that lifts a courier to 2.7 effective deliveries an hour and takes the rush from 83 percent utilisation to 62, surge that pays the courier first, and a live ETA that is recomputed from the kitchen's real progress and the courier's real position. And the trap to name: dispatching the nearest courier the moment the order is placed feels fast and wastes the fleet — the food sets the schedule, and every minute the courier arrives early is capacity the dinner rush cannot afford."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: three sides, one hot meal, thirty minutes — the food, not the courier, sets the schedule, and dispatch is timed so the courier arrives at the kitchen the minute the food is ready.</li>
+<li>Back-of-the-envelope: 1 million orders a day, 55.6 a second at the dinner peak, $25 million of food and $6.25 million of platform take a day, 60,000 couriers at 83% utilisation, 12,000 location updates a second, 30 minutes promised and 27 spent.</li>
+<li>Architecture: the three client apps, the order service that answers in milliseconds, the restaurant service with its 60-second confirm deadline, dispatch timed to the food's clock, the live index with a TTL, payment authorised on confirm and captured on pickup, and the live ETA with deadline escalation.</li>
+<li>Deep dive: why the order is a saga and not a transaction; why dispatch time is prep time minus ride time; why courier positions live in memory with an expiry, not in a database.</li>
+<li>Failure modes and the close: the dinner-rush queue, the restaurant that never confirms, the courier who cancels after pickup, cold food, the double-tap duplicate, and the ghost courier — and the line to end on: the courier waits at the restaurant, never the food.</li>
+</ol>
+
+<p class="foot">Lesson 42 · Design a Food Delivery System · Next: a new lesson lands tomorrow morning.</p>
+</div>
+<script>
+function computeDispatch(prep, distKm, speedKmh, dropMin, strategy) {
+  var ride = (distKm / speedKmh) * 60;
+  var eta = Math.max(prep, ride) + dropMin;
+  if (strategy === "immediate") {
+    var wait = Math.max(0, prep - ride);
+    return { dispatchAt: 0, eta: eta, etaSecond: null, idle: wait, courierMinPerOrder: ride + wait + dropMin };
+  }
+  if (strategy === "wait") {
+    return { dispatchAt: Math.max(0, prep - ride), eta: eta, etaSecond: null, idle: 0, courierMinPerOrder: ride + dropMin };
+  }
+  var secondPrep = 12;
+  var secondDrop = 6;
+  return {
+    dispatchAt: Math.max(0, prep - ride), eta: eta, etaSecond: eta + secondDrop,
+    idle: 0, courierMinPerOrder: (ride + dropMin + secondDrop) / 2, secondPrep: secondPrep
+  };
+}
+function computeRush(ordersPerDay, dinnerSharePct, couriers, deliveriesPerHour, orderValue, batchingOn) {
+  var avgPerSec = ordersPerDay / 86400;
+  var dinnerOrders = ordersPerDay * (dinnerSharePct / 100);
+  var dinnerPerSec = dinnerOrders / 7200;
+  var peak15 = (dinnerOrders * 0.25) / 900;
+  var peakFactor = peak15 / avgPerSec;
+  var demandPerHour = dinnerOrders / 2;
+  var effRate = batchingOn ? 2.7 : deliveriesPerHour;
+  var capacityPerHour = couriers * effRate;
+  var utilisation = (demandPerHour / capacityPerHour) * 100;
+  var updatesPerSec = couriers / 5;
+  var gmvPerDay = ordersPerDay * orderValue;
+  var takePerDay = gmvPerDay * 0.25;
+  var storageGBPerDay = (ordersPerDay * 2048) / 1e9;
+  return {
+    avgPerSec: avgPerSec, dinnerOrders: dinnerOrders, dinnerPerSec: dinnerPerSec,
+    peak15: peak15, peakFactor: peakFactor, demandPerHour: demandPerHour,
+    capacityPerHour: capacityPerHour, utilisation: utilisation,
+    updatesPerSec: updatesPerSec, gmvPerDay: gmvPerDay, takePerDay: takePerDay,
+    storageGBPerDay: storageGBPerDay
+  };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtMoney(n) {
+  if (n >= 1e9) return "$" + (n / 1e9).toFixed(2) + "B";
+  if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
+  if (n >= 1e3) return "$" + fmtNum(n);
+  return "$" + n.toFixed(0);
+}
+function renderLabA() {
+  var prep = parseFloat(document.getElementById("prepTime").value) || 0;
+  var dist = parseFloat(document.getElementById("courierDist").value) || 0;
+  var speed = parseFloat(document.getElementById("courierSpeed").value) || 0;
+  var drop = parseFloat(document.getElementById("dropOff").value) || 0;
+  var strategy = document.getElementById("strategy").value;
+  var r = computeDispatch(prep, dist, speed, drop, strategy);
+  var ride = (dist / speed) * 60;
+  var html = "";
+  if (strategy === "immediate") {
+    html = "<b>Dispatch now — courier leaves at minute 0.</b><br>" +
+      "Ride to the restaurant: " + ride.toFixed(1) + " minutes — the courier arrives at minute " + ride.toFixed(1) + ", the food is ready at minute " + prep + ".<br>" +
+      "Courier waits at the kitchen: <b>" + r.idle.toFixed(1) + " minutes</b>, standing still while other orders wait for a courier.<br>" +
+      "Delivery ETA: <b>minute " + r.eta.toFixed(1) + "</b> · Courier-minutes spent: <b>" + r.courierMinPerOrder.toFixed(1) + "</b> (ride + wait + drop-off)<br><br>" +
+      (r.idle > 0
+        ? "<b>The food arrives at the same minute either way — the wait buys nothing.</b> Those " + r.idle.toFixed(1) + " minutes are an order that does not get delivered at the dinner rush."
+        : "<b>No wait.</b> The ride is longer than the prep time, so the courier is the bottleneck — dispatching now is correct here.");
+  } else if (strategy === "wait") {
+    html = "<b>Dispatch timed to the food — courier leaves at minute " + r.dispatchAt.toFixed(1) + ".</b><br>" +
+      "Dispatch moment: prep time (" + prep + " min) minus ride (" + ride.toFixed(1) + " min) = minute " + r.dispatchAt.toFixed(1) + ".<br>" +
+      "Courier waits at the kitchen: <b>0 minutes</b> — they arrive exactly as the bag comes off the pass.<br>" +
+      "Delivery ETA: <b>minute " + r.eta.toFixed(1) + "</b> — identical to dispatching now.<br>" +
+      "Courier-minutes spent: <b>" + r.courierMinPerOrder.toFixed(1) + "</b> (ride + drop-off, no wait)<br><br>" +
+      "<b>Same ETA, " + (ride + Math.max(0, prep - ride) + drop - r.courierMinPerOrder).toFixed(1) + " courier-minutes freed.</b> At 83% utilisation, those freed minutes are the difference between covering the rush and queueing it.";
+  } else {
+    html = "<b>Batched — one courier, two orders, one trip.</b><br>" +
+      "Courier leaves at minute " + r.dispatchAt.toFixed(1) + ", timed to the food. First order (prep " + prep + " min) is picked up as the bag is ready; the second order (prep " + r.secondPrep + " min, nearby restaurant) is picked up on the same stop.<br>" +
+      "First delivery ETA: <b>minute " + r.eta.toFixed(1) + "</b> · Second delivery ETA: <b>minute " + r.etaSecond.toFixed(1) + "</b> (about 6 minutes later, same direction).<br>" +
+      "Courier-minutes per order: <b>" + r.courierMinPerOrder.toFixed(1) + "</b> — two orders in one trip instead of two solo trips.<br><br>" +
+      "<b>Batching is the release valve.</b> At the dinner rush it lifts a courier from 2 to about 2.7 effective deliveries an hour — the same fleet, a third more capacity, for a second customer who waits about 6 minutes longer.";
+  }
+  document.getElementById("labAResult").innerHTML = html;
+}
+function renderLabB() {
+  var orders = parseFloat(document.getElementById("ordersPerDay").value) || 0;
+  var share = parseFloat(document.getElementById("dinnerShare").value) || 0;
+  var couriers = parseFloat(document.getElementById("couriers").value) || 0;
+  var perHour = parseFloat(document.getElementById("deliveriesPerHour").value) || 0;
+  var value = parseFloat(document.getElementById("orderValue").value) || 0;
+  var batchingOn = document.getElementById("batching").value === "on";
+  var r = computeRush(orders, share, couriers, perHour, value, batchingOn);
+  document.getElementById("labBResult").innerHTML =
+    "<b>Peak: " + fmtNum(r.peak15) + " orders/second</b> in the busiest fifteen minutes of dinner (" + r.peakFactor.toFixed(1) + "× the daily average of " + fmtNum(r.avgPerSec) + "/second).<br>" +
+    "Dinner demand: " + fmtNum(r.demandPerHour) + " deliveries/hour · Fleet capacity: " + fmtNum(r.capacityPerHour) + " deliveries/hour" + (batchingOn ? " (batched, 2.7 effective per courier)" : "") + "<br>" +
+    "Courier utilisation at the rush: <b>" + r.utilisation.toFixed(1) + "%</b><br>" +
+    "Location stream: " + fmtNum(r.updatesPerSec) + " pings/second (one per courier every 5 seconds) — held in the live index, not written to a database<br>" +
+    "Money: " + fmtMoney(r.gmvPerDay) + " of food a day · platform take (25%): <b>" + fmtMoney(r.takePerDay) + " a day</b><br>" +
+    "Order storage: " + r.storageGBPerDay.toFixed(2) + " GB a day (" + (r.storageGBPerDay * 365 / 1000).toFixed(2) + " TB a year)<br><br>" +
+    (r.utilisation <= 85
+      ? "<b>The fleet covers the rush.</b> Utilisation under 85% leaves slack for the courier who logs off mid-rush — and batching is what buys that slack."
+      : "<b>The rush queues.</b> Utilisation over 85% means the dispatch queue grows and ETAs slip past 30 minutes — turn batching on, raise surge to pull couriers on, or degrade the ETA honestly before the queue becomes a complaint.");
+}
+["prepTime", "courierDist", "courierSpeed", "dropOff"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabA);
+});
+document.getElementById("strategy").addEventListener("change", renderLabA);
+["ordersPerDay", "dinnerShare", "couriers", "deliveriesPerHour", "orderValue"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+document.getElementById("batching").addEventListener("change", renderLabB);
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
