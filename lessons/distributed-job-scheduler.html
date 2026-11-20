@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design a Distributed Job Scheduler — every job, on time, exactly once (almost)</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #0e7490; --accent-soft: #e0f2f7;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #4cc3de; --accent-soft: #16333d;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number], .lab input[type=text] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  .sugg { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .sugg:last-child { border-bottom: none; }
+  .bar { height: 8px; border-radius: 999px; background: var(--accent); margin-top: 4px; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 43</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 43 · Classic design</span>
+  <h1>Design a Distributed Job Scheduler — every job, on time, exactly once (almost)</h1>
+  <p class="whyline">It is 8:59 on a Saturday morning and two million Riverside FC fans are staring at their phones. At 9:00 sharp the team sheet drops, the cup-final tickets go on sale, the half-time highlights job is already queued for later, and somewhere in the back office a payroll report is due on the 1st of every month. None of these things happens because a person pressed a button — they happen because a scheduler promised, days or weeks ago, "run this at this time", and then kept the promise while servers crashed, clocks drifted, and 200,000 jobs all came due in the same minute. Today you design that promise-keeping machine from zero.</p>
+  <div class="meta"><span>Delayed &amp; recurring jobs</span><span>Time-bucketed dispatch</span><span>At-least-once execution</span><span>Misfire policy</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a job scheduler?</h2>
+<p>Start from zero. A <strong>job</strong> is a unit of work that should happen later — "send the team sheet to two million fans", "release the tickets at noon", "run the payroll report on the 1st". A <strong>job scheduler</strong> is the system that accepts those promises, remembers them, and fires each one at its time. The soccer running example: Riverside Scheduler, the operations clock for Riverside FC, handling <strong>10 million jobs a day</strong> — one-shot jobs ("in 30 minutes, remind the fan their seat is ready"), <strong>delayed jobs</strong> ("retry this failed payment in 5 minutes"), and <strong>recurring jobs</strong> defined by a <strong>cron expression</strong> ("0 9 * * SAT" — at 9:00 every Saturday). The scheduler's contract has three words in it, and the whole lesson is the price of each one: a job must run <strong>on time</strong> (not an hour late), <strong>at least once</strong> (never silently dropped), and — the honest part — <strong>never twice</strong> is a promise no distributed system can keep, so the design settles for at-least-once execution plus jobs that are safe to run twice.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Job:</strong> a named unit of work with a payload — what to do and who to do it to — plus a time to run. <strong>One-shot job:</strong> runs once, at a specific time or after a delay, then it is done. <strong>Recurring job (cron job):</strong> runs on a repeating schedule written as a cron expression — five fields (minute, hour, day of month, month, day of week), so "0 9 * * SAT" means 9:00 every Saturday. <strong>Delayed job:</strong> a one-shot job scheduled for a time in the future, usually "run this in N minutes". <strong>Trigger time (run_at):</strong> the instant a job is due. <strong>Misfire:</strong> a job whose trigger time passed while the scheduler was down or overloaded, so it did not fire on time. <strong>Lease (visibility timeout):</strong> the minutes a worker owns a job after claiming it — while the lease holds, no other worker may take it; when it expires without a completion, the job goes back for another worker. <strong>Idempotent job:</strong> a job whose effect is the same whether it runs once or twice — sending with a dedupe key, or writing the same result twice. <strong>Timing wheel:</strong> a circular array of time buckets, one per tick, where a job is dropped into the bucket for its trigger time — the wheel's hand sweeps round and fires whatever sits in each bucket. <strong>Sorted set:</strong> a data structure (Redis's ZSET) that keeps members ordered by a score — here the score is the trigger time, so the next job due is always the smallest score. <strong>Bucket ownership:</strong> the rule that exactly one scheduler node owns each slice of trigger time, so two nodes never fire the same job. <strong>Backoff:</strong> waiting longer between each retry of a failed job — 1 second, then 2, then 4 — so a failing job does not hammer a struggling downstream service.</p></div>
+<p>Why is this a hard design, when Lesson 9 already built message queues and Lesson 14 already built consensus? Because a scheduler is a queue with a clock, and the clock changes every answer. A normal queue fires work the moment it arrives; a scheduler has to hold work and fire it <em>later</em>, sometimes weeks later, and hold it through crashes — a job scheduled on Monday for Saturday must survive a scheduler that restarts on Wednesday. And the load is the opposite of a queue's: a queue is busiest when work arrives, but a scheduler is busiest at the <em>trigger</em> time, when 200,000 jobs that arrived quietly over the whole week all come due in the same sixty seconds. The one idea to carry through the whole lesson: <strong>a scheduler is a durable list of promises indexed by time, and the entire design is three questions — how do you find the jobs whose time has come without scanning the whole list, how do you hand each one to exactly one worker, and what do you do when the promise is already late.</strong></p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are designing Riverside Scheduler at the scale of a large platform's job service: <strong>10 million jobs a day</strong> — one-shot, delayed, and recurring — with a <strong>one-second firing precision</strong> (a job due at 9:00:00 fires within a second of it), and a durability bar that a scheduled job must survive any single node crashing. The promise is that no job is ever silently dropped, and a job that fires twice is safe because the job itself is idempotent.</p>
+<ul>
+<li><strong>Jobs: 10 million a day is about 116 a second on average — and about 3,333 a second in the 9:00 minute.</strong> 10,000,000 ÷ 86,400 = <strong>about 115.7 jobs a second</strong> on average. But jobs are not spread evenly: the 9–10am hour carries 20% of the day — 2,000,000 jobs in 3,600 seconds, or <strong>about 555.6 a second</strong>. And inside that hour, the 9:00:00 minute is a wall: 200,000 jobs (team sheet, ticket release, morning reports, reminder batches) all due in the same 60 seconds, or <strong>about 3,333 jobs a second</strong> — a <strong>28.8× peak factor</strong> over the daily average. The firing path is sized for 3,333 a second, not 116 — the 9:00 minute is the system, and the rest of the day is the easy part. (Lab A runs the spike math.)</li>
+<li><strong>Recurring jobs: 500,000 cron definitions fire about 8 times a day each — 4 million of the 10 million jobs.</strong> 500,000 × 8 = <strong>4,000,000 executions a day, or 40% of the load</strong>, and they are the predictable half: the same jobs, at the same times, every day, which means the scheduler can precompute their next trigger times hours ahead instead of computing them under load. The other 6 million are one-shot and delayed jobs, created by users and services throughout the day — the unpredictable half, and the half that needs the idempotency key, because a client that retries a "create job" request must not create the same job twice.</li>
+<li><strong>Workers: an average job takes 2 seconds, so the fleet needs about 232 workers on average — and about 6,667 at the 9:00 peak.</strong> Little's Law (Lesson 37): concurrent workers = arrival rate × duration. On average, 115.7 × 2 = <strong>about 232 workers busy</strong>. At the 9:00 spike, 3,333.3 × 2 = <strong>about 6,667 workers busy</strong>. A fleet of 8,000 workers covers the peak at 6,667 ÷ 8,000 = <strong>about 83% utilisation</strong> — healthy but tight, and the reason the scheduler must spread the spike with jitter (Lab A shows what happens when it does not). The fleet is sized for the minute, not the day.</li>
+<li><strong>Storage: a job record of about 512 bytes means 5.1 GB a day, about 154 GB for 30 days of history.</strong> 10,000,000 × 512 bytes = <strong>5,120,000,000 bytes, or about 5.1 GB a day</strong>. Jobs are kept for 30 days after they finish — for audit ("did the payroll report run on the 1st?"), for retries, and for debugging — so 5.1 × 30 = <strong>about 153.6 GB</strong> of history. The live table, the one the scheduler reads, is far smaller: it holds only jobs that have not fired yet, partitioned by day, because a job due next Saturday never needs to be in the hot path on Monday. Jobs are sharded by job ID, and the index that matters is on trigger time — the scheduler's only hot query is "what is due now".</li>
+<li><strong>Misfire: five minutes of scheduler downtime at the average rate strands about 34,700 jobs — at 9:00 it strands 200,000.</strong> At the average rate, 115.7 × 300 seconds = <strong>about 34,722 jobs</strong> whose trigger time passes while the scheduler is down. If the downtime covers the 9:00 minute, the whole 200,000-job spike misfires at once. The drain math is forgiving: an 8,000-worker fleet at 2 seconds a job executes 8,000 ÷ 2 = 4,000 jobs a second, so against the 115.7 new jobs arriving each second the net drain is about 3,884 a second, and 200,000 ÷ 3,884 = <strong>about 51.5 seconds to clear the backlog</strong>. The misfire is survivable — if the policy is right. (Lab B and the misfire section decide what "right" means.)</li>
+<li><strong>Polling cost: 500 workers polling a database every second is 500 queries a second, forever — even at 3am when nothing is due.</strong> 500 × 1 = <strong>500 queries a second</strong> at a 1-second tick; at a 500 ms tick it is <strong>1,000 a second</strong>. Every one of those queries scans the trigger-time index, and the cost never drops — the pollers do not know whether anything is due until they ask. The sorted-set answer costs one operation per job, not per worker per tick: about 116 operations a second on average, 3,333 at the peak, and zero when nothing is due. That ratio — polling cost scaling with workers × frequency, dispatch cost scaling with jobs — is the whole argument for the time-bucketed design, and Lab B makes you run it.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Three numbers decide the shape of the scheduler, and they pull in different directions. The 3,333 jobs a second in the 9:00 minute say the firing path must be cheap per job and must spread the spike — a design that fires 200,000 jobs in the same second needs a fleet of 6,667 workers for sixty seconds, and a design that jitters them across the minute needs the same workers but never all at once. The 232 average workers against 6,667 at peak say the fleet must scale on the trigger rate, not on the schedule rate — the scheduler's autoscaling signal is the ready-queue depth, not the number of jobs created. And the 500 queries a second of database polling say the dispatch must not be a poll — the cost of finding due jobs has to scale with the jobs, not with the workers asking, which is why the live index is a sorted set or a timing wheel, and the database is the durable record, not the clock. A design that polls the database, that sizes the fleet for the daily average, or that fires the whole 9:00 spike in one second, has designed a system that works on a quiet Tuesday and falls over on a Saturday morning.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Follow one job — the team-sheet job, created on Friday, due Saturday 9:00:00, sent to two million fans. There are seven stages, and each one exists to answer a different failure.</p>
+<ol>
+<li><strong>API &amp; job definitions — accept the promise, validate it, dedupe it.</strong> A client creates a job with a name, a payload (what to do), a trigger (a time, a delay, or a cron expression), and an <strong>idempotency key</strong> — a unique key per creation attempt, so a retried request returns the first job instead of creating a second (Lesson 31's guard, reused here). The API validates the cron expression (is "0 9 * * SAT" real?), rejects trigger times in the past, and caps how far ahead a job may be scheduled. It writes the job to the durable store, returns the job ID and the computed next trigger time, and does nothing else — the API never fires jobs, because the process that accepts promises must never be the process that keeps them.</li>
+<li><strong>Job store — the durable list of promises, sharded by job, partitioned by day.</strong> Every job is a row with a state machine: SCHEDULED → READY → RUNNING → SUCCEEDED, with FAILED → RETRYING on failure and DEAD after the attempt limit. The store is sharded by job ID so creation scales, and partitioned by trigger day so the scheduler's hot path reads today's partition, not a month of history — 30 days of history is about 154 GB, but today's un-fired jobs are a small slice of it. The one hot index is on trigger time, and it exists for exactly one query: "what is due now". The store also keeps the cron definition and the last-run time, so a recurring job's next trigger is computed from the definition, not from a chain of one-shot jobs that would break if one link failed.</li>
+<li><strong>Scheduler core — the heart: find the jobs whose time has come, without scanning the list.</strong> The scheduler does not poll the database. It holds the near-future jobs — the next few minutes' worth — in a time-bucketed index: a <strong>sorted set</strong> keyed by trigger time, or a <strong>hierarchical timing wheel</strong> with one-second buckets, where a job is dropped into the bucket for its trigger time and the wheel's hand fires whatever sits in each bucket as it sweeps past. A background loader keeps the index topped up from the durable store, minutes ahead of real time, so the scheduler never asks the database "what is due now" — it asks the index, which answers in microseconds. The three engines are compared properly in the heart section and in Lab B; the point here is the shape: <em>the database is the record, the time-bucketed index is the clock.</em></li>
+<li><strong>Bucket ownership — one scheduler owns each slice of time, and the ownership is a lease.</strong> There is no single scheduler (a single point of failure), and there is no free-for-all (two schedulers firing the same job). Trigger time is sliced into minute-buckets, and each bucket is owned by exactly one scheduler node, assigned by consistent hashing over the bucket (Lesson 10's ring, reused for time instead of keys). The ownership is a <strong>lease</strong> — a node holds a bucket for, say, 30 seconds, renews it with a heartbeat, and loses it if it stops renewing, at which point another node takes over. A node that is partitioned away cannot fire its bucket's jobs because its lease has expired — the fencing that Lesson 13 built for locks, applied to time. If the lease holder dies mid-minute, the bucket is re-owned within seconds and the jobs fire late by seconds, not lost.</li>
+<li><strong>Ready queue &amp; workers — the handoff: due jobs become queue messages, workers pull them.</strong> When a job's trigger time arrives, its owning scheduler moves it to the <strong>ready queue</strong> (Lesson 9's queue) and marks it READY — the firing is a queue publish, not a direct call to a worker, because the queue absorbs the 9:00 spike: 200,000 jobs published in a minute sit in the queue while 8,000 workers drain them at 4,000 a second. A worker pulls a job, and the pull starts a <strong>lease</strong> (visibility timeout, about 30 seconds): while the lease holds, no other worker can see the job. The worker runs the job, then acknowledges it, and the scheduler marks it SUCCEEDED. If the worker crashes or the lease expires first, the job returns to the queue for another worker — the at-least-once contract, enforced by the lease, not by trust.</li>
+<li><strong>Retries, backoff &amp; the dead-letter queue — failure is a schedule, not a surprise.</strong> A job that fails is not retried immediately: it is rescheduled with <strong>exponential backoff plus jitter</strong> — 1 second, then 2, then 4, then 8, each with a random spread, so 10,000 failing jobs a day (0.1% of 10 million) do not all retry in the same second and hammer a struggling downstream service. After the attempt limit (say 5), the job goes to the <strong>dead-letter queue</strong> (Lesson 9's DLQ) with its failure history, where a human or an automated policy can inspect it, fix the cause, and requeue it — a poison job that fails forever is quarantined, not retried forever. The retry schedule is itself just another trigger time, which is why the scheduler treats a retry as a new job with the same ID.</li>
+<li><strong>Control plane &amp; observability — pause, cancel, and prove it ran.</strong> Operators can pause a cron job, cancel a one-shot job, or force-run a job now, and every one of those actions is a state change in the durable store, not a whisper to a worker. Every execution writes a history record — started at, finished at, attempt number, result — so the question "did the payroll report run on the 1st?" is answered from the history, not from a log grep. The alerts that matter are three: the misfire rate (jobs that fired more than a few seconds late), the ready-queue depth and age (the 9:00 spike draining or growing), and the dead-letter queue size. A scheduler that cannot prove a job ran is a scheduler nobody trusts with the team sheet.</li>
+</ol>
+<table>
+<tr><th>Stage</th><th>What it does</th><th>What fails if it is missing</th></tr>
+<tr><td>API &amp; definitions</td><td>Validates cron and trigger times, dedupes by idempotency key, writes the promise</td><td>A retried create makes two team sheets; an invalid cron fires never, or fires every minute</td></tr>
+<tr><td>Job store</td><td>Durable state machine, sharded by job, partitioned by day, indexed on trigger time</td><td>A crash loses Saturday's jobs; the hot query scans a month of history</td></tr>
+<tr><td>Scheduler core</td><td>Time-bucketed index (sorted set / timing wheel) finds due jobs in microseconds</td><td>Every tick scans the database; the 9:00 minute is a full-table scan at the worst moment</td></tr>
+<tr><td>Bucket ownership</td><td>One leased owner per minute-bucket via consistent hashing; lease expiry = fencing</td><td>One scheduler is a single point of failure; every scheduler firing is the same job twice</td></tr>
+<tr><td>Ready queue &amp; workers</td><td>Due jobs become queue messages; workers pull under a 30-second lease, ack on completion</td><td>The spike hits the workers directly with no buffer; a crashed worker takes its job with it</td></tr>
+<tr><td>Retries &amp; DLQ</td><td>Exponential backoff with jitter, attempt limit, dead-letter quarantine</td><td>A failing job retries instantly and forever, and takes the downstream service down with it</td></tr>
+<tr><td>Control &amp; observability</td><td>Pause/cancel/force-run, per-execution history, misfire + queue-depth + DLQ alerts</td><td>Nobody can prove the payroll report ran, and the first sign of a stuck scheduler is an angry fan</td></tr>
+</table>
+
+<h2>The heart of it: three decisions that make or break the design</h2>
+<h3>1. At-least-once execution plus idempotent jobs — because exactly-once is not on offer</h3>
+<p>The seductive promise is exactly-once: every job runs one time, no more, no less. It is impossible, and the reason is the same Two Generals problem from Lesson 14: a worker can finish the work and then crash before it acknowledges, and no amount of cleverness lets the scheduler distinguish "the worker died before doing the work" from "the worker died after doing the work but before saying so". So the honest contract is <strong>at-least-once</strong>: the lease guarantees the job will be retried until some worker acknowledges it, which means the job <em>can</em> run twice, and the design makes twice safe instead of pretending it cannot happen. A job is <strong>idempotent</strong> when running it twice has the same effect as running it once — the team-sheet email carries a dedupe key, so the second send is recognised and skipped; the payroll report writes the same rows with the same keys, so the second write is a no-op; the ticket release checks "is this seat already released" before releasing it. The senior line: <strong>do not promise exactly-once — promise at-least-once, and put the exactly-once property inside the job, where it can actually be enforced, with a dedupe key on every side effect.</strong></p>
+<table>
+<tr><th>Choice</th><th>What you gain</th><th>What you pay</th><th>Use it for</th></tr>
+<tr><td><strong>At-least-once + idempotent jobs</strong></td><td>No job is ever silently lost; a crash mid-job is recovered by retry</td><td>Every job must be written idempotently; dedupe keys on every side effect</td><td>The default — every job</td></tr>
+<tr><td><strong>Time-bucketed dispatch</strong></td><td>Finding due jobs costs one index lookup, not a scan; cost scales with jobs, not workers</td><td>A loader must keep the index topped up; the index is rebuilt from the store on restart</td><td>The default — the scheduler's clock</td></tr>
+<tr><td><strong>Bucket ownership with leases</strong></td><td>No single point of failure, no duplicate firing; a dead owner is replaced in seconds</td><td>Lease renewals and heartbeats; a partitioned owner is fenced, not trusted</td><td>The default — one leased owner per minute-bucket</td></tr>
+<tr><td><strong>Ready queue between scheduler and workers</strong></td><td>The 9:00 spike is absorbed; workers scale on queue depth, not on schedule rate</td><td>An extra hop and its latency; the queue itself must be durable</td><td>The default — the firing path</td></tr>
+<tr><td><strong>Backoff with jitter + DLQ</strong></td><td>Failing jobs do not synchronise into a retry storm; poison jobs are quarantined</td><td>Retries arrive late by design; the DLQ needs an owner and a policy</td><td>The default — every failure path</td></tr>
+<tr><td><strong>Misfire policy: skip, with a cap</strong></td><td>A daily job missed for three days runs once, not three times; the backlog drains in ~52 seconds</td><td>A skipped run is a run the user never sees — the policy must be explicit per job</td><td>The default — recurring jobs; one-shot jobs with a hard deadline get "fire late, once"</td></tr>
+</table>
+<h3>2. Time-bucketed dispatch, not polling — the cost of finding due jobs must scale with the jobs</h3>
+<p>The naive scheduler polls: every worker, or every scheduler node, runs "SELECT … WHERE run_at &lt;= now AND state = SCHEDULED" every second. It works at ten jobs a day and dies at ten million, for three reasons. First, the cost scales with workers × frequency — 500 workers at a 1-second tick is 500 queries a second, forever, even at 3am when nothing is due, and the database pays for every one. Second, the query's cost grows with the table: the trigger-time index is an index over 300 million rows of history unless the table is partitioned, and a scan that is cheap on Monday is expensive by Friday. Third, the pollers race: two nodes can read the same due job in the same tick, and the "claim" has to be an atomic conditional update (Lesson 13's fencing, again) or the job fires twice. The time-bucketed answer changes the shape: jobs sit in a <strong>sorted set</strong> scored by trigger time, or in a <strong>hierarchical timing wheel</strong> — a wheel of 60 one-second buckets for the next minute, a wheel of 60 one-minute buckets for the next hour, and an overflow wheel for everything further out, with jobs cascading down as their time approaches — and the scheduler's tick is "pop everything with score ≤ now" or "fire this bucket", one operation per due job and zero when nothing is due. The senior line: <strong>polling asks "is anything due?" a thousand times a second; a time bucket already knows — the bucket is the answer, and the database is only the durable record behind it.</strong></p>
+<h3>3. One leased owner per time bucket — neither a single scheduler nor a free-for-all</h3>
+<p>Two designs both fail, in opposite directions. A single scheduler node is simple and correct — until it crashes, and then nothing fires at all, and the 9:00 minute becomes a misfire storm. Every node scheduling is simple and available — until two nodes fire the same job, and two million fans get the team sheet twice (or the ticket release runs twice and sells the same seat twice). The design that survives is <strong>bucket ownership</strong>: trigger time is cut into minute-buckets, each bucket is assigned to one scheduler node by consistent hashing (Lesson 10's ring, with time as the key), and the assignment is a <strong>lease</strong> with a heartbeat — the owner renews every few seconds, and if it stops, another node takes the bucket within seconds. The lease is the fencing: a node that is partitioned away may still believe it owns the bucket, but its lease has expired, so its firings are rejected by the ready queue's conditional write, and the new owner fires instead. Clock skew gets the same treatment: NTP keeps nodes within tens of milliseconds, and the bucket boundary is the arbiter — a job due at 9:00:00 belongs to the 9:00 bucket, and whichever node owns that bucket fires it, so a one-second skew on one node's clock cannot fire a job a second early, because that node does not own the bucket. The senior line: <strong>ownership of time is leased, not assumed — one owner per bucket, a heartbeat to keep it, and a fencing token to make sure a dead owner stays dead.</strong></p>
+<div class="callout green"><strong>The senior line on the three decisions</strong><p>Every job scheduler is the same three sentences, and the room is won by saying them with numbers attached. Execution is at-least-once, never exactly-once — a worker can die after doing the work and before acknowledging it, so the scheduler guarantees the job will run and the job guarantees running twice is safe, with a dedupe key on every side effect. Dispatch is time-bucketed, not polled — jobs sit in a sorted set scored by trigger time or a hierarchical timing wheel, so finding the jobs due now costs one lookup instead of 500 queries a second from polling workers, and the database is the durable record, not the clock. And ownership of time is leased — trigger time is cut into minute-buckets, each owned by one scheduler node under a heartbeat lease, so a dead owner is replaced in seconds and a partitioned owner is fenced, and the 9:00 minute fires 200,000 jobs without any one of them firing twice. Say those three sentences, with the arithmetic — 10 million jobs a day, 116 a second on average, 3,333 a second at 9:00, 232 workers on average and 6,667 at the peak, 5.1 GB a day and 154 GB of history, a 51.5-second drain after a five-minute outage — and the rest of the design — the backoff, the dead-letter queue, the misfire policy — is machinery that follows.</p></div>
+
+<h2>Failure modes — six ways a job scheduler fails</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>Scheduler crash at 9:00</td><td>The node owning the 9:00 buckets dies, and 200,000 jobs sit un-fired while fans wait for the team sheet</td><td>Leased bucket ownership: another node takes the buckets within seconds, the jobs fire late by seconds, and the ready queue absorbs the burst — the drain takes about 51.5 seconds</td></tr>
+<tr><td>Duplicate execution</td><td>A worker finishes sending the team sheet, crashes before acknowledging, and the job is re-run — two million fans get it twice</td><td>At-least-once plus idempotency: the send carries a dedupe key, the second run is recognised and skipped, and the duplicate is a no-op, not a second email</td></tr>
+<tr><td>Thundering herd at 9:00</td><td>200,000 jobs fire in one second, the fleet needs 6,667 workers at once, and the ready queue depth explodes</td><td>Jitter on the trigger time — spread the spike across the minute (or the five minutes before it, for jobs that may fire early) — and a ready queue that buffers the burst while the fleet scales on queue depth</td></tr>
+<tr><td>Clock skew fires a job early</td><td>One scheduler's clock runs a second fast, the ticket release fires at 11:59:59, and the fans who refreshed early get the seats</td><td>Bucket ownership: only the owner of the 9:00 bucket may fire, and NTP keeps nodes within tens of milliseconds; for fairness-critical jobs, add a "do not fire before" guard enforced at the queue</td></tr>
+<tr><td>Long-running job outlives its lease</td><td>A payroll report takes 90 seconds, its 30-second lease expires mid-run, and a second worker starts the same report</td><td>Lease renewal: the worker heartbeats every 10 seconds to extend its lease while it runs, and the lease is set to a few times the p99 job duration — a job that cannot heartbeat is a job that is presumed dead</td></tr>
+<tr><td>Poison job</td><td>A job with a bad payload fails, retries instantly, fails again, and its retries crowd out real work</td><td>Exponential backoff with jitter, an attempt limit of 5, and the dead-letter queue — the poison job is quarantined with its failure history, and a human decides whether to fix it and requeue it</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"Poll the database every second for due jobs."</strong> It works at a hundred jobs a day and dies at ten million. The cost scales with workers × frequency — 500 workers at a 1-second tick is 500 queries a second, forever, even at 3am when nothing is due — and the query's cost grows with the table unless it is partitioned. Two pollers can read the same due job in the same tick, so the claim needs an atomic conditional update or the job fires twice. The right shape is a time bucket: the sorted set or the timing wheel already knows what is due, and the database is the record, not the clock.</li>
+<li><strong>"Guarantee exactly-once execution."</strong> It is not on offer, and promising it is the fastest way to lose the room. A worker can finish the work and crash before acknowledging, and no protocol distinguishes that from a worker that died before starting — Lesson 14's Two Generals, applied to a job. The honest contract is at-least-once execution with idempotent jobs: the scheduler guarantees the job runs, the job guarantees the second run is a no-op, and the dedupe key lives on the side effect, not in a comment.</li>
+<li><strong>"One scheduler node — keep it simple."</strong> Simple, correct, and a single point of failure: when it crashes, nothing fires, and the 9:00 minute becomes a 200,000-job misfire storm. The mirror trap is "let every node schedule" — available, and every job fires twice. The design that survives is neither: minute-buckets of trigger time, each owned by one node under a heartbeat lease, so a dead owner is replaced in seconds and a partitioned owner is fenced.</li>
+</ul>
+
+<h2>Interactive lab 1: the 9:00 spike planner</h2>
+<div class="lab">
+<h3>Lab A — Can the fleet survive the 9:00 minute?</h3>
+<p>Two hundred thousand jobs all come due at 9:00. Set the size of the spike, how far the trigger times are spread (jitter), the job duration, and the fleet size — then see the peak firing rate, how many workers the spike needs at once, and how long the fleet takes to clear it.</p>
+<label for="spikeJobs">Jobs due in the spike</label>
+<input type="number" id="spikeJobs" value="200000" />
+<label for="spreadSec">Spread the spike over (seconds of jitter)</label>
+<input type="number" id="spreadSec" value="60" />
+<label for="jobDuration">Average job duration (seconds)</label>
+<input type="number" id="jobDuration" value="2" step="0.5" />
+<label for="fleetSize">Workers in the fleet</label>
+<input type="number" id="fleetSize" value="8000" />
+<label for="avgRate">Background arrival rate (jobs/second, the rest of the day)</label>
+<input type="number" id="avgRate" value="116" />
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Check the defaults: 200,000 jobs spread over 60 seconds fire at 3,333 a second, need 6,667 workers at once, and an 8,000-worker fleet sits at 83% utilisation and clears the spike in about 51.5 seconds. Then set the spread to 1 second — no jitter — and watch the peak rate become 200,000 a second and the fleet need 400,000 workers. Then set the spread to 300 seconds and watch the peak fall to 667 a second and the fleet breathe. That is why the scheduler jitters trigger times.</p>
+</div>
+
+<h2>Interactive lab 2: the scheduling-engine comparator</h2>
+<div class="lab">
+<h3>Lab B — Poll the database, or bucket by time?</h3>
+<p>Enter the daily job volume, the polling tick, and the worker count. The comparator shows what database polling costs, what a sorted set costs, and what a timing wheel costs — and how late a job can fire under each.</p>
+<label for="jobsPerDay">Jobs scheduled per day</label>
+<input type="number" id="jobsPerDay" value="10000000" />
+<label for="tickSec">Polling tick (seconds between polls)</label>
+<input type="number" id="tickSec" value="1" step="0.5" />
+<label for="pollWorkers">Polling workers</label>
+<input type="number" id="pollWorkers" value="500" />
+<label for="retentionDays">History retention (days)</label>
+<input type="number" id="retentionDays" value="30" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the comparator reproduces 500 polling queries a second at a 1-second tick (1,000 at 500 ms), 116 sorted-set operations a second on average, about 1 GB of sorted-set memory for a day's pending jobs, a 12 GB trigger-time index over 30 days of history, and a worst-case lateness of one full tick under polling against under a second for the wheel. Then raise the polling workers to 8,000 and watch the database pay 8,000 queries a second to ask a question whose answer is usually "nothing is due".</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. Design a distributed job scheduler: 10 million jobs a day, one-shot and cron, one-second firing precision, no job ever silently dropped. Walk through the design.</summary>
+<p><strong>Model answer.</strong> I start from the 9:00 minute, because it sizes everything: 10 million jobs a day is about 116 a second on average, but 200,000 jobs come due in the 9:00 minute — about 3,333 a second, a 29× peak over the average — so the firing path is sized for the minute, not the day. The API accepts the promise: a job with a payload, a trigger time or a cron expression, and an idempotency key so a retried create cannot make the job twice; it validates the cron, writes the job to a durable store sharded by job ID and partitioned by trigger day, and returns. The scheduler core never polls that database: a loader keeps the next few minutes of jobs in a time-bucketed index — a Redis sorted set scored by trigger time, or a hierarchical timing wheel — so finding the jobs due now is one lookup, not a scan. Trigger time is cut into minute-buckets, each owned by one scheduler node under a heartbeat lease assigned by consistent hashing, so a dead owner is replaced in seconds and a partitioned owner is fenced. When a job's time comes, the owner publishes it to a ready queue and a worker pulls it under a 30-second lease, heartbeating to renew it; if the worker crashes, the lease expires and the job is re-run — at-least-once execution, and the job is idempotent with a dedupe key on every side effect, because exactly-once is not on offer. Failures retry with exponential backoff and jitter, and after 5 attempts the job goes to the dead-letter queue. The fleet is 8,000 workers: Little's Law says an average job of 2 seconds needs 232 workers on average and 6,667 at the 9:00 peak, so the fleet sits at 83% utilisation at the spike, and the spike is jittered across the minute so it never arrives in one second. And I would close with the honest residual: a scheduler can promise a job will run, but it cannot promise it will run once — the exactly-once property lives inside the job, and the misfire policy (skip with a cap for recurring jobs, fire late once for one-shot jobs with a hard deadline) is a per-job decision, not a global default.</p>
+</details>
+<details>
+<summary>Q2. The scheduler is down for five minutes covering the 9:00 minute, and 200,000 jobs misfire. What happens, and what does the misfire policy decide?</summary>
+<p><strong>Model answer.</strong> I start with the arithmetic, because the policy follows from it: at the average rate, five minutes of downtime strands about 34,700 jobs, but covering the 9:00 minute strands the whole 200,000-job spike. The drain is fast — an 8,000-worker fleet at 2 seconds a job executes 4,000 a second, so against 116 new jobs arriving each second the net drain is about 3,884 a second and the backlog clears in about 51.5 seconds — so the question is not whether the backlog clears, it is what "clear" means for each job. For recurring jobs the policy is skip, with a cap: a daily 9:00 team-sheet job missed three days in a row runs once when the scheduler recovers, not three times, because three team sheets are worse than one late one — and the missed runs are recorded in the history as skipped, not silently dropped. For one-shot jobs with a hard deadline the policy is fire late, once: a ticket release that missed its minute still releases the tickets, because not releasing them is worse than releasing them a minute late. For one-shot jobs whose moment has passed — a half-time reminder that fires after full time — the policy is drop with a record: firing it late is actively wrong, so it is marked expired and the user is told. And I would add the systemic fix: the misfire is detected by the scheduler's own clock, not by a user complaint — the ready-queue depth and the misfire-rate alert fire the moment the scheduler recovers, and the recovery itself is paced, because dumping 200,000 jobs into the ready queue in one second recreates the thundering herd the jitter was there to prevent.</p>
+</details>
+<details>
+<summary>Q3. A job runs twice — the team sheet goes out to two million fans, twice. How did that happen, and what saves you?</summary>
+<p><strong>Model answer.</strong> I start with the exact sequence, because the failure has a specific shape: the worker pulled the team-sheet job, ran it, sent two million emails — and then crashed before it acknowledged the job. The lease expired, the scheduler concluded the worker was dead, and the job went back to the ready queue, where a second worker ran it again. Nothing is broken — the system did exactly what at-least-once execution promises, and the duplicate is the price of never losing a job. What saves you is that the job is idempotent: the send carries a dedupe key (the job ID plus the recipient), so the second run's sends are recognised as duplicates by the email service and skipped — the fans get one team sheet, and the second run is a no-op that costs some compute and nothing else. The two mistakes to name are promising exactly-once — no protocol distinguishes "died before the work" from "died after the work but before the ack", Lesson 14's Two Generals — and putting the dedupe in the scheduler instead of on the side effect: the scheduler can dedupe job deliveries, but only the email service can dedupe emails, so the dedupe key has to travel with the job into the thing it affects. And I would add the operational answer: the duplicate run is visible in the execution history as two attempts with the same job ID, so it is investigated as a known pattern, not discovered by two million angry fans.</p>
+</details>
+<details>
+<summary>Q4. Lesson 9 built message queues and Lesson 14 built consensus. Why can't you just poll the database every second, and what do the queue and the consensus actually buy you here?</summary>
+<p><strong>Model answer.</strong> I start with what polling costs, because the number kills it: 500 workers polling every second is 500 queries a second, forever, even at 3am when nothing is due — and at a 500 ms tick it is 1,000 a second — with every query scanning a trigger-time index that grows with 300 million rows of 30-day history unless the table is partitioned. The cost scales with workers × frequency, not with jobs, so the system gets more expensive exactly when it gets busier, and two pollers can read the same due job in the same tick, so the claim needs an atomic conditional update or the job fires twice. The queue buys the buffer: when a job's time comes, the scheduler publishes it to the ready queue, and the 200,000-job 9:00 spike sits in the queue while 8,000 workers drain it at 4,000 a second — the queue is what turns a one-minute wall into a 50-second drain, and the fleet scales on queue depth, not on schedule rate. Consensus buys the ownership: the minute-buckets of trigger time are assigned by a leader-election/lease protocol (Lesson 14's Raft at high level, or an etcd lease), so exactly one scheduler owns each bucket and a dead owner is replaced in seconds — without it you choose between a single scheduler that is a single point of failure and every node scheduling, which fires every job twice. The shape to name: the database is the durable record of promises, the time bucket is the clock that finds what is due, the queue is the buffer between the clock and the workers, and consensus is what makes the clock's ownership safe to distribute.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — Size the fleet.</strong> A scheduler fires 10 million jobs a day, and the average job takes 2 seconds. The 9:00 minute carries 200,000 jobs. (a) How many jobs a second on average? (b) How many workers are busy on average? (c) How many jobs a second at the 9:00 peak, and how many workers busy then? (d) A fleet of 8,000 workers — what is the utilisation at the peak? <em>Rubric: (a) 10,000,000 ÷ 86,400 ≈ 115.7 a second; (b) Little's Law: 115.7 × 2 ≈ 232 workers; (c) 200,000 ÷ 60 ≈ 3,333.3 a second, so 3,333.3 × 2 ≈ 6,667 workers; (d) 6,667 ÷ 8,000 ≈ 83.3% — healthy but tight, and the reason the spike is jittered across the minute rather than fired in one second.</em></p>
+<p><strong>Drill 2 — The misfire drain.</strong> The scheduler is down for 5 minutes covering the 9:00 minute, so 200,000 jobs misfire. The fleet is 8,000 workers, each job takes 2 seconds, and new jobs keep arriving at 116 a second. (a) How many jobs a second can the fleet execute? (b) What is the net drain rate? (c) How long to clear the 200,000-job backlog? <em>Rubric: (a) 8,000 ÷ 2 = 4,000 jobs a second; (b) 4,000 − 116 = 3,884 a second net; (c) 200,000 ÷ 3,884 ≈ 51.5 seconds — the misfire is survivable, and the policy question (skip, fire late, or drop) matters more than the drain time.</em></p>
+<p><strong>Drill 3 — Polling vs bucketing.</strong> 500 scheduler workers poll a jobs table every 500 ms for due jobs. (a) How many polling queries a second is that? (b) If nothing is due at 3am, how many queries a second still run? (c) The sorted-set design does one operation per job — how many operations a second on average at 10 million jobs a day, and what is the ratio? <em>Rubric: (a) 500 ÷ 0.5 = 1,000 queries a second; (b) still 1,000 a second — the pollers cannot know nothing is due until they ask, and that is the whole cost of polling; (c) 10,000,000 ÷ 86,400 ≈ 115.7 operations a second, so polling costs about 8.6× more than bucketing at the average rate — and infinitely more at 3am, when bucketing costs zero.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Delivery semantics</td><td>At-least-once execution; every job idempotent, dedupe key on every side effect</td><td>Never promise exactly-once — a worker can die after the work and before the ack</td></tr>
+<tr><td>Finding due jobs</td><td>Time-bucketed index: sorted set scored by trigger time, or a hierarchical timing wheel</td><td>Database polling only for tiny scale — and even then, partition the table by trigger day</td></tr>
+<tr><td>Who fires what</td><td>Minute-buckets of trigger time, one leased owner per bucket via consistent hashing</td><td>A single scheduler only if you accept total downtime on its crash; never a free-for-all</td></tr>
+<tr><td>Worker handoff</td><td>Ready queue between scheduler and workers; 30-second lease with heartbeat renewal</td><td>Direct dispatch only when the fleet is tiny and the spike is small — the queue is the buffer</td></tr>
+<tr><td>Failure &amp; retry</td><td>Exponential backoff with jitter, 5 attempts, then the dead-letter queue</td><td>Immediate retry only for transient errors you can prove are transient; never retry forever</td></tr>
+<tr><td>Misfire policy</td><td>Recurring jobs skip with a cap (run once, not three times); one-shot jobs with a hard deadline fire late, once</td><td>Drop with a record when the moment has passed — a half-time reminder after full time is worse than no reminder</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"A job scheduler is a durable list of promises indexed by time — Riverside Scheduler fires ten million jobs a day, and the 9:00 minute is the whole design: two hundred thousand jobs come due in sixty seconds, about 3,333 a second, 29 times the daily average of 116. The design is three decisions. Execution is at-least-once, never exactly-once — a worker can finish the work and crash before acknowledging it, so the scheduler guarantees the job will run and the job guarantees running twice is safe, with a dedupe key on every side effect. Dispatch is time-bucketed, not polled — jobs sit in a sorted set scored by trigger time or a hierarchical timing wheel, so finding what is due costs one lookup instead of 500 queries a second from polling workers, and the database is the durable record, not the clock. And ownership of time is leased — trigger time is cut into minute-buckets, each owned by one scheduler node under a heartbeat lease, so a dead owner is replaced in seconds and a partitioned owner is fenced. The rest is machinery that follows: a ready queue that turns the 9:00 wall into a 50-second drain, a fleet of 8,000 workers that Little's Law sizes at 232 on average and 6,667 at the peak, backoff with jitter and a dead-letter queue for the 10,000 jobs that fail each day, and a misfire policy that says a daily job missed for three days runs once, not three times. And the trap to name: polling the database every second feels simple and costs 500 queries a second forever, even at 3am when nothing is due — the bucket already knows what is due, and the poller has to ask."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: a scheduler is a durable list of promises indexed by time — the design is three questions: how do you find the jobs whose time has come without scanning the list, how do you hand each one to exactly one worker, and what do you do when the promise is already late.</li>
+<li>Back-of-the-envelope: 10 million jobs a day, 116 a second on average, 3,333 a second in the 9:00 minute, 232 workers on average and 6,667 at the peak, 5.1 GB a day and 154 GB of history, a 51.5-second drain after a five-minute outage.</li>
+<li>Architecture: the API that accepts and dedupes the promise, the durable store partitioned by day, the time-bucketed index as the clock, leased bucket ownership, the ready queue and the worker lease, backoff with jitter and the dead-letter queue, and the control plane that can prove a job ran.</li>
+<li>Deep dive: why exactly-once is not on offer and at-least-once plus idempotency is the honest contract; why dispatch is a time bucket and not a poll; why ownership of time is leased, one owner per minute-bucket.</li>
+<li>Failure modes and the close: the scheduler crash at 9:00, the duplicate execution, the thundering herd, the clock that runs fast, the job that outlives its lease, and the poison job — and the line to end on: the scheduler guarantees the job will run; the job guarantees the second run is a no-op.</li>
+</ol>
+
+<p class="foot">Lesson 43 · Design a Distributed Job Scheduler · Next: a new lesson lands tomorrow morning.</p>
+</div>
+<script>
+function computeSpike(jobs, spreadSec, durationSec, workers, backgroundRate) {
+  var peakRate = jobs / spreadSec;
+  var concurrent = peakRate * durationSec;
+  var utilisation = (concurrent / workers) * 100;
+  var capacity = workers / durationSec;
+  var netDrain = capacity - backgroundRate;
+  var clearSec = netDrain > 0 ? jobs / netDrain : Infinity;
+  var finishSec = spreadSec + durationSec;
+  return {
+    peakRate: peakRate, concurrent: concurrent, utilisation: utilisation,
+    capacity: capacity, netDrain: netDrain, clearSec: clearSec, finishSec: finishSec
+  };
+}
+function computeEngines(jobsPerDay, tickSec, pollWorkers, retentionDays) {
+  var avgPerSec = jobsPerDay / 86400;
+  var pollingQps = pollWorkers / tickSec;
+  var zsetOps = avgPerSec;
+  var zsetMemoryGB = (jobsPerDay * 100) / 1e9;
+  var indexRows = jobsPerDay * retentionDays;
+  var indexGB = (indexRows * 40) / 1e9;
+  var storageGBPerDay = (jobsPerDay * 512) / 1e9;
+  return {
+    avgPerSec: avgPerSec, pollingQps: pollingQps, zsetOps: zsetOps,
+    zsetMemoryGB: zsetMemoryGB, indexRows: indexRows, indexGB: indexGB,
+    storageGBPerDay: storageGBPerDay, worstLatePolling: tickSec
+  };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtRate(n) {
+  if (n >= 1000) return fmtNum(n);
+  return n.toFixed(1);
+}
+function renderLabA() {
+  var jobs = parseFloat(document.getElementById("spikeJobs").value) || 0;
+  var spread = parseFloat(document.getElementById("spreadSec").value) || 1;
+  var duration = parseFloat(document.getElementById("jobDuration").value) || 0;
+  var workers = parseFloat(document.getElementById("fleetSize").value) || 1;
+  var bg = parseFloat(document.getElementById("avgRate").value) || 0;
+  var r = computeSpike(jobs, spread, duration, workers, bg);
+  var html =
+    "<b>Peak firing rate: " + fmtNum(r.peakRate) + " jobs/second</b> (" + fmtNum(jobs) + " jobs spread over " + spread + " seconds).<br>" +
+    "Workers busy at once: <b>" + fmtNum(r.concurrent) + "</b> of " + fmtNum(workers) + " — fleet utilisation <b>" + r.utilisation.toFixed(1) + "%</b><br>" +
+    "Fleet execution capacity: " + fmtNum(r.capacity) + " jobs/second · net drain after background arrivals: " + fmtNum(r.netDrain) + "/second<br>" +
+    "Time to clear the spike: <b>" + (isFinite(r.clearSec) ? r.clearSec.toFixed(1) + " seconds" : "never — the fleet cannot keep up") + "</b> · last job finishes about " + r.finishSec.toFixed(0) + " seconds after 9:00<br><br>" +
+    (r.utilisation <= 85
+      ? "<b>The fleet survives the spike.</b> Utilisation under 85% leaves slack for the worker that crashes mid-spike — and jitter is what buys that slack: the same jobs, spread wider, need fewer workers at once."
+      : "<b>The spike overwhelms the fleet.</b> Utilisation over 85% means the ready queue grows and jobs fire late — spread the trigger times wider with jitter, add workers, or let the queue absorb the burst and accept the lateness.");
+  document.getElementById("labAResult").innerHTML = html;
+}
+function renderLabB() {
+  var jobs = parseFloat(document.getElementById("jobsPerDay").value) || 0;
+  var tick = parseFloat(document.getElementById("tickSec").value) || 1;
+  var workers = parseFloat(document.getElementById("pollWorkers").value) || 0;
+  var retention = parseFloat(document.getElementById("retentionDays").value) || 0;
+  var r = computeEngines(jobs, tick, workers, retention);
+  var ratio = r.zsetOps > 0 ? r.pollingQps / r.zsetOps : 0;
+  document.getElementById("labBResult").innerHTML =
+    "<b>Database polling:</b> " + fmtNum(r.pollingQps) + " queries/second (" + fmtNum(workers) + " workers × one poll every " + tick + "s) — paid forever, even at 3am when nothing is due. Worst-case lateness: a full tick, <b>" + r.worstLatePolling + "s</b>.<br>" +
+    "<b>Sorted set (Redis ZSET):</b> " + fmtRate(r.zsetOps) + " operations/second on average (one per job) — about <b>" + ratio.toFixed(1) + "× cheaper</b> than polling here, and zero when nothing is due. Memory for a day's pending jobs: ~" + r.zsetMemoryGB.toFixed(2) + " GB.<br>" +
+    "<b>Hierarchical timing wheel:</b> one-second ticks, O(1) insert, worst-case lateness under a second — the cheapest clock of the three, and it lives in memory on the scheduler itself.<br>" +
+    "<b>The durable record behind all three:</b> " + r.storageGBPerDay.toFixed(2) + " GB a day of job rows · trigger-time index over " + fmtNum(r.indexRows) + " rows (" + retention + " days) ≈ " + r.indexGB.toFixed(1) + " GB — which is why the hot table is partitioned by day.<br><br>" +
+    (r.pollingQps > 10 * r.zsetOps
+      ? "<b>Polling is paying to ask a question whose answer is usually nothing.</b> The bucket already knows what is due — switch the clock to a sorted set or a timing wheel and keep the database as the record."
+      : "<b>Polling is tolerable at this scale.</b> But it still costs workers × frequency while bucketing costs jobs — and the ratio only gets worse as the fleet grows.");
+}
+["spikeJobs", "spreadSec", "jobDuration", "fleetSize", "avgRate"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabA);
+});
+["jobsPerDay", "tickSec", "pollWorkers", "retentionDays"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
+
