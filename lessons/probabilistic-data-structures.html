@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Bloom Filters &amp; Probabilistic Data Structures — the answer that is almost always right</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #0e7490; --accent-soft: #e0f2f7;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #4cc3de; --accent-soft: #16333d;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number], .lab input[type=text] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  .sugg { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .sugg:last-child { border-bottom: none; }
+  .bar { height: 8px; border-radius: 999px; background: var(--accent); margin-top: 4px; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 44</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 44 · Core building block</span>
+  <h1>Bloom Filters &amp; Probabilistic Data Structures — the answer that is almost always right</h1>
+  <p class="whyline">It is cup-final day at Riverside FC and three questions are landing on the same tired database. "Has this fan already claimed their free ticket?" — asked 5 million times, and 99% of the time the answer is no. "Have we already crawled this match-report URL?" — asked a billion times, and almost always the answer is no. "How many distinct fans watched the stream?" — a number the club wants every minute, without storing 5 million fan IDs to compute it. Exact answers to all three cost gigabytes of memory and a disk read each; approximate answers cost kilobytes and a few hundred nanoseconds — and the approximation is not sloppy, it is <em>bounded</em>: the error has a dial, the dial has a formula, and you choose the error before you build the structure. Today you learn the three structures that answer "probably" questions — the Bloom filter, HyperLogLog, and the Count-Min Sketch — from zero.</p>
+  <div class="meta"><span>Bloom filters</span><span>HyperLogLog</span><span>Count-Min Sketch</span><span>One-sided error</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a Bloom filter?</h2>
+<p>Start from zero. A <strong>Bloom filter</strong> is a data structure that answers one question — <em>"have I seen this before?"</em> — with two possible answers: <strong>"definitely not"</strong> or <strong>"probably yes"</strong>. That is the whole contract, and the asymmetry is the point: "definitely not" is always correct, and "probably yes" is correct almost always, with a false-positive rate you choose in advance. The soccer running example: Riverside FC's ticket desk keeps a list of the 60,000 season-ticket holders who have already claimed their free cup-final ticket. A fan walks up and gives their membership number. The desk could search the full list — 60,000 names, a database lookup, a disk read. Or it could check the Bloom filter first: a strip of bits, a handful of hash functions, and an answer in nanoseconds.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Bit array:</strong> a strip of <em>m</em> bits, all starting at 0 — the filter's entire memory. A 1.2 GB filter is just 9.6 billion bits. <strong>Hash function:</strong> a function that turns any input (a URL, a membership number) into a number — here, into a position in the bit array. A good hash spreads inputs evenly, so two different names almost never land on the same positions. <strong>Set (insert):</strong> hash the item with <em>k</em> different hash functions and set those <em>k</em> bits to 1. <strong>Membership query:</strong> hash the item the same <em>k</em> ways and look at those <em>k</em> bits — if any one of them is 0, the item was <em>definitely never inserted</em>; if all <em>k</em> are 1, the item was <em>probably</em> inserted. <strong>False positive:</strong> the filter says "probably yes" for an item that was never inserted — all <em>k</em> of its bits happened to be set by other items. <strong>False negative:</strong> the filter says "definitely not" for an item that <em>was</em> inserted — a Bloom filter <em>never</em> does this. <strong>One-sided error:</strong> the error only ever goes one way — false positives exist, false negatives do not. <strong>Cardinality:</strong> how many distinct items there are in a set — "how many distinct fans watched the stream". <strong>Heavy hitter:</strong> an item that appears far more often than the rest — the chant sung 100,000 times, the player searched 2 million times. <strong>Sketch:</strong> a small summary structure that answers an approximate question about a huge stream — HyperLogLog and Count-Min Sketch are sketches, not indexes. <strong>Fingerprint:</strong> a short hash of an item (a few bits) stored in place of the item itself — the Cuckoo filter stores fingerprints, not items.</p></div>
+<p>Why does this exist, when Lesson 8 already built B-tree indexes and Lesson 38 built a key-value store that can answer "is this key present" exactly? Because exactness has a price, and the price is memory. An exact set of a billion URLs needs the billion URLs — 8 GB if you store just their 64-bit hashes, far more if you store the strings. A Bloom filter for the same billion URLs needs 1.2 GB and answers in 7 hash computations, about 350 nanoseconds, against a database lookup of about a millisecond — roughly 3,000 times faster and 7 times smaller. The one idea to carry through the whole lesson: <strong>a probabilistic structure trades a small, known, one-sided error for an enormous memory saving — and the error is a dial you turn with bits, not a gamble you take blind.</strong> Lesson 20 already used one without proving it: the crawler's Bloom filter that held a billion seen URLs in 1.2 GB. This lesson is the math behind that number, and the two siblings — HyperLogLog for "how many distinct?" and Count-Min Sketch for "how often?" — that answer the questions a Bloom filter cannot.</p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are sizing three structures for Riverside FC at real scale: a Bloom filter holding a billion crawled URLs, a HyperLogLog counting 5 million distinct cup-final viewers, and a Count-Min Sketch counting 100 million chant mentions a day. Every number below is computed from one formula each, and Lab A and Lab B let you re-run all of them.</p>
+<ul>
+<li><strong>The Bloom filter's dial: at a 1% false-positive rate, each item costs about 9.6 bits — and the number of hash functions is 7.</strong> The false-positive probability is <strong>p ≈ (1 − e<sup>−kn/m</sup>)<sup>k</sup></strong>, where <em>m</em> is the number of bits, <em>n</em> the number of items, and <em>k</em> the number of hash functions. The optimal <em>k</em> is <strong>(m/n) × ln 2</strong>, and the bits per item for a target <em>p</em> is <strong>−ln p ÷ (ln 2)²</strong>. For p = 1%: −ln(0.01) = 4.605, (ln 2)² = 0.480, so <strong>4.605 ÷ 0.480 ≈ 9.6 bits per item</strong>, and k = 9.6 × 0.693 ≈ <strong>6.6, rounded to 7</strong>. The rule of thumb to remember: <strong>10 bits per item buys you a 1% false-positive rate</strong>, with 7 hashes. Tighten the dial to 0.1% and it costs 14.4 bits per item with k = 10 — a 50% memory increase for a 10× error reduction. (Lab A runs the dial.)</li>
+<li><strong>A billion URLs at 1%: 1.2 GB in the filter, 8 GB in an exact set — a 6.7× saving.</strong> 1,000,000,000 items × 9.6 bits = 9.6 billion bits ÷ 8 = <strong>about 1.2 GB</strong>. The exact alternative — storing one 64-bit hash per URL — is 1,000,000,000 × 8 bytes = <strong>8 GB</strong>, and storing the URL strings themselves is several times that. The filter also answers in about 7 hash computations, roughly 350 nanoseconds, against a database lookup of about a millisecond. And the cost of the 1% error is concrete, not abstract: if the crawler checks 10 million unseen URLs a day, 1% of them — <strong>100,000 a day</strong> — are falsely reported as "already seen" and skipped. That is the price, stated in skipped pages, and the reason the dial exists: at 0.1% the same day costs 10,000 skipped pages and 1.8 GB of memory. The small worked example that makes the formula tangible: a 100-bit filter holding 10 names with k = 7 gives p = (1 − e<sup>−0.7</sup>)<sup>7</sup> ≈ <strong>0.82%</strong> — ten names, a hundred bits, and less than a 1-in-100 chance of a false yes. (Lab A checks the small example too.)</li>
+<li><strong>HyperLogLog: 5 million distinct viewers counted in 12 KB, accurate to about ±0.8%.</strong> HyperLogLog keeps <em>m</em> = 2<sup>p</sup> small registers — with p = 14, that is <strong>16,384 registers of 6 bits each, or 98,304 bits ≈ 12 KB</strong> — and its standard error is <strong>1.04 ÷ √m</strong>, so 1.04 ÷ 128 ≈ <strong>0.81%</strong>. For 5 million distinct cup-final viewers, the estimate lands within about ±0.81%, or <strong>±40,600 viewers</strong>, two times in three. The exact alternative is a set of 5 million 64-bit hashes: 5,000,000 × 8 bytes = <strong>40 MB</strong> — about <strong>3,255 times more memory</strong> than the sketch. Drop to p = 12 (4,096 registers, 3 KB) and the error doubles to 1.63% — for 20 million distinct viewers that is ±325,000 — which is the dial again: memory buys accuracy, and 12 KB buys sub-1% accuracy at any scale, because the error depends only on the number of registers, never on the number of items counted. (Lab B runs the register dial.)</li>
+<li><strong>Count-Min Sketch: 100 million chant mentions a day, counted to within 100,000, in 54 KB.</strong> The sketch is a grid of <em>d</em> rows and <em>w</em> columns of counters: hash each event with <em>d</em> hash functions, increment one counter per row, and estimate a count as the <em>minimum</em> of its <em>d</em> counters — the minimum, because collisions can only ever inflate a counter, never shrink it, so the smallest counter is the closest to the truth. The sizing formulas are <strong>w = ⌈e ÷ ε⌉</strong> and <strong>d = ⌈ln(1 ÷ δ)⌉</strong>, and the guarantee is: the estimate is at most the true count plus <strong>ε × N</strong> (N = total events), with probability at least <strong>1 − δ</strong>. For ε = 0.1% and δ = 1%: w = ⌈2.718 ÷ 0.001⌉ = <strong>2,719 columns</strong>, d = ⌈ln 100⌉ = <strong>5 rows</strong>, and with 4-byte counters the sketch is 2,719 × 5 × 4 = <strong>about 54 KB</strong>. On 100 million events a day, the over-count bound is 0.001 × 100,000,000 = <strong>100,000</strong> with 99% confidence — a chant truly sung 2 million times reads back as somewhere between 2,000,000 and 2,100,000. The exact alternative — one counter per distinct chant — is tens of megabytes once the vocabulary runs to millions of distinct strings. (Lab B runs the ε–δ dial.)</li>
+<li><strong>Deletion has a price: a counting Bloom filter costs 4× the memory of a plain one.</strong> A plain Bloom filter cannot delete — clearing a bit might belong to another item that still needs it. The counting variant replaces each bit with a small counter (typically 4 bits), incrementing on insert and decrementing on delete, so the same billion URLs at 1% now cost 9.6 × 4 = 38.4 bits per item, or <strong>about 4.8 GB</strong> instead of 1.2 GB. The Cuckoo filter answers the same need differently — it stores short fingerprints in buckets and supports deletion natively: a 12-bit fingerprint with 4 slots per bucket gives a false-positive rate of about 2 × 4 ÷ 4,096 ≈ <strong>0.2%</strong>, and at a 95% load factor it holds a billion items in 12 ÷ 0.95 ≈ 12.6 bits each, or <strong>about 1.6 GB</strong> — slightly more than a plain Bloom filter, slightly less false-positive, and deletable. The choice is never "Bloom or exact set"; it is "which error, which operation, and how many bits".</li>
+<li><strong>Where they sit in real systems: in front of the expensive thing, never instead of the truth.</strong> Cassandra and RocksDB put a Bloom filter on every SSTable so a point lookup that misses skips the disk read entirely — the filter's "definitely not" is trusted, its "probably yes" is verified against the disk. Chrome's Safe Browsing ships a Bloom filter of malicious URLs to every browser so most checks never touch the network. Lesson 20's crawler used one to skip already-seen URLs. Redis ships HyperLogLog (PFADD / PFCOUNT) and BigQuery's APPROX_COUNT_DISTINCT is a HyperLogLog under the hood. The pattern is always the same: the sketch is a gate in front of the expensive operation, and the expensive operation is the arbiter — the filter never gets the last word on anything that matters.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Three numbers decide which structure you reach for, and they pull in different directions. The 9.6 bits per item at 1% says membership is nearly free — a billion items fit in 1.2 GB, and the only question is whether 100,000 skipped pages a day is an acceptable price for the 6.7× memory saving, or whether the 0.1% dial at 1.8 GB is worth it. The 12 KB HyperLogLog says distinct counting is essentially free at any scale — the error depends on the register count, not the item count, so 5 million viewers and 5 billion viewers cost the same 12 KB and the same ±0.81% — which is why "how many distinct?" is almost never worth an exact set. And the 54 KB Count-Min Sketch says frequency counting is nearly free too, with a one-sided guarantee — estimates only ever over-count, never under-count, by at most ε × N — which is why the sketch is the right tool for "which chant is trending" and the wrong tool for "how much do we owe this merchant". A design that stores a billion hashes to answer "seen before?", or a set of 5 million IDs to count viewers, or a per-string counter table to find trending chants, has paid gigabytes for a question a few kilobytes answer to within a percent.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Follow one question — "has this fan already claimed their free cup-final ticket?" — through the system, and then the two questions a Bloom filter cannot answer. There are six stages, and each one exists because a different question needs a different kind of "probably".</p>
+<ol>
+<li><strong>The question — name it before you pick a structure.</strong> "Have I seen this before?" is a membership question, and it belongs to a Bloom filter. "How many distinct fans watched?" is a cardinality question, and it belongs to HyperLogLog. "How many times was each chant sung?" is a frequency question, and it belongs to a Count-Min Sketch. The most common design error in this whole area is reaching for a Bloom filter to count things, or a HyperLogLog to test membership — each structure answers exactly one question, and the design review is won by naming the question first. A sketch that answers the wrong question is not approximate, it is wrong.</li>
+<li><strong>The Bloom filter — the membership gate in front of the expensive thing.</strong> The ticket desk hashes the membership number with 7 hash functions and checks 7 bits. If any bit is 0, the fan has definitely not claimed — no database lookup, no disk read, the fan is waved through in nanoseconds. If all 7 bits are 1, the fan probably claimed, and only then does the desk check the database — the exact record is the arbiter, the filter is the gate. That is the whole deployment pattern, and it is the same one Cassandra uses on every SSTable and Chrome uses for Safe Browsing: the filter's "definitely not" is trusted, its "probably yes" is verified. The filter lives in memory on every node that needs it, it is rebuilt from the source of truth on restart, and it is sized from the dial — 9.6 bits per item at 1%, 14.4 at 0.1% — with the item count <em>n</em> fixed at build time, because a filter that grows past its design size fills up and its false-positive rate climbs past the number you promised.</li>
+<li><strong>HyperLogLog — the distinct counter that never stores the set.</strong> Every viewer event is hashed, and the hash decides two things: which of the 16,384 registers it belongs to, and how many leading zeroes the rest of the hash has. Each register keeps only the largest leading-zero count it has ever seen. The intuition is the coin-flip one: seeing a hash that starts with 10 zeroes in a row is a 1-in-1,024 event, so if the longest run you have seen is 10 zeroes, you have probably seen about a thousand distinct items — and the harmonic mean across 16,384 registers turns that rough guess into an estimate accurate to ±0.81%. The registers are 6 bits each, the whole sketch is 12 KB, and two sketches merge by taking the maximum of each register — so the cup-final count can be computed per edge server and merged in the middle, which is how you count distinct viewers across a fleet without ever centralising 5 million IDs. The sketch never stores a single fan ID, which is also why it is the right answer when privacy matters: there is nothing in 12 KB to leak.</li>
+<li><strong>Count-Min Sketch — the frequency counter that only ever over-counts.</strong> Every chant mention is hashed by 5 hash functions into 5 rows of 2,719 counters, incrementing one counter per row. To read a chant's count, take the minimum of its 5 counters — the minimum, because a collision with another chant can only add to a counter, never subtract, so the smallest counter is the one least polluted by collisions. The guarantee is one-sided and exact: the estimate is never below the truth, and it is above the truth by at most ε × N — 100,000 on 100 million events at ε = 0.1% — with 99% confidence. Heavy hitters fall out for free: any chant whose estimate clears the threshold (say, 1% of all mentions) is a candidate, and the candidates are verified against exact counts, because the sketch's job is to nominate, not to crown. The same structure counts trending searches, top talkers on a network, and the most-played songs — anywhere the question is "what is hot?" rather than "exactly how many?"</li>
+<li><strong>The deletion problem — when "probably yes" needs an undo button.</strong> A plain Bloom filter cannot delete: clearing a bit might belong to another item. If the membership set changes — fans return tickets, URLs are un-crawled, accounts are deleted — the answer is a different structure, not a flag on the old one. A <strong>counting Bloom filter</strong> replaces each bit with a 4-bit counter (insert increments, delete decrements) at 4× the memory, and saturates at 15 rather than overflowing. A <strong>Cuckoo filter</strong> stores short fingerprints in buckets, supports deletion by removing the fingerprint, and at 12-bit fingerprints gives a 0.2% false-positive rate in about 1.6 GB for a billion items. A <strong>quotient filter</strong> stores fingerprints in a hash table and supports deletion, enumeration, and resizing. The senior line: <em>deletion is a structure choice, made when the set is designed — not a feature bolted on afterwards.</em></li>
+<li><strong>The pipeline — where the sketches sit, and what arbitrates them.</strong> The three structures sit in front of the expensive operations they protect: the Bloom filter in front of the database and the disk, HyperLogLog in front of the analytics warehouse, the Count-Min Sketch in front of the exact top-k computation. Every one of them has an arbiter behind it — the database for membership, the exact count for a disputed distinct total, the exact tally for a crowned heavy hitter — because a sketch never gets the last word on anything where being wrong costs money or correctness. And every one of them is rebuilt from the source of truth: a Bloom filter is rebuilt from the key set, a HyperLogLog from replaying the event stream, a Count-Min Sketch from re-counting the log. A sketch is a cache of a summary, not a source of truth, and it is treated like one — rebuildable, replaceable, and never the only copy of anything.</li>
+</ol>
+<table>
+<tr><th>Stage</th><th>What it does</th><th>What fails if it is missing</th></tr>
+<tr><td>The question</td><td>Names membership, cardinality, or frequency before any structure is picked</td><td>A Bloom filter is used to count things, or a HyperLogLog to test membership — approximately wrong, not approximately right</td></tr>
+<tr><td>Bloom filter</td><td>7 hashes, 9.6 bits per item at 1% — "definitely not" trusted, "probably yes" verified</td><td>Every negative lookup hits the database — the disk pays for a billion "no, never seen it" answers</td></tr>
+<tr><td>HyperLogLog</td><td>16,384 registers, 12 KB, ±0.81% — distinct counts without storing the set</td><td>A 5-million-ID set (40 MB) is stored, shipped, and merged just to count viewers</td></tr>
+<tr><td>Count-Min Sketch</td><td>5 × 2,719 counters, 54 KB — estimates never under-count, over-count by at most ε × N</td><td>A per-string counter table grows with the vocabulary, and "what is trending" needs a full scan</td></tr>
+<tr><td>Deletion</td><td>Counting Bloom (4× memory) or Cuckoo filter (fingerprints, 0.2% at 1.6 GB) when the set changes</td><td>Deleting from a plain Bloom clears bits other items still need, and the filter starts lying in the other direction</td></tr>
+<tr><td>Pipeline &amp; arbiter</td><td>Sketches gate the expensive operation; the exact store arbitrates every "probably yes"</td><td>A sketch becomes the source of truth, and a 1% error becomes a fan wrongly told they already claimed their ticket</td></tr>
+</table>
+
+<h2>The heart of it: three decisions that make or break the design</h2>
+<h3>1. The false-positive dial — pick the error first, then size the structure</h3>
+<p>The seductive mistake is to pick a size — "a gigabyte sounds right" — and then discover the error rate it implies. The right order is the reverse: pick the error your system can afford, then compute the bits. A crawler that can afford to skip 100,000 pages a day buys 1% and pays 9.6 bits per item; a ticket desk that can afford to send one fan in a thousand to the database for a second check buys 0.1% and pays 14.4 bits per item. The dial is logarithmic — each extra bit per item roughly halves the false-positive rate, and each 10× reduction in error costs about 4.8 more bits per item — so the negotiation is always "how much error can the arbiter behind the filter absorb?" and never "how much memory do we have?". And the hash count follows the size, not the other way round: the optimal k is (m/n) × ln 2, about 7 at 10 bits per item, and using more hashes than that does not help — it fills the filter faster and raises the false-positive rate. The senior line: <strong>an approximate structure is not a sloppy structure — its error is a budget, set before a single bit is allocated, and the formula, not the feeling, sets the size.</strong></p>
+<h3>2. Deletion is a different structure, not a flag — and the filter's error is one-sided, so respect the side it is on</h3>
+<p>Two traps live in the same sentence, and both come from treating the filter like a set. First, a plain Bloom filter has no delete operation, and inventing one — clearing the bits of the deleted item — corrupts the filter: those bits may belong to other items, and after the clear the filter starts saying "definitely not" for items that <em>were</em> inserted, which is the one error it promised never to make. If the set changes, the structure changes — counting Bloom at 4× memory, or a Cuckoo filter with fingerprints at about 1.6 GB for a billion items and a 0.2% false-positive rate. Second, the one-sided error cuts both ways: a Bloom filter's "definitely not" is safe to act on (skip the disk read, wave the fan through), but its "probably yes" is never safe to act on alone — it must be verified, because 1% of the time it is wrong, and the fan who is wrongly told they already claimed their ticket is a support call, not a statistic. The same one-sidedness is the Count-Min Sketch's strength: it never under-counts, so a chant below the trending threshold is definitely not trending, and the candidates above it are verified exactly. The senior line: <strong>know which side the error is on, and build the system so the safe side is the one you act on without checking.</strong></p>
+<h3>3. Estimation is a budget, not a guess — and sketches never decide money</h3>
+<p>HyperLogLog and Count-Min Sketch look like guessing, and the difference between guessing and estimating is the guarantee written next to the number. HyperLogLog's error is 1.04 ÷ √m — a formula, not a hope — so 16,384 registers buy ±0.81% and the error does not grow as the count grows: 5 million viewers and 5 billion viewers cost the same 12 KB and the same ±0.81%, because the error depends on the register count and nothing else. Count-Min's guarantee is a bound, not a distribution: the estimate is at most the truth plus ε × N with probability at least 1 − δ — so on 100 million events at ε = 0.1%, a chant truly sung 2 million times reads back between 2,000,000 and 2,100,000, 99 times in 100. The boundary is where the guarantee stops being good enough: a sketch is right for "how many distinct viewers?", "which chant is trending?", "have we seen this URL?" — and it is wrong for "how much do we owe this merchant?", "how many seats are left?", "did this payment already go through?" — anywhere the error is not a rounding but a wrong answer with a price. The senior line: <strong>use a sketch wherever the question tolerates a bounded error, and refuse it wherever the error has a price — the structure is honest about its uncertainty, and the design is honest about where uncertainty is allowed.</strong></p>
+<div class="callout green"><strong>The senior line on the three decisions</strong><p>Every probabilistic structure is the same three sentences, and the room is won by saying them with numbers attached. The error is a dial, set before the structure is sized — 10 bits per item buys a 1% false-positive rate with 7 hashes, 14.4 bits buys 0.1% with 10, and a billion URLs fit in 1.2 GB where an exact set needs 8 GB. The error is one-sided, and the system is built around the side it is on — a Bloom filter's "definitely not" is trusted and its "probably yes" is verified against the database, a Count-Min Sketch never under-counts so the trending threshold is safe, and deletion is a different structure (counting Bloom at 4× memory, or a Cuckoo filter at 1.6 GB with a 0.2% rate) rather than a flag on the old one. And estimation is a budget with a formula — HyperLogLog's 1.04 ÷ √m means 12 KB counts 5 million distinct viewers to ±0.81% and 5 billion to the same ±0.81%, and Count-Min's ε × N bound means 54 KB counts 100 million chant mentions to within 100,000 with 99% confidence. Say those three sentences, with the arithmetic — 9.6 bits, 7 hashes, 1.2 GB against 8 GB, 12 KB against 40 MB, 54 KB against a per-string table — and the rest of the design — the gate in front of the database, the mergeable registers, the minimum-of-five-counters read — is machinery that follows.</p></div>
+
+<h2>Failure modes — six ways probabilistic structures fail</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>The filter fills past its design size</td><td>A billion-item filter is fed 2 billion URLs, the bits saturate, and the false-positive rate climbs from 1% toward 100% — every check says "probably yes"</td><td>Size from the maximum <em>n</em>, not the current one; monitor the fill ratio and rebuild (or shard into a new filter) before the rate drifts past the promise</td></tr>
+<tr><td>Deleting from a plain Bloom filter</td><td>A returned ticket is "deleted" by clearing its bits, and fans who did claim are suddenly told "definitely not claimed" — the filter's one impossible error, made possible</td><td>Never delete from a plain Bloom: use a counting Bloom (4× memory) or a Cuckoo filter, where deletion is a designed operation, not a hack</td></tr>
+<tr><td>Acting on "probably yes" without verifying</td><td>A fan is told they already claimed their ticket — 1% of the time the filter is wrong, and the error lands on a real person with no recourse</td><td>The filter is a gate, never an arbiter: every "probably yes" is checked against the exact store before any decision is made</td></tr>
+<tr><td>Correlated or weak hash functions</td><td>Two hash functions that agree too often behave like one, the effective <em>k</em> collapses, and the false-positive rate is far above the formula's promise</td><td>Use independent, well-spread hashes (MurmurHash, xxHash, or double hashing: h<sub>1</sub> + i·h<sub>2</sub>); never use a hash designed for security or a home-grown one</td></tr>
+<tr><td>HyperLogLog at tiny cardinalities</td><td>A stream with 50 distinct viewers reads back as 80 — the estimator is biased low at small counts, where most registers are still empty</td><td>Apply the small-range correction (linear counting while most registers are empty) — the libraries do this, but the design must know it exists and when it applies</td></tr>
+<tr><td>Count-Min Sketch crowns a false heavy hitter</td><td>A chant sung 10,000 times collides with a chant sung 2 million times in all 5 rows and reads back as 2,010,000 — a nobody looks like a hit</td><td>The sketch nominates, it never crowns: every candidate above the threshold is verified against exact counts before it is published as trending</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"A Bloom filter can tell you something is definitely absent — so a 'maybe' means it is present."</strong> No: "maybe" means maybe. The filter's two answers are "definitely not" and "probably yes", and the second one is wrong 1% of the time at the standard dial. Treating "probably yes" as a yes is how a fan gets told they already claimed a ticket they never claimed, and how a crawler skips 100,000 pages a day it has never seen. The "probably" is the whole point of the structure — it is a gate in front of the exact check, not a replacement for it.</li>
+<li><strong>"Memory is cheap — just use a hash set."</strong> At a billion items the set is 8 GB of hashes, plus overhead, plus garbage-collection pressure, plus the fact that it does not fit in the edge box's RAM at all — and the lookup is a pointer chase into a hash table, not 7 bit checks in a 1.2 GB array that fits in cache. The set is also exact in a way nobody asked for: the crawler does not need to know <em>which</em> URLs it has seen, only whether it has seen <em>this one</em>. Paying 6.7× the memory for precision the question does not need is not thoroughness, it is waste — and at the edge, it is the difference between the filter existing and not existing.</li>
+<li><strong>"Bloom filters support deletion if you track the counts."</strong> That is a counting Bloom filter, and it is a different structure: 4-bit counters instead of bits, 4× the memory (4.8 GB for the billion URLs, not 1.2 GB), counters that saturate at 15, and a false-positive rate that now depends on the counter width as well. Saying "Bloom filter" when you mean "counting Bloom filter" is how a design review goes wrong — the memory budget, the deletion story, and the error analysis are all different, and the room needs to hear which one you are actually proposing.</li>
+</ul>
+
+<h2>Interactive lab 1: the Bloom filter sizer</h2>
+<div class="lab">
+<h3>Lab A — How many bits does "have I seen this?" cost?</h3>
+<p>Set how many items the filter must hold, the false-positive rate you can afford, and how many unseen items you check each day. The sizer computes the bits, the memory, the optimal hash count, the exact-set comparison — and the price of the error, in items wrongly reported as "already seen" per day.</p>
+<label for="bloomItems">Items the filter must hold (n)</label>
+<input type="number" id="bloomItems" value="1000000000" />
+<label for="bloomFp">Target false-positive rate (as a decimal — 0.01 is 1%)</label>
+<input type="number" id="bloomFp" value="0.01" step="0.001" min="0.0001" max="0.5" />
+<label for="bloomChecks">Unseen items checked per day</label>
+<input type="number" id="bloomChecks" value="10000000" />
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Check the defaults: 1 billion items at 1% needs about 9.6 bits each — 1.20 GB with 7 hashes — against an 8 GB exact set, and 10 million unseen checks a day produce 100,000 false positives. Then set the rate to 0.001 and watch the memory rise to 1.80 GB with 10 hashes while the daily false positives fall to 10,000. Then try the small example from the lesson — 10 items at 1% — and watch the sizer land on a 96-bit filter with 7 hashes and a rate of about 1%.</p>
+</div>
+
+<h2>Interactive lab 2: the distinct-count &amp; frequency planner</h2>
+<div class="lab">
+<h3>Lab B — How cheap is "how many distinct?" and "how often?"</h3>
+<p>Set the distinct count you need to estimate and the register count for HyperLogLog, then the error budget and confidence for the Count-Min Sketch and the day's total events. The planner shows both sketches' memory, their error, and what the exact answer would have cost.</p>
+<label for="hllDistinct">Distinct items to count (e.g. viewers)</label>
+<input type="number" id="hllDistinct" value="5000000" />
+<label for="hllRegisters">HyperLogLog registers (2^p — 16384 is p = 14)</label>
+<input type="number" id="hllRegisters" value="16384" />
+<label for="cmsEpsilon">Count-Min Sketch error fraction ε (0.001 is 0.1%)</label>
+<input type="number" id="cmsEpsilon" value="0.001" step="0.0005" min="0.0001" max="0.05" />
+<label for="cmsDelta">Count-Min Sketch failure probability δ (0.01 is 99% confidence)</label>
+<input type="number" id="cmsDelta" value="0.01" step="0.005" min="0.001" max="0.5" />
+<label for="cmsEvents">Total events per day (N)</label>
+<input type="number" id="cmsEvents" value="100000000" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the planner reproduces 12 KB and ±0.81% (about ±40,600 viewers) for HyperLogLog against a 40 MB exact set, and 2,719 × 5 counters, about 54 KB, with an over-count bound of 100,000 for the sketch. Then raise the distinct count to 5 billion and watch the HyperLogLog memory and error stay exactly the same — the error depends on the registers, never on the items.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. Design the dedup layer for a web crawler that sees a billion URLs: how do you avoid crawling the same URL twice, and what does it cost?</summary>
+<p><strong>Model answer.</strong> I start from the question, because it is a membership question — "have I seen this URL before?" — and that belongs to a Bloom filter, not a set. A billion URLs stored exactly is 8 GB of 64-bit hashes, and the strings themselves are far more; a Bloom filter at a 1% false-positive rate needs 9.6 bits per URL, or about 1.2 GB, and answers in 7 hash computations, roughly 350 nanoseconds against a millisecond database lookup. The filter sits in front of the URL store: a new URL is hashed, and if any of its 7 bits is 0 it is definitely unseen, so it goes into the frontier and its bits are set; if all 7 are 1 it is probably seen, so it is skipped — and the skip is the price, stated honestly: at 10 million unseen URLs checked a day, 1% of them, 100,000 a day, are falsely reported as seen and never crawled. If that price is too high, the dial tightens to 0.1% for 14.4 bits per item and 1.8 GB, and the skipped count falls to 10,000 a day. The filter is sized from the maximum URL count, not the current one, because a filter fed past its design size saturates and its false-positive rate climbs toward 100%; when the crawl grows past the design, the filter is rebuilt bigger or sharded into a new one. And I would close with the two things the filter is not: it is not the source of truth — the URL store behind it is, and the filter is rebuilt from it on restart — and it cannot delete, so if URLs ever need to be un-seen, the structure becomes a counting Bloom at 4× memory or a Cuckoo filter with fingerprints, not a flag on the old one.</p>
+</details>
+<details>
+<summary>Q2. "How many distinct fans watched the cup-final stream?" — the stream ran on 40 edge servers, and nobody stored 5 million fan IDs. How do you answer, and how accurate is it?</summary>
+<p><strong>Model answer.</strong> I start from the question, because it is a cardinality question — "how many distinct?" — and that belongs to HyperLogLog, not to a set and not to a Bloom filter. Each edge server keeps a HyperLogLog sketch of 16,384 registers of 6 bits each — 12 KB total — and every viewer event is hashed: the hash picks a register and the leading-zero count of the rest of the hash updates it. The intuition is the coin-flip one: a hash starting with 10 zeroes is a 1-in-1,024 event, so the longest run of zeroes seen across the registers estimates the distinct count, and the harmonic mean across 16,384 registers makes it accurate. The standard error is 1.04 ÷ √16,384, about 0.81%, so for 5 million distinct viewers the answer lands within about ±40,600, two times in three — and the error depends only on the register count, never on the number of viewers, so 5 billion viewers would cost the same 12 KB and the same ±0.81%. The 40 sketches merge by taking the maximum of each register, so the global count is computed without ever centralising a single fan ID — which is also the privacy answer, since 12 KB of registers contains nothing to leak. The exact alternative is a set of 5 million 64-bit hashes, 40 MB, about 3,255 times more memory, plus the cost of shipping and merging it. And I would close with the boundary: the sketch is right for a dashboard number and wrong for a billing number — if the count decides money, the error, however small, has a price, and the count is exact.</p>
+</details>
+<details>
+<summary>Q3. "Which chants are trending?" — 100 million chant mentions a day, a vocabulary of millions of distinct chants, and you need the top 10 by tonight. How?</summary>
+<p><strong>Model answer.</strong> I start from the question, because it is a frequency question — "how often, and what is hot?" — and that belongs to a Count-Min Sketch, not to a per-chant counter table that grows with the vocabulary. The sketch is a grid of 5 rows and 2,719 columns of 4-byte counters, about 54 KB: every mention is hashed by 5 hash functions and one counter per row is incremented, and a chant's count is read as the minimum of its 5 counters — the minimum, because a collision with another chant can only inflate a counter, never shrink it. The sizing comes from the error budget: ε = 0.1% and δ = 1% give w = ⌈e ÷ 0.001⌉ = 2,719 columns and d = ⌈ln 100⌉ = 5 rows, and the guarantee is that the estimate is never below the truth and at most ε × N above it with 99% confidence — on 100 million events a day that is an over-count of at most 100,000, so a chant truly sung 2 million times reads back between 2,000,000 and 2,100,000. Heavy hitters fall out by threshold: any chant whose estimate clears 1% of all mentions is a candidate for the top 10, and the candidates are verified against exact counts before anything is published — the sketch nominates, it never crowns, because a rare chant that collides with a huge one in all 5 rows can read back inflated. And I would close with the one-sidedness as the design principle: the sketch never under-counts, so a chant below the threshold is definitely not trending, and the threshold is safe — the error only ever makes a nobody look like a somebody, and the exact verification catches that before it reaches the screen.</p>
+</details>
+<details>
+<summary>Q4. A fan is told they already claimed their free cup-final ticket, but they did not. The Bloom filter said so. What happened, and how do you fix it — in the design, not in the moment?</summary>
+<p><strong>Model answer.</strong> I start with what happened, because the failure has a specific shape: the fan's membership number hashed to 7 bit positions that were all already set by other fans' numbers — a false positive, which the filter produces 1% of the time at the standard dial. Nothing is broken; the filter did exactly what its contract promises, and the bug is in the system around it: the design acted on "probably yes" as if it were a yes, and sent a real person away on a 1-in-100 error. The fix in the moment is the exact check that should have been there all along — look the membership number up in the database, see no claim exists, and hand over the ticket. The fix in the design has three parts. First, the filter becomes a gate, never an arbiter: "definitely not" is acted on without a database lookup, "probably yes" is always verified against the exact store before any decision is made. Second, the dial is re-examined against the cost of being wrong: if a wrongly turned-away fan costs a support call and a bad matchday, 0.1% at 14.4 bits per item may be worth more than the 1% dial's 9.6 bits, and the arithmetic — 100,000 false positives a day becoming 10,000 — is the argument. Third, the filter's size is checked against its fill: if the ticket desk fed more members than the filter was designed for, the bits saturated and the false-positive rate drifted far above the promised 1%, and the fix is a rebuild sized for the real maximum. And I would close with the line that prevents the next incident: a probabilistic structure's error is a budget, not a surprise — the design names the error rate, the cost of the error, and the arbiter that catches it, before the first fan walks up to the desk.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — Size the filter.</strong> A ticket system must hold 500 million claimed membership numbers at a 1% false-positive rate. (a) How many bits per item, and how many hash functions? (b) How much memory does the filter need? (c) How much would an exact set of 64-bit hashes need, and what is the ratio? <em>Rubric: (a) −ln(0.01) ÷ (ln 2)² ≈ 9.6 bits per item, k = 9.6 × ln 2 ≈ 6.6, rounded to 7; (b) 500,000,000 × 9.6 bits ÷ 8 ≈ 0.60 GB; (c) 500,000,000 × 8 bytes = 4 GB, so the filter is about 6.7× smaller — and answers in 7 bit checks instead of a database lookup.</em></p>
+<p><strong>Drill 2 — The distinct-count error.</strong> A HyperLogLog sketch uses 4,096 registers (p = 12) to count distinct viewers of a match. (a) How much memory does it use? (b) What is its standard error? (c) If 20 million distinct fans watched, within what range does the estimate land, two times in three? <em>Rubric: (a) 4,096 registers × 6 bits = 24,576 bits ≈ 3 KB; (b) 1.04 ÷ √4,096 = 1.04 ÷ 64 ≈ 1.63%; (c) 1.63% of 20 million is about 325,000, so the estimate lands within roughly 19,675,000–20,325,000 — and the same 3 KB would count 20 billion viewers to the same ±1.63%.</em></p>
+<p><strong>Drill 3 — The frequency bound.</strong> A Count-Min Sketch counts song plays with an error fraction ε = 0.5% and a failure probability δ = 0.1%. (a) How many columns and rows? (b) How much memory with 4-byte counters? (c) On 50 million plays a day, what is the over-count bound, and what does it mean for a song truly played 1 million times? <em>Rubric: (a) w = ⌈e ÷ 0.005⌉ = 544 columns, d = ⌈ln(1 ÷ 0.001)⌉ = ⌈6.91⌉ = 7 rows; (b) 544 × 7 × 4 bytes ≈ 15 KB; (c) the bound is ε × N = 0.005 × 50,000,000 = 250,000 with 99.9% confidence, so the song reads back between 1,000,000 and 1,250,000 — never below the truth, and the sketch is the wrong tool if that 250,000 gap decides money.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Membership ("seen before?")</td><td>Bloom filter — 10 bits per item buys 1% false positives, 7 hashes; "definitely not" trusted, "probably yes" verified</td><td>Never use it to count things, and never act on "probably yes" without the exact check behind it</td></tr>
+<tr><td>Membership + deletion</td><td>Cuckoo filter (12-bit fingerprints, ~0.2% FP, ~1.6 GB per billion items) or counting Bloom (4× memory)</td><td>Plain Bloom only when the set never shrinks — deletion is a structure choice, not a flag</td></tr>
+<tr><td>Distinct count ("how many?")</td><td>HyperLogLog — 16,384 registers, 12 KB, ±0.81% at any scale; sketches merge by register-wise maximum</td><td>Exact set only when the count decides money, or the cardinality is small enough that 12 KB is not a saving</td></tr>
+<tr><td>Frequencies / heavy hitters</td><td>Count-Min Sketch — read the minimum of the rows, nominate candidates, verify exactly before crowning</td><td>Exact counters only when the count is small in vocabulary or the error has a price</td></tr>
+<tr><td>Sizing order</td><td>Pick the error budget first (p, ε, δ), then compute the bits — the formula sets the size, not the feeling</td><td>Never pick a size and discover the error afterwards; a saturated filter's error climbs toward 100%</td></tr>
+<tr><td>Where sketches never go</td><td>In front of the expensive thing, with an exact arbiter behind them</td><td>Never for money, inventory, payments, or anything where the error is a wrong answer with a price</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"Probabilistic data structures answer 'probably' questions — and the 'probably' is a budget, not a gamble. A Bloom filter answers 'have I seen this before?' with two answers: 'definitely not', which is always correct, and 'probably yes', which is wrong a known percentage of the time. Ten bits per item buys a 1% false-positive rate with 7 hashes, so a billion URLs fit in 1.2 GB where an exact set needs 8 GB — and the price of the 1% is concrete, 100,000 pages a day falsely skipped out of 10 million unseen checks. HyperLogLog answers 'how many distinct?' in 12 KB — 16,384 registers of 6 bits, error 1.04 over root-m, about ±0.81% — so 5 million distinct viewers are counted to within 40,600 without storing a single fan ID, and 5 billion cost the same 12 KB. And the Count-Min Sketch answers 'how often?' in 54 KB — 5 rows of 2,719 counters — with a one-sided guarantee: it never under-counts, and over-counts by at most ε times N, 100,000 on 100 million events at 0.1%. The three decisions are the dial, the side of the error, and the boundary: pick the error before you size the structure, build the system so the safe side of the error is the one you act on without checking, and never let a sketch decide money. And the trap to name: a Bloom filter's 'probably yes' is not a yes — it is a gate in front of the exact check, and the fan who is wrongly told they already claimed their ticket is a support call, not a statistic."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: a probabilistic structure trades a small, known, one-sided error for an enormous memory saving — the error is a dial you turn with bits, and the question (membership, cardinality, frequency) picks the structure.</li>
+<li>Back-of-the-envelope: 9.6 bits per item and 7 hashes at 1%, a billion URLs in 1.2 GB against an 8 GB exact set, 100,000 falsely skipped pages a day; HyperLogLog 12 KB and ±0.81% for 5 million viewers against a 40 MB exact set; Count-Min 54 KB with an over-count bound of 100,000 on 100 million events.</li>
+<li>Architecture: the question named first, the Bloom filter as the gate in front of the database, HyperLogLog's mergeable registers, Count-Min's minimum-of-five read, the deletion problem and its two answers, and the pipeline rule that a sketch never gets the last word.</li>
+<li>Deep dive: the false-positive dial and why the error is picked before the size; the one-sided error and why "probably yes" is always verified; estimation as a budget with a formula, and the boundary where sketches never go.</li>
+<li>Failure modes and the close: the filter that fills past its design size, the delete that corrupts a plain Bloom, the unverified "probably yes", the weak hash, the small-cardinality bias, and the false heavy hitter — and the line to end on: the sketch is honest about its uncertainty, and the design is honest about where uncertainty is allowed.</li>
+</ol>
+
+<p class="foot">Lesson 44 · Bloom Filters &amp; Probabilistic Data Structures · Next: a new lesson lands tomorrow morning.</p>
+</div>
+<script>
+function computeBloom(n, p) {
+  var ln2 = Math.LN2;
+  var bitsPerItem = -Math.log(p) / (ln2 * ln2);
+  var k = Math.max(1, Math.round(bitsPerItem * ln2));
+  var mBits = n * bitsPerItem;
+  var memoryGB = mBits / 8 / 1e9;
+  var exactGB = n * 8 / 1e9;
+  var actualP = Math.pow(1 - Math.exp(-k * n / mBits), k);
+  return { bitsPerItem: bitsPerItem, k: k, mBits: mBits, memoryGB: memoryGB, exactGB: exactGB, actualP: actualP };
+}
+function computeSketches(distinct, registers, epsilon, delta, events) {
+  var hllMemKB = registers * 6 / 8 / 1024;
+  var hllErr = 1.04 / Math.sqrt(registers);
+  var hllAbsErr = distinct * hllErr;
+  var hllExactMB = distinct * 8 / 1e6;
+  var w = Math.ceil(Math.E / epsilon);
+  var d = Math.ceil(Math.log(1 / delta));
+  var cmsMemKB = w * d * 4 / 1024;
+  var cmsBound = epsilon * events;
+  return { hllMemKB: hllMemKB, hllErr: hllErr, hllAbsErr: hllAbsErr, hllExactMB: hllExactMB, w: w, d: d, cmsMemKB: cmsMemKB, cmsBound: cmsBound };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtGB(n) {
+  if (n >= 1) return n.toFixed(2) + " GB";
+  if (n >= 0.001) return (n * 1024).toFixed(0) + " MB";
+  var bits = n * 8e9;
+  if (bits >= 1024) return (bits / 8 / 1024).toFixed(1) + " KB";
+  return fmtNum(bits) + " bits";
+}
+function renderLabA() {
+  var n = parseFloat(document.getElementById("bloomItems").value) || 0;
+  var p = parseFloat(document.getElementById("bloomFp").value) || 0.01;
+  var checks = parseFloat(document.getElementById("bloomChecks").value) || 0;
+  var r = computeBloom(n, p);
+  var fpPerDay = checks * r.actualP;
+  var ratio = r.exactGB > 0 ? r.exactGB / r.memoryGB : 0;
+  document.getElementById("labAResult").innerHTML =
+    "<b>Bits per item: " + r.bitsPerItem.toFixed(1) + "</b> · optimal hash functions: <b>k = " + r.k + "</b> · filter size: <b>" + fmtGB(r.memoryGB) + "</b> (" + fmtNum(r.mBits) + " bits)<br>" +
+    "Actual false-positive rate with k = " + r.k + ": <b>" + (r.actualP * 100).toFixed(2) + "%</b><br>" +
+    "Exact set of 64-bit hashes: " + fmtGB(r.exactGB) + " — the filter is <b>" + ratio.toFixed(1) + "× smaller</b><br>" +
+    "False positives per day: <b>" + fmtNum(fpPerDay) + "</b> of " + fmtNum(checks) + " unseen checks wrongly reported as 'already seen'<br><br>" +
+    (r.actualP <= 0.01
+      ? "<b>The dial is tight enough.</b> One in a hundred unseen items is skipped — cheap insurance against a database lookup on every negative check."
+      : "<b>The dial is loose.</b> More than 1 in 100 unseen items is falsely reported as seen — tighten the target rate, or accept that the skipped items are the price of the memory saving.");
+}
+function renderLabB() {
+  var distinct = parseFloat(document.getElementById("hllDistinct").value) || 0;
+  var registers = parseFloat(document.getElementById("hllRegisters").value) || 1;
+  var eps = parseFloat(document.getElementById("cmsEpsilon").value) || 0.001;
+  var delta = parseFloat(document.getElementById("cmsDelta").value) || 0.01;
+  var events = parseFloat(document.getElementById("cmsEvents").value) || 0;
+  var r = computeSketches(distinct, registers, eps, delta, events);
+  var hllRatio = (distinct * 8) / (registers * 6 / 8);
+  document.getElementById("labBResult").innerHTML =
+    "<b>HyperLogLog:</b> " + fmtNum(registers) + " registers × 6 bits = <b>" + r.hllMemKB.toFixed(1) + " KB</b> · standard error <b>±" + (r.hllErr * 100).toFixed(2) + "%</b> — about <b>±" + fmtNum(r.hllAbsErr) + "</b> on " + fmtNum(distinct) + " distinct items<br>" +
+    "Exact set of 64-bit hashes: " + r.hllExactMB.toFixed(1) + " MB — the sketch is <b>" + fmtNum(hllRatio) + "× smaller</b>, and the error does not grow with the distinct count.<br>" +
+    "<b>Count-Min Sketch:</b> " + fmtNum(r.w) + " columns × " + r.d + " rows × 4-byte counters = <b>" + r.cmsMemKB.toFixed(1) + " KB</b> · over-count bound: at most <b>" + fmtNum(r.cmsBound) + "</b> on " + fmtNum(events) + " events, with " + ((1 - delta) * 100).toFixed(0) + "% confidence — and the estimate never under-counts.<br><br>" +
+    (r.hllErr <= 0.01
+      ? "<b>Sub-1% counting for kilobytes.</b> That is the whole trade: a dashboard number accurate to within a percent, for less memory than a single photo."
+      : "<b>The HyperLogLog error is above 1%.</b> Double the registers (one more bit of p) and the error falls by about 30% — memory buys accuracy, and 12 KB buys sub-1%.");
+}
+["bloomItems", "bloomFp", "bloomChecks"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabA);
+});
+["hllDistinct", "hllRegisters", "cmsEpsilon", "cmsDelta", "cmsEvents"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
