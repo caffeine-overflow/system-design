@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design a Distributed Cache — the database's memory, spread across twenty-four boxes</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #0e7490; --accent-soft: #e0f2f7;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #4cc3de; --accent-soft: #16333d;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number], .lab input[type=text] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  .sugg { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .sugg:last-child { border-bottom: none; }
+  .bar { height: 8px; border-radius: 999px; background: var(--accent); margin-top: 4px; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 45</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 45 · Classic design</span>
+  <h1>Design a Distributed Cache — the database's memory, spread across twenty-four boxes</h1>
+  <p class="whyline">It is cup-final day at Riverside FC and the fan app is taking 200,000 reads a second — the live score, the league table, player pages, ticket availability — and the database behind it can serve about 2,000 reads a second per instance. Without a cache the club needs 100 database instances to survive kickoff; with one, it needs five. The cache is not a clever optimisation on top of the system, it is the thing that makes the system affordable at all — and it is also the thing that, designed badly, takes the database down with it the first time it goes cold. Today you design the cache itself: how 400 GB of hot data is spread across 24 boxes, what happens when one key gets 50,000 reads a second, and what happens when the whole fleet restarts an hour before kickoff.</p>
+  <div class="meta"><span>Consistent hashing</span><span>Cache-aside</span><span>Hot keys</span><span>Stampedes</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a distributed cache?</h2>
+<p>Start from zero. A <strong>cache</strong> is a fast copy of data that lives somewhere quicker to reach than the original — memory instead of disk, the edge instead of the origin. A <strong>distributed cache</strong> is that copy spread across many machines, so that no single machine has to hold all of it and no single machine failing takes all of it away. The soccer running example: the club shop is the database — it holds everything, but there is one of it, and every fan queuing at its door waits. On matchday the club does not make the shop bigger; it sends programme sellers out around the stadium, each carrying copies of the popular items — the match programme, the scarf, the cup-final shirt. A fan buys from the nearest seller in seconds instead of queuing at the shop for twenty minutes, and the shop only ever sees the rare requests — the signed shirt in size small, the item nobody else wants. The sellers are the cache nodes, the shop is the database, and the whole trick of this lesson is deciding what each seller carries, how they know what to carry, and what happens when a seller goes home early.</p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Cache node:</strong> one machine in the fleet, holding a slice of the cached data in its RAM — our fleet has 24 of them. <strong>Key / value:</strong> the lookup name and the data behind it — <em>match:8741:score</em> is a key, the string "Riverside 2–1 Athletic, 67'" is the value. <strong>Hit / miss:</strong> the key is in the cache (a hit, answered in about a millisecond) or it is not (a miss, answered by the database, then stored in the cache for next time). <strong>Hit rate:</strong> the fraction of reads that hit — 95% here, so 5 in 100 reads reach the database. <strong>TTL (time to live):</strong> how long a cached value is allowed to live before it is thrown away — the live score gets 5 seconds, a player profile gets an hour. <strong>Eviction:</strong> what the cache does when it runs out of room — it throws something away, usually the least recently used item. <strong>Replication factor:</strong> how many copies of each key exist — RF = 3 here, so every key lives on three nodes. <strong>Shard / partition:</strong> one slice of the key space, owned by one node (plus its replicas). <strong>Working set:</strong> the data that is actually read, as opposed to everything stored — 400 GB here, against petabytes in the database. <strong>Hot key:</strong> one key that gets a wildly disproportionate share of the reads — the live score on cup-final day. <strong>Stampede (thundering herd):</strong> thousands of requests hitting the database at once because the one key they all wanted just expired. <strong>Singleflight (request coalescing):</strong> the fix for a stampede — the first request recomputes the value while the rest wait for it, so the database sees one query instead of ten thousand. <strong>Cache-aside:</strong> the read pattern where the application checks the cache first and fills it on a miss — the application, not the cache, owns the filling. <strong>Write-through:</strong> the pattern where every write goes to the cache and the database together. <strong>Cold start / warm-up:</strong> a cache fleet with nothing in it yet, and the slow process of filling it — 5.6 hours here, if you fill it naively.</p></div>
+<p>Why does this lesson exist, when Lesson 3 already covered caching strategies and Lesson 10 built consistent hashing and Lesson 38 built a key-value store? Because knowing the patterns is not the same as designing the system that runs them. Lesson 3 taught you cache-aside and TTLs as patterns; this lesson sizes the fleet that runs them, decides how keys are spread across it, and works out what breaks when the fleet is hot, cold, or one node short. Lesson 10 taught you the ring; this lesson puts 200 million keys on it. Lesson 38 taught you quorums and vector clocks for a store that <em>is</em> the source of truth; a cache is the opposite — it is a copy, and a copy has different rules: it may be thrown away, it may be stale, and it must never be the only place the data exists. The one idea to carry through the whole lesson: <strong>a cache is a copy, and everything about the design — the sizing, the eviction, the hot keys, the cold start — follows from deciding what it means to be a copy: fast, disposable, and never the truth.</strong></p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are sizing a distributed cache for the Riverside FC fan app at cup-final scale: 200 million keys, an average value of 2 KB, a peak of 200,000 reads a second, and a database that manages 2,000 reads a second per instance. Every number below is computed from one formula each, and Lab A and Lab B let you re-run all of them.</p>
+<ul>
+<li><strong>The dataset: 200 million keys × 2 KB = 400 GB of hot data — and at RF = 3 that is 1,200 GB to store.</strong> The keys are player pages, match events, standings, sessions, and ticket availability — the working set, the data fans actually read, not the petabytes of history sitting in the database. Each key exists on three nodes, because a cache node will fail on matchday and the data must survive it. So the fleet must hold 400 × 3 = <strong>1,200 GB</strong> in RAM.</li>
+<li><strong>The fleet: 24 nodes — each a 64 GB box with about 50 GB usable for cache.</strong> A 64 GB box does not give you 64 GB of cache: the operating system, the cache process itself, and headroom for a spike take roughly a fifth, leaving about <strong>50 GB</strong> per node. 1,200 ÷ 50 = <strong>24 nodes exactly</strong>. Each node holds 200M × 3 ÷ 24 = <strong>25 million keys</strong>, 50 GB of values — plus the per-key overhead, about 90 bytes per key for the hash table entry and the object header, which is 200M × 3 × 90 bytes ≈ <strong>54 GB across the fleet, or 2.25 GB per node</strong>. The overhead is not a footnote: at a billion keys it would be 270 GB, and a design that forgets it sizes the fleet 5% too small. (Lab A runs the sizing.)</li>
+<li><strong>The read load: 200,000 reads a second at peak is 8,333 a second per node — about 8% of what one node can do.</strong> A single cache node serves on the order of 100,000 operations a second from memory, so 200,000 ÷ 24 ≈ <strong>8,333 reads a second per node</strong> leaves enormous headroom — which is the point: the fleet is sized by memory, not by throughput, and the throughput headroom is what absorbs the spike when the goal goes in. The average is far lower — the peak is the number that sizes the system, and the peak is 40 times the quiet-hour load.</li>
+<li><strong>The hit rate is the whole economics: at 95%, the database sees 10,000 reads a second — 5 instances instead of 100.</strong> 200,000 reads a second × 5% misses = <strong>10,000 reads a second</strong> reaching the database. At 2,000 reads a second per instance, that is <strong>5 database instances</strong>. Without the cache, the same 200,000 reads a second would need <strong>100 instances</strong>. Each percentage point of hit rate at this scale is worth 2,000 reads a second — one whole database instance — which is why the hit rate, not the fleet size, is the number the team watches on matchday. At a 99% hit rate the database would see 2,000 reads a second: a single instance. (Lab A runs the hit-rate dial.)</li>
+<li><strong>The latency: a hit costs about 1 ms, a miss costs about 20 ms — and the p99 is set by the misses, not the hits.</strong> A cache hit is a round trip inside one availability zone plus a memory lookup, roughly <strong>1 ms</strong>; a miss is a database query with a disk read, roughly <strong>20 ms</strong>. The average read is 0.95 × 1 + 0.05 × 20 ≈ <strong>1.95 ms</strong> — but the average is not the product. The p99 read is a miss, so the p99 is <strong>about 20 ms</strong>: 99 reads in 100 are fast, and the one that is slow is the one the fan notices when the score does not update. A design that quotes the average latency is hiding the misses.</li>
+<li><strong>The hot key: the live score takes 50,000 reads a second — 16,667 a second on each of its three replicas.</strong> One key, <em>match:8741:score</em>, takes a quarter of the entire read load, because every fan in the stadium is watching the same number. With RF = 3 the load splits three ways, so each replica serves about <strong>16,667 reads a second</strong> — survivable for a node that can do 100,000, but it is a sixth of a node's capacity spent on one key, and a traffic spike doubles it. Replicate that key to 10 copies instead of 3 and each copy serves <strong>5,000 a second</strong>. The average load per node is a lie; the hottest key is the design. (Lab B runs the hot-key dial.)</li>
+<li><strong>The stampede: when that key expires, 10,000 requests pile up on the database in 200 ms.</strong> The live score's TTL expires mid-match; recomputing it takes 200 ms; in those 200 ms, 50,000 requests a second × 0.2 seconds = <strong>10,000 requests</strong> arrive, find the key gone, and all ten thousand go to the database. With singleflight, the first request recomputes the value and the other 9,999 wait for it — the database sees <strong>one query</strong>. The stampede is not a traffic problem, it is an expiry problem, and it is fixed at the cache, not by adding database instances.</li>
+<li><strong>The cold start: filling 200 million keys at 10,000 a second takes 5.6 hours — so the fleet is never allowed to start cold on matchday.</strong> 200,000,000 keys ÷ 10,000 keys a second = 20,000 seconds, about <strong>5.6 hours</strong>; at 50,000 a second it is still <strong>1.1 hours</strong>. A fleet that restarts empty at 8am is still warming up at kickoff, and every read in the meantime is a miss — 200,000 reads a second hitting a database built for 10,000. The fleet is warmed from a snapshot, restarted one node at a time, or pre-filled with the hot keys before the gates open — never cold, never all at once. (Lab B runs the warm-up clock.)</li>
+<li><strong>Losing a node: 1 of 24 nodes takes 25 million keys and 50 GB with it — 4.2% of the fleet, absorbed as 2.2 GB extra per remaining node.</strong> Consistent hashing (Lesson 10) means removing one node moves only its keys: 1 ÷ 24 ≈ <strong>4.2%</strong> of the key space, <strong>25 million keys and 50 GB</strong>, and the other 23 nodes each absorb about <strong>2.2 GB</strong> extra — a shrug, not a crisis, because the fleet has headroom and the replicas already hold copies. The failure that matters is not one node dying; it is all of them dying at once, which is the cold start above.</li>
+<li><strong>The price tag: 24 nodes at about $200 a month is about $4,800 a month — against 95 database instances it replaces.</strong> The fleet costs roughly <strong>$4,800 a month</strong> to run, and it removes the need for 95 extra database instances — the cache pays for itself many times over, which is why "add a cache" is the first answer to a read-scaling question and usually the last one needed. And the working set grows: at 5% a month, 400 GB becomes <strong>536 GB in six months</strong> — 32 nodes by then, not 24 — so the sizing is re-run every quarter, not once.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Three numbers decide the shape of this design, and they pull in different directions. The 400 GB working set at RF = 3 says the fleet is 24 nodes of 50 GB usable each — sized by memory, not by throughput, because 8,333 reads a second per node is a tenth of what a node can do. The 95% hit rate says the database fleet is 5 instances instead of 100 — each percentage point of hit rate is one database instance, so the hit rate is the number the team watches, not the node count. And the 50,000 reads a second on one key says the average is a lie — the live score alone is a quarter of the load, 16,667 a second per replica, and the design lives or dies on what it does with that one key: replicate it to 10 copies, coalesce its recompute to a single query, and never let its expiry become a stampede. A design that sizes for the average load, quotes the average latency, and warms the fleet on matchday has built a cache that works on a quiet Tuesday and takes the database down on cup-final day.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Follow one read — a fan opening the app to check the live score — through the system. There are seven stages, and each one exists because a different failure is waiting in it.</p>
+<ol>
+<li><strong>The client and the ring — the fan's phone knows which seller to ask.</strong> The app hashes the key (<em>match:8741:score</em>) and looks it up on the consistent-hash ring from Lesson 10, with virtual nodes so the 24 physical boxes share the load evenly. The ring lives in the client library, so there is no proxy hop — the phone talks straight to the node that owns the key. A node joining or leaving moves only about 1/24 of the keys, and the client re-reads the ring on a membership change. The alternative — a proxy fleet in front of the cache — adds a hop and a fleet of its own to operate; the ring in the client is the simpler answer while the fleet is one cluster in one region.</li>
+<li><strong>The read path — cache-aside: check the copy first, fill it on a miss.</strong> The app asks the owning node for the key. On a hit, the value comes back in about a millisecond. On a miss, the app reads the database, writes the value into the cache with its TTL, and returns it — the application does the filling, not the cache. That is cache-aside, and it is the default because the cache never has to know where the truth lives: if the cache is empty, the app still works, just slower. The TTL is set by the data, not by the system: the live score gets 5 seconds, the league table 60 seconds, a player profile an hour, a session 30 minutes. Ticket availability gets 5 seconds plus an explicit invalidation on every sale — inventory is the one thing this cache is never allowed to be wrong about for long, and Lesson 26 is why.</li>
+<li><strong>The write path — update the database, then delete the key: the order is the design.</strong> When the score changes, the app writes the new value to the database first, and then deletes the key from the cache — it does not write the new value into the cache. Deleting is deliberate: the next read refills the cache from the database, so the cache can never hold a value the database does not. The order matters and it is the one thing to get right: database first, cache delete second. If the delete fails or is lost, the TTL bounds the damage — the stale value lives for at most 5 seconds on a live score, an hour on a player profile — which is why the TTL is a correctness decision, not a performance tweak. Write-through — writing to cache and database together on every write — is the alternative, and it is rejected here: it puts cache latency on the write path for data that may never be read again, and it does not fix the race anyway.</li>
+<li><strong>Partitioning and replication — 24 shards, three copies each, and a preference list.</strong> The key space is split into 24 shards by the ring, and each key lives on three nodes: its owner and the next two nodes clockwise. A read goes to the owner first and falls back to a replica if the owner is slow; a write to the cache updates all three. When a node dies, its replica is promoted and a new third copy is built in the background — the fleet heals itself without the application noticing, and the 4.2% of keys that moved are the only ones that miss. Adding a node is the same operation in reverse: the ring rebalances, about 1/24 of the keys move, and the fleet is bigger by one box.</li>
+<li><strong>Eviction — when the box is full, something has to go, and the policy is the design.</strong> Each node holds 50 GB and the working set grows at 5% a month, so the fleet will fill up — the question is never <em>whether</em> eviction happens, it is <em>what</em> gets evicted. The default is allkeys-lru: when memory is full, evict the least recently used key — implemented as an approximation, sampling five random keys and evicting the least recently used of the five, which is O(1) and close enough to true LRU that nobody can tell the difference. For skewed access — a handful of player pages taking most of the reads — allkeys-lfu is better: it evicts by frequency, so a page read ten thousand times an hour is never evicted for a page read once. The TTLs do half the work for free: expired keys are removed lazily on access and swept in the background, so the eviction policy only ever decides between live keys.</li>
+<li><strong>Hot keys and stampedes — the one key that breaks the average.</strong> The live score's 50,000 reads a second are handled in three layers. First, the key is replicated to 10 copies instead of 3, so each copy serves 5,000 a second instead of 16,667 — the replicas are read-only copies, refreshed from the owner, and the client library knows to spread the reads across them. Second, its TTL is jittered — each copy expires at a slightly different time, so the fleet never has to recompute it all at once. Third, the recompute is coalesced: when the key expires, the first request recomputes it and the other 9,999 wait — singleflight — so the database sees one query. And for the very hottest keys, the edge cache in front of the fleet (Lesson 32) absorbs the first wave entirely: the CDN serves the score for 5 seconds, and the fleet sees a fraction of the load. A hot key is not solved by adding nodes — the key still lives on the same three boxes — it is solved by copying the key more widely and by making its expiry boring.</li>
+<li><strong>Failure and recovery — the cache may die; the database must not.</strong> The fleet's failure modes are handled in layers. One node dies: its replica is promoted, a new copy is built, 4.2% of keys miss once. The whole fleet restarts: it warms from a snapshot — each node loads its last persisted snapshot from disk, so the fleet comes back mostly full instead of empty — and restarts roll one node at a time, never all at once. The database is protected from the refill by a rate limit: the cache is allowed to refill at, say, 10,000 keys a second, and the rest of the misses wait — a cold cache is allowed to be slow, it is not allowed to kill the database. And the final rule, the one that makes all the others safe: the cache is a copy, so losing it loses nothing but speed. If the fleet is gone, the app reads the database directly — slowly, and with a circuit breaker — and the fans see a slower app, not a broken one.</li>
+</ol>
+<table>
+<tr><th>Stage</th><th>What it does</th><th>What fails if it is missing</th></tr>
+<tr><td>Client + ring</td><td>Hashes each key to its owner on the consistent-hash ring, in the client library — no proxy hop</td><td>Every request goes through a proxy fleet that becomes its own scaling problem, or a naive modulo hash that moves nearly every key when a node joins</td></tr>
+<tr><td>Read path</td><td>Cache-aside: hit in ~1 ms, miss reads the database and fills the cache with a TTL set by the data</td><td>The app reads the database for every request, and the 100-instance database fleet from the math above is the bill</td></tr>
+<tr><td>Write path</td><td>Database first, then delete the cache key; TTL bounds the staleness if the delete is lost</td><td>The cache is written first and the database second, so a crash leaves a value in the cache that the database never saw — a copy that is newer than the truth</td></tr>
+<tr><td>Partitioning + replication</td><td>24 shards on the ring, RF = 3, replica promotion on node loss, ~4.2% of keys move per change</td><td>One node holds the whole dataset (a single point of failure with a 400 GB blast radius) or every node holds everything (24× the memory, and a write that must reach 24 boxes)</td></tr>
+<tr><td>Eviction</td><td>allkeys-lru (or LFU for skewed access) with TTL expiry doing half the work</td><td>The fleet fills up and evicts the working set itself — the hit rate collapses to the database's load, and the cache becomes a very expensive way to miss</td></tr>
+<tr><td>Hot keys + stampedes</td><td>Hot keys replicated to 10 copies, jittered TTLs, singleflight coalescing, edge cache in front</td><td>One key takes 16,667 reads a second per replica, its expiry sends 10,000 queries to the database in 200 ms, and the database — not the cache — is what falls over</td></tr>
+<tr><td>Failure + recovery</td><td>Snapshot warm-up, rolling restarts, rate-limited refill, fail-open to the database</td><td>A cold fleet at kickoff sends 200,000 reads a second to a database built for 10,000, and the outage is the database's, caused by the cache</td></tr>
+</table>
+
+<h2>The heart of it: three decisions that make or break the design</h2>
+<h3>1. Where the truth lives — the cache is a copy, and the design must never forget it</h3>
+<p>The seductive mistake is to start treating the cache as the database: writing to it first, reading from it as if it were authoritative, building features that assume the cached value is the value. It is not. The cache may be evicted, it may expire, it may be lost when a node dies — and every one of those is fine, because the database still has the truth. The whole write path follows from this one sentence: update the database, then delete the cache key, and let the next read refill it. The delete-after-write order is what keeps the copy from ever being newer than the truth, and the TTL is what bounds the damage when the delete is lost — a stale live score lives for 5 seconds, a stale player profile for an hour, and those bounds are chosen per key, in the open, as design decisions. The senior line: <strong>a cache that is treated as the source of truth is a database with no durability, no transactions, and an eviction policy — and it will delete your data on a busy afternoon and call it a feature.</strong></p>
+<h3>2. The hot key is the whole design — the average load is a lie</h3>
+<p>The fleet averages 8,333 reads a second per node, and that number is useless, because one key takes 50,000 reads a second and the other 199,999,999 keys share the rest. A design sized for the average builds a fleet that is bored 99% of the time and melting on the one key that matters — and the fix is never "add more nodes", because the key still lives on the same three boxes no matter how big the fleet gets. The fix is to copy the hot key more widely (10 replicas instead of 3, so each serves 5,000 a second), to make its expiry boring (jittered TTLs so the copies never expire together, singleflight so one recompute serves ten thousand waiters), and to push it to the edge (the CDN serves the score for 5 seconds and the fleet never sees most of the reads at all). The same thinking applies to the write side: the score changes once a second, but it is read 50,000 times a second — a 50,000:1 read-to-write ratio — so every optimisation in this design is a read optimisation, and a design that optimises the writes has optimised the wrong side. The senior line: <strong>find the hottest key first, design for it explicitly, and let the average take care of itself — the average is a statistic, the hot key is the match.</strong></p>
+<h3>3. Size for the working set, not the dataset — and the eviction policy is the design</h3>
+<p>The database holds petabytes; the cache holds 400 GB. That gap is the whole point of a cache — it holds the data fans actually read, and the data fans actually read is a small, skewed slice of everything stored. So the fleet is sized from the working set (400 GB × RF = 3 ÷ 50 GB a node = 24 nodes), not from the database, and the eviction policy is what keeps the working set in the fleet when the fleet fills up: LRU for recency, LFU for skewed popularity, TTLs for the data that ages out on its own. Get the policy wrong and the cache evicts the working set to make room for one-off reads — the hit rate collapses, the database takes the full load, and the cache is still there, still costing $4,800 a month, doing nothing. And the working set grows — 5% a month, 536 GB in six months — so the sizing is a quarterly habit, not a one-off calculation: the fleet that is exactly right today is 8 nodes short by the summer. The senior line: <strong>a cache that holds the working set is a cache; a cache that holds a random sample of it is a lottery ticket that costs $4,800 a month.</strong></p>
+<div class="callout green"><strong>The senior line on the three decisions</strong><p>Every distributed cache is the same three sentences, and the room is won by saying them with numbers attached. The cache is a copy, never the truth — so writes go to the database first and the cache key is deleted after, and the TTL is the bound on staleness: 5 seconds on a live score, an hour on a player profile, with the delete lost meaning stale for at most that long. The hot key is the design — one key takes 50,000 reads a second, a quarter of the whole load, so it is replicated to 10 copies at 5,000 each, its TTL is jittered, and its recompute is coalesced to a single database query instead of the 10,000 that would pile up in 200 ms. And the fleet is sized for the working set — 200 million keys at 2 KB is 400 GB, times RF = 3 is 1,200 GB, divided by 50 GB usable per node is exactly 24 nodes, holding 25 million keys each, serving 8,333 reads a second each at a 95% hit rate that turns 100 database instances into 5. Say those three sentences, with the arithmetic — 400 GB, 1,200 GB, 24 nodes, 50,000 reads on one key, 10,000 requests in 200 ms, 5.6 hours to warm cold — and the rest of the design — the ring in the client, the delete-after-write order, the sampled LRU, the snapshot warm-up — is machinery that follows.</p></div>
+
+<h2>Failure modes — six ways a distributed cache fails</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>The stampede</td><td>The live score's TTL expires mid-match and 10,000 requests hit the database in 200 ms — the database, not the cache, falls over</td><td>Singleflight: the first request recomputes the value and the rest wait — one database query, not ten thousand — plus jittered TTLs so copies never expire together</td></tr>
+<tr><td>The hot key melts a node</td><td>One key takes 16,667 reads a second per replica, a traffic spike doubles it, and the node spends a sixth of its capacity on a single key while the rest of the fleet idles</td><td>Replicate the hot key to 10 copies (5,000 a second each), and push it to the edge cache in front of the fleet — adding nodes does not help, copying the key does</td></tr>
+<tr><td>The stale-read race</td><td>A read misses, fetches the old score from the database, and then a write updates the database — the read fills the cache with the old value, and the new score waits out the TTL</td><td>Delete the key after the database write, keep TTLs short on fast-changing data (5 seconds on the score), and version the key when a stale value is a wrong answer rather than a slow one</td></tr>
+<tr><td>Cold fleet at kickoff</td><td>The fleet restarts empty at 8am, kickoff is 9am, and 200,000 reads a second hit a database built for 10,000 — the outage is the database's, caused by the cache</td><td>Warm from snapshots, restart one node at a time, pre-fill the hot keys before the gates open, and rate-limit the refill so a cold cache is slow but never lethal</td></tr>
+<tr><td>Eviction eats the working set</td><td>The fleet fills up, the policy evicts the player pages fans actually read to make room for one-off reads, and the hit rate collapses while the cache keeps costing $4,800 a month</td><td>LFU when access is skewed, TTLs that clear dead data on their own, and a hit-rate alert — the hit rate is the number that tells you the working set still fits</td></tr>
+<tr><td>The cache becomes the truth</td><td>A feature reads a value that only ever existed in the cache, a node dies, the value is gone, and the team discovers the database never had it</td><td>The rule, enforced in review: the cache is a copy — every value in it must exist in the database, and anything that cannot be rebuilt from the database does not belong in the cache</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"The cache is fast, so make it the source of truth."</strong> No: the cache is fast <em>because</em> it is a copy — it skips durability, transactions, and fsync, and it throws data away when it runs out of room. A value that exists only in the cache is a value that will disappear on a busy afternoon, and the team will discover it was the only copy when a fan's ticket, session, or purchase is gone. If the data cannot be rebuilt from the database, it does not belong in the cache — and if a feature needs the cache to be durable, the feature needs a database.</li>
+<li><strong>"One key is hot — add more nodes."</strong> Adding nodes does not help a hot key, because the key still lives on the same three boxes: the ring puts it on one owner and two replicas, and a fleet of 100 nodes has the same three boxes serving it. The hot key is fixed by copying the key more widely (10 replicas, 5,000 reads a second each), by coalescing its recompute (singleflight), and by pushing it to the edge (the CDN serves it for 5 seconds) — three answers, and none of them is "more nodes". Sizing the fleet for the average load while the hottest key melts one node is the most common sizing error in this whole area.</li>
+<li><strong>"Write-through keeps the cache and the database consistent."</strong> Write-through keeps them consistent only if every write goes through the cache, every write succeeds in both places, and no write ever bypasses it — and in a real system, writes come from batch jobs, admin tools, and other services that never touch the cache. A stale value written around the cache is still stale, and a write that fails halfway leaves the two disagreeing in the other direction. The honest answer is cache-aside with delete-after-write and a TTL bound: the cache is allowed to be stale for at most the TTL, the bound is stated in the open, and the fast-changing data gets the short TTL. Consistency in a cache is a bound, not a guarantee — and a design that claims otherwise is hiding the race.</li>
+</ul>
+
+<h2>Interactive lab 1: the cache fleet sizer</h2>
+<div class="lab">
+<h3>Lab A — How many boxes does the working set need?</h3>
+<p>Set the key count, the average value size, the replication factor, the node size and how much of it is usable, the peak read rate, and the hit rate. The sizer computes the fleet size, the memory and key count per node, the read load per node — and the database fleet with the cache, against the one without it.</p>
+<label for="cacheKeys">Keys in the working set</label>
+<input type="number" id="cacheKeys" value="200000000" />
+<label for="cacheValKB">Average value size (KB)</label>
+<input type="number" id="cacheValKB" value="2" step="0.5" min="0.1" />
+<label for="cacheRF">Replication factor</label>
+<input type="number" id="cacheRF" value="3" min="1" max="5" />
+<label for="cacheUsableGB">Usable RAM per node (GB) — about 50 GB of a 64 GB box after the OS and the cache process</label>
+<input type="number" id="cacheUsableGB" value="50" min="1" />
+<label for="cachePeakReads">Peak reads per second</label>
+<input type="number" id="cachePeakReads" value="200000" />
+<label for="cacheHitRate">Hit rate (0.95 is 95%)</label>
+<input type="number" id="cacheHitRate" value="0.95" step="0.01" min="0" max="0.999" />
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Check the defaults: 200M keys at 2 KB is 400 GB, times RF = 3 is 1,200 GB, and at 50 GB usable per node that is exactly 24 nodes holding 25M keys each — with 8,333 reads a second per node, 10,000 reads a second reaching the database at a 95% hit rate (5 instances), against 100 instances with no cache at all. Then drop the hit rate to 0.80 and watch the database fleet jump to 20 instances — each percentage point of hit rate is one database instance at this scale.</p>
+</div>
+
+<h2>Interactive lab 2: the hot-key &amp; stampede lab</h2>
+<div class="lab">
+<h3>Lab B — What does the hottest key cost, and how long is a cold start?</h3>
+<p>Set the reads a second on the hottest key, how many copies of it exist, how long its recompute takes, and the key count and refill rate for the warm-up clock. The lab shows the load per copy, the stampede that follows an expiry, what singleflight saves — and how long a cold fleet takes to fill.</p>
+<label for="hotReads">Reads per second on the hottest key</label>
+<input type="number" id="hotReads" value="50000" />
+<label for="hotCopies">Copies of the hot key</label>
+<input type="number" id="hotCopies" value="3" min="1" max="50" />
+<label for="hotRecomputeMs">Recompute time when the key expires (ms)</label>
+<input type="number" id="hotRecomputeMs" value="200" />
+<label for="warmKeys">Keys to warm after a cold start</label>
+<input type="number" id="warmKeys" value="200000000" />
+<label for="warmRate">Refill rate (keys per second)</label>
+<input type="number" id="warmRate" value="10000" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the lab reproduces 16,667 reads a second per copy at RF = 3, a 10,000-request pile-up in the 200 ms recompute, and a 5.6-hour warm-up at 10,000 keys a second. Then raise the copies to 10 and watch each copy fall to 5,000 a second; then raise the refill rate to 50,000 and watch the warm-up fall to 1.1 hours — still too slow to start cold on matchday.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. Design the cache for the matchday app: 200,000 reads a second at peak, 200 million keys, average value 2 KB. How many nodes, and why?</summary>
+<p><strong>Model answer.</strong> I start from the working set, because the fleet is sized by memory, not by throughput. 200 million keys × 2 KB is 400 GB of hot data, and at a replication factor of 3 — every key on three nodes, so a node can die on matchday without losing data — that is 1,200 GB to store. A 64 GB box gives about 50 GB of usable cache once the operating system and the process itself are accounted for, so 1,200 ÷ 50 is exactly 24 nodes, each holding 25 million keys and 50 GB of values, plus about 2.25 GB of per-key overhead. The throughput then checks out rather than driving the design: 200,000 reads a second ÷ 24 nodes is about 8,333 a second per node, against roughly 100,000 operations a second that a single node can serve from memory — about 8% of capacity, which is the headroom that absorbs the spike when the goal goes in. The hit rate is the number that matters next: at 95%, 10,000 reads a second reach the database, which is 5 database instances at 2,000 reads a second each — against 100 instances with no cache at all, so each percentage point of hit rate is worth one database instance. The keys are spread by consistent hashing with virtual nodes in the client library, so a node joining or leaving moves only about 1/24 of the keys, and the read path is cache-aside with TTLs set by the data: 5 seconds on the live score, 60 on the table, an hour on a player profile. And I would close with the two numbers that are not averages: the hottest key takes 50,000 reads a second on its own and is handled separately (Lab B's answer), and the fleet takes 5.6 hours to warm from cold, so it is never restarted whole on matchday.</p>
+</details>
+<details>
+<summary>Q2. The live score key is hit 50,000 times a second. One node owns it. What happens, and how do you fix it?</summary>
+<p><strong>Model answer.</strong> I start with the arithmetic, because the average load hides it: the fleet averages 8,333 reads a second per node, but this one key takes 50,000 a second — a quarter of the entire read load — and with a replication factor of 3 it splits three ways, so each replica serves about 16,667 reads a second. That is survivable — a node can do roughly 100,000 operations a second — but it is a sixth of a node's capacity spent on one key, and a traffic spike doubles it, so the node that owns the score is the first thing to saturate while the other 23 boxes idle. The fix is not more nodes: the key still lives on the same three boxes in a fleet of any size, because the ring puts it there. The fix has three layers. First, copy the key more widely — replicate it to 10 copies instead of 3, so each copy serves 5,000 a second, with the copies refreshed from the owner and the client library spreading reads across them. Second, make its expiry boring — jitter the TTLs so the copies never expire together, and coalesce the recompute with singleflight, so when a copy does expire, the first request recomputes the value and the other 9,999 wait, and the database sees one query instead of the 10,000 that would pile up in the 200 ms recompute. Third, push it to the edge — the CDN in front of the fleet serves the score for 5 seconds, and the fleet never sees most of the reads at all. And I would close with the principle: the average load is a lie, the hottest key is the design, and any answer that starts with "add nodes" has not understood where the key lives.</p>
+</details>
+<details>
+<summary>Q3. The cache fleet restarts at 8am on cup-final day. Kickoff is 9am. What happens, and how do you prevent it?</summary>
+<p><strong>Model answer.</strong> I start with the clock, because the failure is arithmetic: the fleet holds 200 million keys, and filling it at 10,000 keys a second takes 200,000,000 ÷ 10,000 = 20,000 seconds, about 5.6 hours — at 50,000 a second it is still 1.1 hours. A fleet that restarts empty at 8am is still warming up at kickoff, and every read in the meantime is a miss, so the database — built for the 10,000 reads a second that get through at a 95% hit rate — suddenly faces the full 200,000 a second, which is 100 instances' worth of load on 5 instances. The outage is the database's, but the cause is the cache. The prevention has four layers. First, warm from a snapshot: each node loads its last persisted snapshot from disk on restart, so the fleet comes back mostly full instead of empty — the snapshot is a copy of a copy, and losing the newest few minutes of it is fine, because the database is the truth and the next read refills what is missing. Second, restart one node at a time: a rolling restart means 23 nodes keep serving while one warms, and only 1/24 of the keys miss at any moment. Third, pre-fill the hot keys before the gates open: the live score, the table, the top player pages are loaded deliberately, not left to the first fan who asks. Fourth, rate-limit the refill: the cache is allowed to refill at, say, 10,000 keys a second, and the misses beyond that wait — a cold cache is allowed to be slow, it is never allowed to kill the database. And I would close with the rule that makes all four safe: the cache is a copy, so a fleet that is gone costs speed, not data — the app fails open to the database, slowly, behind a circuit breaker, and the fans see a slower app rather than a broken one.</p>
+</details>
+<details>
+<summary>Q4. A fan sees last season's standings after the table updated. The cache said the data was fresh. What happened, and what is the fix — in the design, not in the moment?</summary>
+<p><strong>Model answer.</strong> I start with what happened, because the failure has a specific shape: the standings key held a value that was true when it was written and false by the time it was read, and the cache served it anyway — because a cache serves what it holds, and it holds whatever was put there, for as long as its TTL allows. The usual mechanism is the cache-aside race: a read misses, fetches the old table from the database, and before it can fill the cache, a write updates the database — the read then writes the old table into the cache, and the new table waits out the TTL. Or the write updated the database and the cache delete after it was lost, and the old value sat there until its TTL expired. Nothing is broken; the cache did exactly what its contract promises, and the bug is in the system around it: the design treated the cache as if it held the truth. The fix in the moment is the TTL doing its job — the stale value expires, the next read refills from the database, and the fan sees the new table. The fix in the design has three parts. First, the write order is enforced: database first, cache delete second, so the cache can never hold a value newer than the database, and the delete is retried rather than forgotten. Second, the TTL is set by how fast the data changes: the table gets 60 seconds, the live score 5 — and that bound is stated in the open, so the team knows a fan can see a table up to 60 seconds old, and has decided that is acceptable. Third, the boundary is named: where a stale value is a wrong answer rather than a slow one — ticket availability, a seat that has just been sold — the data is not cached on a long TTL at all, it is invalidated on every sale or read from the database. And I would close with the line that prevents the next incident: staleness in a cache is a bound, chosen per key and written down, not a surprise — and a design that cannot say how stale its data can be has not designed its cache.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — Size the fleet.</strong> A fan app has 500 million keys with an average value of 1 KB, a replication factor of 3, and nodes with 32 GB usable for cache. (a) How much raw data is there, and how much with replication? (b) How many nodes? (c) How much memory and how many keys per node? <em>Rubric: (a) 500,000,000 × 1 KB = 500 GB raw, × 3 = 1,500 GB with replication; (b) 1,500 ÷ 32 = 46.9, so 47 nodes; (c) 1,500 ÷ 47 ≈ 31.9 GB per node, and 500M × 3 ÷ 47 ≈ 31.9 million keys per node — plus about 90 bytes of overhead per key, roughly 2.9 GB per node, which is why the usable figure, not the box size, is the one that sizes the fleet.</em></p>
+<p><strong>Drill 2 — The hit-rate dial.</strong> A service takes 100,000 reads a second. A database instance serves 2,000 reads a second. (a) How many database instances with no cache? (b) How many at a 90% hit rate? (c) How many at a 99% hit rate? (d) What is one percentage point of hit rate worth? <em>Rubric: (a) 100,000 ÷ 2,000 = 50 instances; (b) 10% miss, so 10,000 reads a second reach the database — 5 instances; (c) 1% miss, so 1,000 reads a second — 1 instance (0.5 rounded up, because half an instance does not exist); (d) one point is 1,000 reads a second, or half a database instance — which is why the hit rate, not the node count, is the number the team watches.</em></p>
+<p><strong>Drill 3 — The stampede.</strong> A hot key is read 20,000 times a second. Its TTL expires, and recomputing the value takes 500 ms. (a) How many requests pile up on the database during the recompute? (b) How many database queries with singleflight? (c) The recompute fails — what do the waiting requests get? <em>Rubric: (a) 20,000 × 0.5 seconds = 10,000 requests; (b) one — the first request recomputes and the other 9,999 wait for its result; (c) they get the error, or a stale value if the design serves stale-while-revalidating — which is why the recompute path has its own timeout and its own fallback, and why a hot key's recompute is never allowed to be the only way the value exists.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Sizing</td><td>Working set × replication factor ÷ usable RAM per node — 400 GB × 3 ÷ 50 GB = 24 nodes</td><td>Size from the box size instead of the usable RAM and the fleet is 5–20% too small the day it ships</td></tr>
+<tr><td>Read path</td><td>Cache-aside: hit in ~1 ms, miss reads the database and fills the cache with a TTL set by the data</td><td>Read-through only when the cache is a managed service that owns the filling — the application still owns the TTLs</td></tr>
+<tr><td>Write path</td><td>Database first, then delete the cache key; the TTL bounds the staleness if the delete is lost</td><td>Write-through only for data that is read far more often than it is written and where the write path can afford the cache latency</td></tr>
+<tr><td>Partitioning</td><td>Consistent hashing with virtual nodes, RF = 3 — a node joining or leaving moves ~1/24 of the keys</td><td>Naive modulo hashing, where one node joining moves nearly every key — the Lesson 10 mistake, repeated at fleet scale</td></tr>
+<tr><td>Hot keys</td><td>Replicate the hot key to 10 copies, jitter its TTL, coalesce its recompute with singleflight, push it to the edge</td><td>Adding nodes, which does nothing for a key that lives on three boxes — copy the key, do not grow the fleet</td></tr>
+<tr><td>Failure</td><td>Snapshot warm-up, rolling restarts, rate-limited refill, fail open to the database — the cache is a copy, losing it costs speed, not data</td><td>Never let a cold cache refill at full speed into a database sized for 5% of the load — the refill is rate-limited or it is an outage</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"A distributed cache is the database's memory, spread across boxes so no one box holds it all: 200 million keys at 2 KB is 400 GB of hot data, times a replication factor of 3 is 1,200 GB, divided by 50 GB usable per node is exactly 24 nodes, each holding 25 million keys. The read path is cache-aside — a hit in about a millisecond, a miss that reads the database and fills the cache with a TTL set by the data — and at a 95% hit rate the database sees 10,000 reads a second instead of 200,000, which is 5 instances instead of 100: each percentage point of hit rate is one database instance. The write path is database first, cache delete second, and the TTL is the bound on staleness — 5 seconds on a live score, an hour on a player profile. The three decisions are where the truth lives, the hot key, and the working set: the cache is a copy and must never be treated as the truth, the hottest key takes 50,000 reads a second — a quarter of the whole load — so it is replicated to 10 copies, its TTL is jittered, and its recompute is coalesced to a single query instead of the 10,000 that would pile up in 200 ms, and the fleet is sized for the working set, not the dataset, with the eviction policy — LRU, or LFU where access is skewed — deciding what stays when the box fills. And the trap to name: a cold fleet takes 5.6 hours to warm at 10,000 keys a second, so it is warmed from snapshots, restarted one node at a time, and its refill is rate-limited — because a cache that restarts empty on matchday takes the database down with it."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: a cache is a copy — fast, disposable, never the truth — and everything in the design follows from that sentence.</li>
+<li>Back-of-the-envelope: 400 GB working set, RF = 3, 1,200 GB, 24 nodes of 50 GB usable, 25 million keys each; 8,333 reads a second per node; 95% hit rate turns 100 database instances into 5; the live score takes 50,000 reads a second on one key.</li>
+<li>Architecture: the ring in the client, cache-aside reads with TTLs set by the data, database-first writes with delete-after, 24 shards at RF = 3, sampled LRU or LFU eviction, hot-key replication with jittered TTLs and singleflight, and snapshot warm-up with a rate-limited refill.</li>
+<li>Deep dive: the truth lives in the database and the cache is a copy; the hot key is the design and the average is a lie; the fleet is sized for the working set and the eviction policy is what keeps it there.</li>
+<li>Failure modes and the close: the stampede, the hot key melting a node, the stale-read race, the cold fleet at kickoff, eviction eating the working set, and the cache becoming the truth — and the line to end on: losing the cache costs speed, not data, and a design that forgets that will lose both.</li>
+</ol>
+
+<p class="foot">Lesson 45 · Design a Distributed Cache · Next: a new lesson lands tomorrow morning.</p>
+</div>
+<script>
+function computeFleet(keys, valKB, rf, usableGB, peakReads, hitRate) {
+  var rawGB = keys * valKB * 1000 / 1e9;
+  var totalGB = rawGB * rf;
+  var nodes = Math.max(1, Math.ceil(totalGB / usableGB));
+  var memPerNode = totalGB / nodes;
+  var keysPerNode = keys * rf / nodes;
+  var overheadPerNodeGB = keys * rf * 90 / nodes / 1e9;
+  var readsPerNode = peakReads / nodes;
+  var dbReads = Math.round(peakReads * (1 - hitRate));
+  var dbInstances = Math.max(1, Math.ceil(dbReads / 2000));
+  var dbNoCache = Math.ceil(peakReads / 2000);
+  return { rawGB: rawGB, totalGB: totalGB, usableGB: usableGB, nodes: nodes, memPerNode: memPerNode, keysPerNode: keysPerNode, overheadPerNodeGB: overheadPerNodeGB, readsPerNode: readsPerNode, dbReads: dbReads, dbInstances: dbInstances, dbNoCache: dbNoCache };
+}
+function computeHot(hotReads, copies, recomputeMs, keys, fillRate) {
+  var perCopy = hotReads / copies;
+  var pileUp = hotReads * recomputeMs / 1000;
+  var warmHours = keys / fillRate / 3600;
+  return { perCopy: perCopy, pileUp: pileUp, warmHours: warmHours };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtGB(n) {
+  if (n >= 1) return n.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " GB";
+  return (n * 1024).toFixed(0) + " MB";
+}
+function renderLabA() {
+  var keys = parseFloat(document.getElementById("cacheKeys").value) || 0;
+  var valKB = parseFloat(document.getElementById("cacheValKB").value) || 0;
+  var rf = parseFloat(document.getElementById("cacheRF").value) || 1;
+  var usableGB = parseFloat(document.getElementById("cacheUsableGB").value) || 0;
+  var peakReads = parseFloat(document.getElementById("cachePeakReads").value) || 0;
+  var hitRate = parseFloat(document.getElementById("cacheHitRate").value);
+  if (isNaN(hitRate)) hitRate = 0.95;
+  var r = computeFleet(keys, valKB, rf, usableGB, peakReads, hitRate);
+  document.getElementById("labAResult").innerHTML =
+    "<b>Working set: " + fmtGB(r.rawGB) + "</b> raw · with RF = " + rf + ": <b>" + fmtGB(r.totalGB) + "</b> to store<br>" +
+    "Usable RAM per node: <b>" + r.usableGB.toFixed(1) + " GB</b> — fleet size: <b>" + r.nodes + " nodes</b><br>" +
+    "Per node: <b>" + fmtGB(r.memPerNode) + "</b> of values, <b>" + fmtNum(r.keysPerNode) + " keys</b>, plus ~" + r.overheadPerNodeGB.toFixed(2) + " GB of per-key overhead<br>" +
+    "Read load: <b>" + fmtNum(r.readsPerNode) + " reads/sec per node</b> at peak — about " + Math.max(1, Math.round(r.readsPerNode / 1000)) + "% of a node's ~100,000 ops/sec<br>" +
+    "Database load at " + (hitRate * 100).toFixed(0) + "% hit rate: <b>" + fmtNum(r.dbReads) + " reads/sec</b> — <b>" + r.dbInstances + " database instance" + (r.dbInstances === 1 ? "" : "s") + "</b> at 2,000 reads/sec each<br>" +
+    "Without the cache: <b>" + r.dbNoCache + " database instances</b> — the cache replaces <b>" + (r.dbNoCache - r.dbInstances) + "</b> of them<br><br>" +
+    (hitRate >= 0.95
+      ? "<b>The hit rate carries the design.</b> At 95% or better, the database fleet is a handful of instances — the cache is doing its job, and the number to watch on matchday is the hit rate, not the node count."
+      : "<b>The hit rate is doing the damage.</b> Below 95%, the database fleet grows fast — each percentage point is 2,000 reads a second, one whole instance. Check the eviction policy and whether the working set still fits.");
+}
+function renderLabB() {
+  var hotReads = parseFloat(document.getElementById("hotReads").value) || 0;
+  var copies = parseFloat(document.getElementById("hotCopies").value) || 1;
+  var recomputeMs = parseFloat(document.getElementById("hotRecomputeMs").value) || 0;
+  var keys = parseFloat(document.getElementById("warmKeys").value) || 0;
+  var fillRate = parseFloat(document.getElementById("warmRate").value) || 1;
+  var r = computeHot(hotReads, copies, recomputeMs, keys, fillRate);
+  document.getElementById("labBResult").innerHTML =
+    "<b>Hot key:</b> " + fmtNum(hotReads) + " reads/sec across " + copies + " copies = <b>" + fmtNum(r.perCopy) + " reads/sec per copy</b><br>" +
+    "When the key expires, the " + recomputeMs + " ms recompute lets <b>" + fmtNum(r.pileUp) + " requests</b> pile up on the database — with singleflight, the database sees <b>1 query</b> instead of " + fmtNum(r.pileUp) + "<br>" +
+    "Cold start: warming " + fmtNum(keys) + " keys at " + fmtNum(fillRate) + "/sec takes <b>" + r.warmHours.toFixed(1) + " hours</b><br><br>" +
+    (r.perCopy <= 10000
+      ? "<b>The hot key is tamed.</b> Each copy serves 10,000 reads a second or less — a tenth of a node's capacity — and the stampede is one query, not ten thousand."
+      : r.perCopy <= 20000
+      ? "<b>The hot key is survivable — but it is a sixth of a node's capacity on one key.</b> A traffic spike doubles it, so replicate the key wider before the spike, not during it."
+      : "<b>The hot key is still hot.</b> Each copy serves more than 20,000 reads a second — replicate the key to more copies, jitter its TTL, or push it to the edge cache in front of the fleet.") +
+    (r.warmHours <= 1
+      ? " Warm-up fits inside an hour — but still never restart the whole fleet at once on matchday."
+      : " And the warm-up is over an hour — the fleet is warmed from snapshots and restarted one node at a time, never cold and never all at once.");
+}
+["cacheKeys", "cacheValKB", "cacheRF", "cacheUsableGB", "cachePeakReads", "cacheHitRate"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabA);
+});
+["hotReads", "hotCopies", "hotRecomputeMs", "warmKeys", "warmRate"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
