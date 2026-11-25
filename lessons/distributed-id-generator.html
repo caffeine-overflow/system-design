@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design a Distributed ID Generator — one serial number, fifty windows, zero duplicates</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #0e7490; --accent-soft: #e0f2f7;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #4cc3de; --accent-soft: #16333d;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number], .lab input[type=text] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  .sugg { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .sugg:last-child { border-bottom: none; }
+  .bar { height: 8px; border-radius: 999px; background: var(--accent); margin-top: 4px; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+  .bits { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 1rem 0; overflow-x: auto; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 46</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 46 · Classic design</span>
+  <h1>Design a Distributed ID Generator — one serial number, fifty windows, zero duplicates</h1>
+  <p class="whyline">It is cup-final day at Riverside FC and tickets are selling from fifty windows around the stadium, the website, and the app — all at once, all minting ticket serial numbers. Two windows must never hand out the same number, the numbers should arrive roughly in the order the tickets were sold, and no single machine can be in charge, because the one machine in charge is the one machine that dies at 9am. The same problem sits underneath nearly every system you have designed in this series: every tweet, order, payment, message, and match event needs a number that is unique across every machine that mints it, sortable enough that the database stays fast, and minted without asking anyone for permission. Today you design the machine that hands out those numbers.</p>
+  <div class="meta"><span>Snowflake IDs</span><span>UUID &amp; ULID</span><span>Clock safety</span><span>Bit budgets</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a distributed ID generator?</h2>
+<p>Start from zero. An <strong>ID</strong> (identifier) is a number — or a string — that names one thing and no other thing: one ticket, one order, one payment, one message. A <strong>distributed ID generator</strong> is the service that hands those numbers out across many machines, with the guarantee that no two machines ever hand out the same one. The soccer running example: the cup final has 60,000 seats and tickets are sold from fifty windows, the website, and the app. The old way is one serial-number book at a desk in the ticket office — every seller queues at the desk, takes the next number, and walks back. It works until the queue is the bottleneck, and it fails completely the day the desk is closed. The distributed way is to give every window its own numbering scheme that can never collide with any other window's — window 7's numbers all carry a 7 in a fixed position, window 12's all carry a 12 — so no window ever has to ask anyone for a number, and no two windows can ever produce the same one. That is the whole lesson in one picture: <strong>uniqueness by construction, not by coordination.</strong></p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Unique:</strong> no two things ever share the ID — the one guarantee that cannot bend. <strong>Sortable / time-ordered:</strong> a bigger ID means a later thing — IDs minted at 10:00 sort after IDs minted at 09:59, roughly or exactly. <strong>Monotonic:</strong> strictly increasing — every new ID is bigger than every ID before it. <strong>64-bit ID:</strong> a number that fits in 64 binary digits — the size of one integer in most databases, which is why Snowflake IDs fit in a single database column. <strong>Epoch:</strong> the zero point the timestamp counts from — Twitter's Snowflake counts milliseconds since 4 November 2010, not since 1970, so the timestamp needs fewer bits. <strong>Machine ID / worker ID:</strong> the number that identifies which machine minted the ID — the fixed position in the number that makes window 7's numbers different from window 12's. <strong>Sequence:</strong> the counter inside one millisecond — the part that tells apart the IDs minted by the same machine in the same millisecond. <strong>Clock skew:</strong> two machines disagreeing about the time — one thinks it is 10:00:00.005, the other thinks it is 10:00:00.000 — which matters the moment the time is inside the ID. <strong>UUID:</strong> a 128-bit universally unique identifier, usually random (version 4) — unique by luck, not by construction. <strong>ULID:</strong> a 128-bit identifier with a timestamp first and randomness after — random, but sortable. <strong>KGS (key generation service):</strong> a service that pre-generates ranges of IDs in a database and hands them out in blocks — the serial-number book, but with a standby. <strong>Coordination-free:</strong> minting an ID without talking to any other machine first — the property that makes a generator fast and unkillable. <strong>Collision:</strong> two different things getting the same ID — the failure the whole design exists to prevent.</p></div>
+<p>Why does this lesson exist, when IDs have shown up in nearly every lesson so far? Because every one of those lessons quietly assumed the ID problem was solved. Lesson 16 gave every post a Snowflake-style time-ordered ID and moved on. Lesson 15 generated short keys and worried about collisions. Lesson 26 made the idempotency key the thing that saves a double charge. None of them stopped to ask what the ID itself costs: how many bits it needs, what happens when the clock jumps backwards, what it does to the database index it becomes the primary key of, or what it leaks to anyone who can read it. The one idea to carry through the whole lesson: <strong>an ID is a design decision with a bit budget, a clock, and a database index attached to it — and the wrong choice is paid for in storage, in hot shards, or in duplicate tickets.</strong></p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are designing the ID service for Riverside FC's whole platform: tickets, orders, payments, and match events all draw IDs from it — about 2 billion IDs over five years, a peak of 50,000 IDs a second in the cup-final on-sale minute, minted by 16 generator machines. Every number below is computed from one formula each, and Lab A and Lab B let you re-run all of them.</p>
+<ul>
+<li><strong>The demand: 2 billion IDs over five years, peaking at 50,000 a second — and per machine, that is almost nothing.</strong> 2 billion IDs over five years is about 1 million a day on an ordinary day, and 100 million on the cup-final on-sale day. The peak is 50,000 IDs a second across 16 machines, so each machine mints 50,000 ÷ 16 = <strong>3,125 a second — about 3.1 a millisecond</strong>. Hold that number, because the famous Snowflake layout allows 4,096 a millisecond per machine: the demand is more than a thousand times smaller than the capacity. Throughput is not the constraint on this design. Uniqueness, ordering, and clock safety are. (Lab A runs the demand check.)</li>
+<li><strong>The bit budget: 64 bits split 1 + 41 + 10 + 12 — and every piece of it is arithmetic.</strong> The Snowflake layout is one sign bit (always 0), 41 bits of timestamp in milliseconds since a custom epoch, 10 bits of machine ID, and 12 bits of sequence. The sequence gives 2<sup>12</sup> = <strong>4,096 IDs per millisecond per machine</strong>, which is 4,096 × 1,000 = <strong>4,096,000 IDs a second per machine</strong>. The machine ID gives 2<sup>10</sup> = <strong>1,024 machines</strong>. The whole fleet can mint 1,024 × 4,096,000 = <strong>4,194,304,000 IDs a second — about 4.2 billion</strong>. And the timestamp gives 2<sup>41</sup> milliseconds = 2,199,023,255,552 ms, which is about <strong>69.7 years</strong> of life from the epoch. One layout, four numbers, and the design is the choice of how to split the 63 usable bits between them.</li>
+</ul>
+<div class="bits">0 | timestamp — 41 bits | machine — 10 bits | sequence — 12 bits<br>└ sign ┘ └──── ~69.7 years of ms ────┘ └ 1,024 machines ┘ └ 4,096 per ms ┘</div>
+<ul>
+<li><strong>The lifetime trade: steal two bits from time and the burst quadruples — but the clock runs out four times sooner.</strong> The 41/10/12 split is a dial, not a law. Move two bits from the timestamp to the sequence — 39/10/14 — and each machine can mint 2<sup>14</sup> = <strong>16,384 IDs per millisecond</strong>, four times the burst capacity, but the timestamp now holds only 2<sup>39</sup> milliseconds, about <strong>17.4 years</strong> instead of 69.7. Move two bits the other way — 41/12/10 — and the fleet grows to 2<sup>12</sup> = <strong>4,096 machines</strong>, but each machine can mint only 2<sup>10</sup> = <strong>1,024 IDs per millisecond</strong>. Every bit is spent once: on time, on machines, or on burst. There is no free bit. (Lab A runs the dial.)</li>
+<li><strong>Random is safe — the collision math says so, and it says so with enormous margin.</strong> A UUID version 4 has 122 random bits. The birthday formula — the chance of a collision among <em>n</em> IDs is about n² ÷ (2 × 2<sup>122</sup>) — says that minting 1 billion UUIDs gives a collision chance of about <strong>9.4 × 10<sup>−20</sup></strong>, which is effectively zero. You would have to mint a billion UUIDs a second for about <strong>85 years</strong> to reach a coin-flip chance of a single collision. Randomness is not the problem with UUIDs. The problem is everything else they do — storage and ordering — which is the next two bullets.</li>
+<li><strong>The storage: one billion IDs cost 8 GB as integers, 16 GB as binary UUIDs, 36 GB as text.</strong> A Snowflake ID is one 64-bit integer: 8 bytes, so one billion rows carry <strong>8 GB</strong> of IDs. A UUID stored as 16 raw bytes costs <strong>16 GB</strong> per billion rows; stored as the familiar 36-character text form (<code>550e8400-e29b-41d4-a716-446655440000</code>) it costs <strong>36 GB</strong>. And the primary-key index on top roughly doubles each figure again — the index is about as big as the column it indexes. Choosing the ID type is choosing a storage bill, and at a billion rows the difference between 8 GB and 36 GB is the difference between a fleet that fits in memory and one that does not. (Lab B runs the storage.)</li>
+<li><strong>The ordering: time-ordered IDs append to the index; random IDs shatter it.</strong> A database index (Lesson 8) is a B-tree, and a B-tree loves inserts that arrive in order: each new ID is bigger than the last, so it lands on the rightmost page, the page fills to about 100%, and the tree grows by appending. Random UUIDs land everywhere in the tree: every insert can split a page, pages sit about half to two-thirds full, and the same billion rows cost roughly <strong>1.5–2× the storage</strong> plus the write amplification of constant page splits. That is the real price of "just use UUIDs": not collisions — collisions never happen — but an index that is twice as big and twice as busy. ULID is the compromise: timestamp first, randomness after, so IDs are sortable <em>and</em> unguessable within the same millisecond.</li>
+<li><strong>Clock skew: a 5 ms backward jump stalls one machine for 5 ms — 20,480 IDs delayed at full tilt.</strong> Machines do not agree about the time: NTP keeps them within a few milliseconds, a virtual machine can jump backwards when it is restored from a snapshot, and an operator can step the clock. If the clock jumps backwards by 5 ms, a Snowflake generator must not mint IDs with a smaller timestamp than the ones it already minted — that would break ordering and could duplicate an ID if the sequence restarts. The safe answer is to stall: refuse to mint for 5 ms, or refuse outright and let the machine be replaced. At full tilt (4,096 IDs a millisecond) a 5 ms stall delays <strong>20,480 IDs</strong> — annoying, survivable, and far cheaper than a duplicate. The dangerous answer is to mint anyway and hope.</li>
+<li><strong>The hot tail: time-ordered IDs all sort into the newest shard — the hot partition from Lesson 24, wearing a new hat.</strong> If the table is sharded by the ID itself, every new row lands in the newest shard, because every new ID is bigger than every old one: one shard takes all the writes while the rest idle, and the write throughput of the whole system is the throughput of one shard. The fix is to never shard by a monotonic ID: shard by <em>user_id</em>, <em>order_id</em>, or <em>event_id</em> — something with spread — and let the ID be the key <em>inside</em> the shard, not the thing that picks the shard. The ID's sortability is a gift to the index and a trap for the shard key, and the design has to hold both thoughts at once.</li>
+<li><strong>The KGS alternative: ranges make the database load trivial — 10 allocations a second for 100,000 IDs a second.</strong> A key generation service keeps a counter in the database and hands each generator a <em>range</em> — say, 10,000 IDs at a time — which the generator mints from memory until the range runs out. At 100,000 IDs a second, that is 100,000 ÷ 10,000 = <strong>10 database writes a second</strong>; with million-ID ranges it is 0.1 a second. The database is barely involved. The price is that the database is a single point of failure — a standby KGS is mandatory — and a generator that crashes wastes the unused remainder of its range, up to 9,999 IDs. Gaps are fine: IDs are never promised to be gapless, and any design that promises no gaps has promised something no distributed system can keep.</li>
+<li><strong>The leak: sequential IDs tell the world how many tickets you sold.</strong> A Snowflake ID is enumerable: watch the serial numbers rise and you can count the club's sales, estimate its revenue, and guess the next ticket's number. If the ID appears in a public URL — a ticket link, an order page — that is a leak, and the fix is to randomise the public-facing value or encode it (Lesson 15's non-enumerable keys are the same idea). The internal ID can stay sequential and sortable; the public one should not be guessable. An ID that is both the database key and the public URL is doing two jobs, and it does the second one badly.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Three numbers decide the shape of this design, and the first one is a surprise: the demand — 3.1 IDs a millisecond per machine against a 4,096 budget — says throughput is never the constraint, so any design that starts by optimising for speed has optimised the wrong thing. The constraint is the bit budget: 64 bits split between time, machines, and burst, and every bit spent on one is a bit taken from another — 41 bits of time buys 69.7 years, 10 bits of machine buys 1,024 machines, 12 bits of sequence buys 4,096 IDs a millisecond, and the dial between them is the design. And the second number is the storage bill: 8 GB per billion rows as integers against 36 GB as text UUIDs, with the index roughly doubling both — which is why the ID type is a storage decision before it is a uniqueness decision. A design that picks Snowflake by default, states its bit split and its epoch expiry year in the open, leases machine IDs instead of trusting configuration, stalls rather than mints when the clock jumps backwards, and never shards by the ID itself has answered the questions that actually break ID generators — and a design that starts from "UUIDs are unique" has answered a question nobody asked.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Follow one ID — a fan buying a cup-final ticket on the app — through the system. There are seven stages, and each one exists because a different failure is waiting in it.</p>
+<ol>
+<li><strong>The request — the app asks for an ID, or a batch of them.</strong> The checkout service needs one ID for the ticket, one for the order, one for the payment. It asks the local generator — a library in the same process, not a network call — because the whole point of coordination-free minting is that minting never waits on the network. Batching is allowed: a service that knows it will mint a thousand IDs in the next second can ask for a thousand at once, but for Snowflake that is pointless, because minting is a few integer operations and costs nothing. The request carries no state: the generator needs nothing from the caller except the fact that an ID is wanted.</li>
+<li><strong>The timestamp — the wall clock in milliseconds since the custom epoch.</strong> The generator reads the current time, subtracts the epoch — 1 January 2026 in our design, not 1970, because starting the clock at launch buys back years of bit budget — and that is the timestamp field. The epoch is written in the design document with its expiry year next to it: 41 bits from 1 January 2026 runs out in about 2095, and the team that writes the design is the team that writes the date. The clock is disciplined by NTP, and the generator watches for jumps: a jump backwards is a stop condition, not a warning to log and ignore.</li>
+<li><strong>The machine ID — leased at startup, never guessed from configuration.</strong> Each of the 16 machines holds a machine ID from 0 to 1,023, and the ID is leased from a coordination service — ZooKeeper or etcd — when the machine starts, with a TTL and a heartbeat. The lease is the uniqueness anchor: two machines with the same machine ID mint overlapping IDs, so the lease must be exclusive and it must be fenced — a machine whose lease expires stops minting, and it does not resume until it holds a fresh one. Deriving the machine ID from a hostname or an IP address is the common shortcut, and it is how two containers restored from the same image end up sharing an ID. Configuration is a hope; a lease is a guarantee.</li>
+<li><strong>The sequence — the counter inside one millisecond.</strong> Within a single millisecond, one machine mints IDs that differ only in the sequence field: 0, 1, 2, up to 4,095, then the millisecond must roll over. The counter resets to zero each millisecond, and if the demand in one millisecond exceeds 4,096 — the overflow case — the generator waits for the next millisecond rather than reusing a sequence number. Waiting adds at most 1 ms of latency and caps the machine at 4,096,000 IDs a second; reusing a sequence number creates a duplicate, and there is no latency saving worth a duplicate. The sequence is the part of the design that does the uniqueness work inside the millisecond, and it is the part most often forgotten — "just use the timestamp" is the trap (see below).</li>
+<li><strong>The assembly — bit packing, one shift and two ORs.</strong> The ID is assembled as <code>(timestamp &lt;&lt; 22) | (machineId &lt;&lt; 12) | sequence</code> — the timestamp shifted left by 22 bits (10 machine bits + 12 sequence bits), the machine ID shifted left by 12, the sequence in the lowest bits. It is a single 64-bit integer, it fits in one database column, and it is sortable by construction: comparing two IDs as integers compares their timestamps first, then their machines, then their sequences. Decoding is the reverse — shift and mask — so any engineer can read a timestamp, a machine, and a sequence out of an ID in production, which is why Snowflake IDs are debuggable in a way random UUIDs are not: the ID carries its own provenance.</li>
+<li><strong>The coordination question — the fork that decides the whole design.</strong> Snowflake and UUID mint with no coordination at all: no network call, no lock, no database write — which is why they cannot be slowed down or killed by anything except the machine they run on. KGS coordinates in blocks: one database write per 10,000 IDs, so the database is involved but barely. Auto-increment coordinates on every single ID: every mint is a database write, and the database is the single writer, the single point of failure, and the throughput ceiling. The choice is a spectrum — no coordination, block coordination, per-ID coordination — and the price rises steeply along it, which is why the default is the coordination-free end and the burden of proof is on moving away from it.</li>
+<li><strong>Delivery and verification — the database is the last line of defence.</strong> The ID is returned to the caller and stored as the primary key, and the primary key's uniqueness constraint is the final backstop: if two machines ever did mint the same ID, the second insert fails loudly instead of silently overwriting the first. The team monitors two numbers that should both be zero forever: duplicate-key errors, and clock jumps bigger than 1 ms. The first means the machine-ID leases have failed; the second means a clock is about to cause a stall. Neither is an alert to tune away — they are the two invariants of the whole system, and a dashboard that shows them at zero is a dashboard showing the design working.</li>
+</ol>
+<table>
+<tr><th>Stage</th><th>What it does</th><th>What fails if it is missing</th></tr>
+<tr><td>Request</td><td>Caller asks the local generator library for an ID — no network call, no state</td><td>Minting goes over the network to a central service, and the central service becomes the bottleneck and the single point of failure</td></tr>
+<tr><td>Timestamp</td><td>Wall clock in ms since a custom epoch (1 Jan 2026); NTP-disciplined; backward jumps are a stop condition</td><td>The timestamp is taken from an undisciplined clock, and a backward jump mints IDs that sort before IDs already issued — or duplicates them</td></tr>
+<tr><td>Machine ID</td><td>Leased from ZooKeeper/etcd at startup, exclusive, fenced on expiry — the uniqueness anchor</td><td>Two machines share a machine ID (cloned image, stale config) and mint overlapping IDs that no test catches until production</td></tr>
+<tr><td>Sequence</td><td>Per-millisecond counter, 0–4,095, resets each ms; overflow waits for the next ms</td><td>Two IDs in the same millisecond collide — the "just use the timestamp" trap, and the most common duplicate in the wild</td></tr>
+<tr><td>Assembly</td><td>Bit packing: (timestamp &lt;&lt; 22) | (machine &lt;&lt; 12) | sequence — one 64-bit integer, sortable by construction</td><td>The ID is a string assembled from parts, costing 36 bytes instead of 8 and losing the sortability the index needs</td></tr>
+<tr><td>Coordination choice</td><td>Snowflake/UUID: none. KGS: one DB write per block. Auto-increment: one DB write per ID</td><td>Per-ID coordination is chosen by default, and the ID service inherits the database's throughput ceiling and failure modes</td></tr>
+<tr><td>Verification</td><td>Primary-key uniqueness as the backstop; duplicate-key errors and clock jumps monitored, both at zero</td><td>A duplicate silently overwrites a ticket or an order, and the team finds out from a fan, not from a dashboard</td></tr>
+</table>
+
+<h2>The heart of it: three decisions that make or break the design</h2>
+<h3>1. Coordination or coordination-free — the fork that decides everything else</h3>
+<p>Every ID generator sits somewhere on one spectrum, and the position on the spectrum decides its latency, its failure modes, and its ceiling. At the coordination-free end — Snowflake, UUID — minting an ID costs a few integer operations and no network call: it cannot be slowed down by anything except the machine it runs on, and it cannot be killed by anything except that machine dying, in which case the other 15 machines keep minting. At the other end — database auto-increment — every ID is a database write, so the ID service inherits the database's throughput, its latency, and its failure modes, and the whole platform's ticket sales stop when the database stops. In the middle sits KGS: one database write per block of 10,000 IDs, so the database is involved but barely, and the price is a single point of failure that needs a standby. The rule: <strong>start at the coordination-free end and make the case for moving away from it — never the other way round — because every step towards coordination buys a failure mode and a ceiling, and the thing it buys in return has to be worth both.</strong></p>
+<h3>2. Sortable or random — the index and the leak pull in opposite directions</h3>
+<p>Time-ordered IDs and random IDs are both unique, and that is where the similarity ends. Time-ordered IDs append to the B-tree's right edge — pages fill to ~100%, inserts never split a page, range scans over "everything since Tuesday" are free because the order is the time — but they are enumerable, so anyone who can read them can count your sales and guess the next one. Random UUIDs are unguessable and decentralised, but they land everywhere in the index, split pages, bloat storage 1.5–2×, and cannot answer "what happened since Tuesday" without a second column. The answer is usually both, in different places: a Snowflake ID as the internal primary key — sortable, compact, debuggable — and a random token as the public-facing value in the URL. The senior line: <strong>one ID doing two jobs — the database key and the public URL — does the second one badly; sortability is for the index, randomness is for the public, and the design says which is which in the open.</strong></p>
+<h3>3. The bit budget — 41/10/12 is a dial, and the epoch is an expiry date</h3>
+<p>The 64-bit layout looks like a fixed fact — Twitter's Snowflake, 41/10/12, done — but it is a three-way trade, and the right split depends on the system it serves. Need more burst on one machine? Steal bits from time for sequence: 39/10/14 gives 16,384 IDs a millisecond and a 17.4-year lifetime. Need a bigger fleet? Steal from sequence for machines: 41/12/10 gives 4,096 machines and 1,024 IDs a millisecond each. And the epoch is the quietest decision in the whole design: counting from 1 January 2026 instead of 1970 buys back 56 years of timestamp bits, and the expiry year — about 2095 for 41 bits — is written in the design document, not discovered in an incident review seventy years from now. The senior line: <strong>the bit budget is the design — say the split, say the epoch, say the expiry year, and say what you gave up to get them, because a layout copied from a blog post without those sentences is a layout nobody has thought about.</strong></p>
+<div class="callout green"><strong>The senior line on the three decisions</strong><p>Every distributed ID generator is the same three sentences, and the room is won by saying them with numbers attached. Coordination-free by default — Snowflake mints 4,096 IDs a millisecond per machine with no network call, no lock, and no database write, and the fleet of 1,024 machines can mint 4.2 billion IDs a second, so the demand of 3.1 a millisecond per machine is not a constraint and any design that starts from throughput has started from the wrong number. Sortable inside, random outside — the Snowflake ID is the primary key because it appends to the B-tree's right edge and costs 8 GB per billion rows against 36 GB for a text UUID, and the public URL carries a random token because a sequential public ID lets anyone count the tickets. And the bit budget is a dial — 41 bits of time is 69.7 years from the epoch, 10 bits of machine is 1,024 machines, 12 bits of sequence is 4,096 IDs a millisecond, and stealing two bits from time for sequence buys 16,384 a millisecond at the price of a 17.4-year lifetime. Say those three sentences, with the arithmetic — 4,096 a millisecond, 1,024 machines, 4.2 billion a second, 69.7 years, 8 GB against 36 GB — and the rest of the design — the leased machine IDs, the stalled clock, the sequence that waits for the next millisecond, the primary key as the last line of defence — is machinery that follows.</p></div>
+
+<h2>Failure modes — six ways a distributed ID generator fails</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>The clock goes backwards</td><td>A VM is restored from a snapshot or NTP steps the clock, one machine's timestamps fall behind the IDs it already minted, and ordering breaks — or the sequence restarts and an ID is minted twice</td><td>Stall or refuse on a backward jump: never mint with a smaller timestamp than the last one issued; alert on any jump over 1 ms, and treat the clock as a monitored dependency, not a fact of nature</td></tr>
+<tr><td>Sequence overflow in one millisecond</td><td>A logging pipeline needs 5,000 IDs in one millisecond from one machine, the 12-bit sequence tops out at 4,096, and the 4,097th mint has nowhere to go</td><td>Wait for the next millisecond — at most 1 ms of latency, and the machine's ceiling is 4,096,000 IDs a second; or widen the sequence bits (39/10/14) and pay for it with 17.4 years of lifetime instead of 69.7</td></tr>
+<tr><td>Two machines, one machine ID</td><td>Two containers restored from the same image both believe they are machine 7, mint overlapping IDs, and the duplicate surfaces as a failed insert — or worse, as one fan's ticket overwriting another's</td><td>Lease machine IDs from ZooKeeper or etcd with a TTL and a heartbeat, fence on lease loss, and never derive the ID from a hostname or an image default; duplicate-key errors are monitored and must stay at zero</td></tr>
+<tr><td>The epoch runs out</td><td>Forty-one bits of milliseconds run out — about 69.7 years after the epoch — and the timestamp field wraps to zero, so new IDs sort before every ID ever minted</td><td>Write the expiry year in the design document (about 2095 for a 2026 epoch) and treat the migration as a data migration planned decades early, not a configuration change discovered in an incident</td></tr>
+<tr><td>The hot tail</td><td>The table is sharded by the ID, every new row sorts into the newest shard, and the whole system's write throughput becomes the throughput of one shard while the rest idle</td><td>Never shard by a monotonic ID — shard by user_id, order_id, or event_id, and let the ID be the key inside the shard; the sortability that helps the index is the same property that burns the shard key</td></tr>
+<tr><td>The ID leaks the business</td><td>Ticket serials rise in public URLs, a rival counts the sales, a fan guesses the next ticket link, and the order volume of the whole cup final is readable from the numbering</td><td>Keep the sequential ID internal and put a random token on anything public; an ID that is both the database key and the public URL is doing two jobs and does the second one badly</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"UUIDs are unique, so just use them everywhere."</strong> Unique is the one property UUIDs are good at — and it is not the property that breaks systems. Random UUIDs fragment the B-tree index, cost 16 GB per billion rows as binary and 36 GB as text against 8 GB for a 64-bit integer, and cannot answer "what happened since Tuesday" without a second column, because they carry no time. The collision math — 9.4 × 10<sup>−20</sup> for a billion IDs — is a reason to stop worrying about collisions, not a reason to stop thinking about storage and ordering. If you need random <em>and</em> sortable, use ULID; if you need sortable and compact, use Snowflake; if you need random and nothing else, UUID is fine — and the design says which need it is serving.</li>
+<li><strong>"Auto-increment is the simplest ID — the database already does it."</strong> Auto-increment is simple on one database, and it stops being simple the moment there are two: it is a single writer, a single point of failure, and a throughput ceiling of tens of thousands of inserts a second — and sharding it needs per-shard offsets or ranges, which is a distributed ID generator wearing a trench coat. And the property people think they are buying — gapless, sequential numbers — is not even delivered: rollbacks and crashes leave gaps, so any contract that depends on "no gaps" is broken by the database itself. If the design needs gapless numbers, it needs a single-writer queue and it needs to say so; if it does not, it should not pay the single-writer price for a property it never had.</li>
+<li><strong>"Just use the timestamp — it is unique enough."</strong> Two IDs minted in the same millisecond have the same timestamp, and at 50,000 IDs a second there are fifty IDs in every millisecond — fifty collisions a millisecond, fifty thousand a second, all of them silent until the database rejects the second insert. The timestamp is the ordering; the sequence bits (or the randomness) do the uniqueness work inside the millisecond, and a design with no answer to "what happens inside one millisecond" has no uniqueness guarantee at all. The same trap in the other direction: a timestamp with nanosecond precision still collides when two machines mint in the same nanosecond — precision is not uniqueness, and the machine ID is what separates machines, not a finer clock.</li>
+</ul>
+
+<h2>Interactive lab 1: the Snowflake bit-budget planner</h2>
+<div class="lab">
+<h3>Lab A — Split the 63 bits, and watch the dials move</h3>
+<p>Set the timestamp bits, the machine bits, and the sequence bits — they must add up to 63 (the 64th bit is the sign, always 0) — plus the peak demand and the size of the fleet. The planner computes the IDs per millisecond each machine can mint, the machines the layout supports, the years of life from the epoch, the fleet's total capacity, and whether the demand fits inside the sequence bits.</p>
+<label for="tsBits">Timestamp bits (41 in the classic layout)</label>
+<input type="number" id="tsBits" value="41" min="30" max="50" />
+<label for="machineBits">Machine bits (10 in the classic layout)</label>
+<input type="number" id="machineBits" value="10" min="1" max="20" />
+<label for="seqBits">Sequence bits (12 in the classic layout)</label>
+<input type="number" id="seqBits" value="12" min="1" max="20" />
+<label for="peakIdsSec">Peak IDs per second across the whole fleet</label>
+<input type="number" id="peakIdsSec" value="50000" />
+<label for="genMachines">Generator machines in the fleet</label>
+<input type="number" id="genMachines" value="16" min="1" />
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Check the defaults: 41/10/12 gives 4,096 IDs per millisecond per machine, 1,024 machines, 69.7 years of life, and a fleet capacity of about 4.2 billion IDs a second — against a demand of 3.1 IDs a millisecond per machine, which fits with more than a thousand times headroom. Then try the logging pipeline: 10,000,000 IDs a second on 3 machines — 3,333 a millisecond each, still inside 4,096. Then try 5,000,000 a second on 1 machine — 5,000 a millisecond against a 4,096 budget — and watch the overflow warning. Then move two bits from time to sequence (39/10/14) and watch the burst quadruple to 16,384 a millisecond while the lifetime falls to 17.4 years.</p>
+</div>
+
+<h2>Interactive lab 2: the generator chooser</h2>
+<div class="lab">
+<h3>Lab B — Which generator fits your numbers?</h3>
+<p>Pick a generator, set the peak rate, the total IDs over the system's lifetime, and the range size for KGS. The lab shows the collision chance, the storage per billion IDs, whether the IDs sort, whether there is a single point of failure, and whether the peak rate fits.</p>
+<label for="genChoice">Generator</label>
+<select id="genChoice">
+<option value="snowflake">Snowflake (64-bit: timestamp + machine + sequence)</option>
+<option value="uuid">UUID v4 (128-bit random)</option>
+<option value="ulid">ULID (128-bit: timestamp + random)</option>
+<option value="autoinc">Database auto-increment (single writer)</option>
+<option value="kgs">KGS — key generation service (DB-backed ranges)</option>
+</select>
+<label for="labBPeak">Peak IDs per second</label>
+<input type="number" id="labBPeak" value="50000" />
+<label for="labBTotal">Total IDs over the system's lifetime</label>
+<input type="number" id="labBTotal" value="2000000000" />
+<label for="kgsRange">KGS range size (IDs per database allocation) — only used for KGS</label>
+<input type="number" id="kgsRange" value="10000" min="1" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that Snowflake reports a zero collision chance by construction, 8 GB per billion IDs, sortable, no single point of failure, and a 4.2 billion-a-second ceiling. Then switch to UUID v4 and watch the storage double to 16 GB binary (36 GB as text) and the sortability go away, even though the collision chance stays effectively zero. Then switch to auto-increment, raise the peak past 50,000 a second, and watch the single writer become the ceiling.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. Design the ID service for Riverside FC: 50,000 IDs a second at peak, 2 billion IDs over five years, 16 generator machines. Which approach, and why?</summary>
+<p><strong>Model answer.</strong> I start from the demand, because the demand says what the design does <em>not</em> need to optimise: 50,000 IDs a second across 16 machines is 3,125 a second per machine — about 3.1 a millisecond — and the classic Snowflake layout allows 4,096 a millisecond per machine, so throughput is more than a thousand times inside the budget and is not the constraint. I would pick Snowflake-style 64-bit IDs, coordination-free, with a custom epoch of 1 January 2026. The layout is 1 sign bit, 41 bits of timestamp in milliseconds since the epoch, 10 bits of machine ID, and 12 bits of sequence — which gives 1,024 machines, 4,096 IDs a millisecond per machine, a fleet capacity of about 4.2 billion IDs a second, and 69.7 years of life from the epoch, expiring in about 2095, which I would write in the design document. Machine IDs are leased from etcd at startup with a TTL and a heartbeat, never derived from a hostname, because two machines sharing a machine ID is the one way this design produces a duplicate. The IDs are the primary key, so they are stored as 8-byte integers — 8 GB per billion rows, against 36 GB for text UUIDs — and they append to the B-tree's right edge, so the index stays dense. The clock is the one thing I would call out as a risk: a backward jump stalls minting on that machine until the clock catches up, and clock jumps over 1 ms are alerted on. I would reject database auto-increment — a single writer and a single point of failure for a system that must survive a machine dying at 9am — and I would reject UUID v4 for the internal key, because random IDs fragment the index and cost twice the storage, even though their collision chance (about 9.4 × 10<sup>−20</sup> for a billion IDs) is effectively zero. And I would close with the boundary: the sequential ID stays internal, and anything public — a ticket link, an order page — carries a random token, because a sequential public ID lets anyone count the sales.</p>
+</details>
+<details>
+<summary>Q2. The clock on one generator jumps backwards 5 ms during the on-sale minute. What happens, and what must the generator do?</summary>
+<p><strong>Model answer.</strong> I start with what the jump means, because the failure has a specific shape: the machine has already minted IDs with timestamps up to "now", and its clock now says 5 ms earlier — so if it keeps minting, the new IDs carry smaller timestamps than IDs it already issued. That breaks the ordering guarantee, and it can break uniqueness outright: if the sequence counter restarts in the repeated millisecond, the machine mints an ID identical to one it minted 5 ms ago, and the second insert fails on the primary key — or worse, the caller retries and the failure surfaces as a fan's ticket purchase failing in the on-sale minute. What the generator must do is stall: refuse to mint until the clock has caught up past the last timestamp it issued — 5 ms of waiting — or refuse outright and let the machine be replaced, with the other 15 machines absorbing its share (each takes about 3,333 IDs a second instead of 3,125, which is nothing against a 4,096,000-a-second ceiling). At full tilt the stall delays 5 × 4,096 = 20,480 IDs, and at our actual demand it delays about 16 — either way, a stall is survivable and a duplicate is not. The design rule is that a backward clock jump is a stop condition, not a warning to log and ignore, and clock jumps over 1 ms are alerted on — because the clock is a dependency of the ID generator in exactly the way the database is a dependency of the checkout, and an unmonitored dependency is an incident waiting for a quiet Tuesday. And I would close with the alternative that is sometimes proposed — minting anyway and relying on the sequence to disambiguate — and why it fails: the sequence is per-millisecond, so a repeated millisecond reuses the same sequence numbers, and the duplicate is a matter of arithmetic, not luck.</p>
+</details>
+<details>
+<summary>Q3. Your IDs are the primary key of a table with a billion rows. A teammate proposes UUID v4. Walk through the cost.</summary>
+<p><strong>Model answer.</strong> I start by agreeing with the one thing that is true: collisions are not the problem — a billion UUID v4s have a collision chance of about 9.4 × 10<sup>−20</sup>, and you would have to mint a billion a second for about 85 years to reach a coin flip — so the uniqueness argument for UUIDs is settled, and it is settled in their favour. The cost is everywhere else. First, storage: a UUID is 128 bits, so a billion rows carry 16 GB of IDs as raw bytes and 36 GB as the 36-character text form, against 8 GB for a 64-bit integer — and the primary-key index roughly doubles each figure, so the choice is between about 16 GB of key-plus-index and about 72 GB. Second, the index: UUIDs are random, so each insert lands on a random page of the B-tree — pages split, sit half to two-thirds full, and the same billion rows cost roughly 1.5–2× the storage plus the write amplification of constant splits, while time-ordered IDs append to the right edge and fill pages to ~100%. Third, ordering: a UUID carries no time, so "everything since Tuesday" needs a second column and a second index, while a Snowflake ID answers it by comparing integers. Fourth, debuggability: a Snowflake ID decodes to a timestamp, a machine, and a sequence — an engineer can read where and when it was minted out of the number itself — while a UUID is opaque. So I would not reject UUIDs outright: if the IDs are public and must be unguessable, random is the right answer, and ULID is the better version of it — timestamp first, randomness after, so the IDs sort <em>and</em> cannot be guessed within the millisecond. But for the internal primary key of a billion-row table, the answer is Snowflake: 8 GB, append-only inserts, and a timestamp you can read out of the number. And I would close with the line that settles it in the room: the collision math is a reason to stop worrying about collisions, not a reason to stop thinking about storage and ordering.</p>
+</details>
+<details>
+<summary>Q4. Two machines mint the same ID. How is that possible with Snowflake, and how do you make it impossible?</summary>
+<p><strong>Model answer.</strong> I start with the arithmetic of the layout, because Snowflake's uniqueness is a construction, not a hope: an ID is unique if and only if no two machines share a machine ID and no machine reuses a (timestamp, sequence) pair. So there are exactly two ways to get a duplicate, and both are assignment failures, not bad luck. The first is a machine-ID collision: two machines hold the same machine ID — the classic cause is two containers restored from the same image, or a configuration file copied from one machine to another, so both believe they are machine 7 and both mint the same sequence in the same millisecond. The second is a clock failure: a machine's clock jumps backwards and the sequence restarts in a millisecond it already used, minting the same ID twice — which is the Q2 failure, and the reason a backward jump is a stop condition. Making it impossible has three layers. First, machine IDs are leased from a coordination service — ZooKeeper or etcd — at startup, exclusive, with a TTL and a heartbeat, and a machine whose lease expires stops minting until it holds a fresh one; the lease is fenced, so a machine that loses its lease cannot keep minting with the old ID. Second, the generator tracks the last timestamp it issued and never mints with a smaller one — it stalls instead. Third, the database is the last line of defence: the ID is the primary key, so a duplicate fails loudly on insert instead of silently overwriting a ticket, and duplicate-key errors are monitored and must stay at zero forever — a single duplicate-key error is an incident, not a metric to tune. And I would close with the honest caveat: nothing makes a duplicate <em>logically</em> impossible — a machine ID could be assigned twice by a bug in the lease service itself — which is exactly why the third layer exists, and why the monitoring is part of the design rather than an afterthought.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — The bit budget.</strong> A Snowflake layout uses 41 timestamp bits, 10 machine bits, and 12 sequence bits. (a) How many IDs can one machine mint per millisecond, and per second? (b) How many machines does the layout support? (c) How many IDs a second can the whole fleet mint? (d) How many years of life does the timestamp give? Then re-do it for 39/12/12. <em>Rubric: (a) 2<sup>12</sup> = 4,096 per millisecond, × 1,000 = 4,096,000 per second per machine; (b) 2<sup>10</sup> = 1,024 machines; (c) 1,024 × 4,096,000 = 4,194,304,000, about 4.2 billion a second; (d) 2<sup>41</sup> ms = 2,199,023,255,552 ms ≈ 69.7 years. For 39/12/12: 4,096 per millisecond per machine (unchanged — the sequence bits did not move), 2<sup>12</sup> = 4,096 machines, fleet 4,096 × 4,096,000 ≈ 16.8 billion a second, and 2<sup>39</sup> ms ≈ 17.4 years of life — the fleet quadrupled and the lifetime quartered, because the two bits moved from time to machines.</em></p>
+<p><strong>Drill 2 — The collision math.</strong> (a) A system mints 10 billion UUID v4s over its lifetime. What is the chance of a collision? (b) A ULID system mints 1,000,000 IDs in its busiest millisecond. What is the chance two of them collide? (c) Why is (b) so much smaller than (a) would be for the same count, even though ULID has fewer random bits than UUID v4? <em>Rubric: (a) p ≈ n² ÷ (2 × 2<sup>122</sup>) = (10<sup>10</sup>)² ÷ (2 × 5.32 × 10<sup>36</sup>) = 10<sup>20</sup> ÷ 1.06 × 10<sup>37</sup> ≈ 9.4 × 10<sup>−18</sup> — effectively zero; (b) p ≈ m² ÷ (2 × 2<sup>80</sup>) = (10<sup>6</sup>)² ÷ (2 × 1.21 × 10<sup>24</sup>) = 10<sup>12</sup> ÷ 2.42 × 10<sup>24</sup> ≈ 4.1 × 10<sup>−13</sup> — also effectively zero, and it is the chance within one millisecond, not over the lifetime; (c) because the ULID collision chance is per-millisecond — IDs minted in different milliseconds cannot collide, since their timestamps differ — so the lifetime chance is the sum over milliseconds of a tiny per-millisecond chance, not the birthday calculation over the whole set. Randomness does the work inside the millisecond; the timestamp does the work across them.</em></p>
+<p><strong>Drill 3 — The KGS dial.</strong> A service needs 200,000 IDs a second from a KGS with a standby. (a) With a range size of 50,000 IDs, how many database allocations a second does the KGS make? (b) A generator crashes with a half-used range — how many IDs are wasted at most? (c) The team shrinks the range to 100 IDs to waste less on crash. How many allocations a second now, and why is that the wrong trade? <em>Rubric: (a) 200,000 ÷ 50,000 = 4 allocations a second — trivial for the database; (b) at most 49,999 IDs, the unused remainder of the range — and gaps are fine, IDs are never promised gapless; (c) 200,000 ÷ 100 = 2,000 allocations a second — the database is now doing two thousand writes a second just to hand out numbers, which is the coordination the KGS was meant to avoid. The range size is the dial between wasted IDs on crash and database load, and the waste side of the dial is nearly free — an ID is 8 bytes of nothing — while the load side is the whole point of the design.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Approach</td><td>Snowflake 64-bit, coordination-free — timestamp + leased machine ID + sequence</td><td>UUID v4 when unpredictability matters more than order; ULID when you need both; KGS when a roughly sequential range is required; auto-increment only on a single database that will never shard</td></tr>
+<tr><td>Bit budget</td><td>41/10/12 — 69.7 years, 1,024 machines, 4,096 IDs a millisecond per machine</td><td>Steal from time for burst (39/10/14: 16,384/ms, 17.4 years) or from sequence for fleet size (41/12/10: 4,096 machines, 1,024/ms) — and write down what you gave up</td></tr>
+<tr><td>Epoch</td><td>Custom epoch at launch (1 Jan 2026 here) — expiry about 2095 for 41 bits, written in the design document</td><td>Counting from 1970 wastes 56 years of timestamp bits for nothing — the epoch is a free 56 years if you set it at launch</td></tr>
+<tr><td>Machine IDs</td><td>Leased from ZooKeeper/etcd at startup, exclusive, TTL + heartbeat, fenced on loss</td><td>Never derive from a hostname, IP, or cloned image — two machines sharing an ID is the one way Snowflake duplicates, and no test catches it until production</td></tr>
+<tr><td>Clock safety</td><td>Stall or refuse on a backward jump; alert on jumps over 1 ms; NTP monitored as a dependency</td><td>Never mint with a smaller timestamp than the last one issued — a 5 ms stall delays at most 20,480 IDs at full tilt, and a duplicate is not worth any latency saving</td></tr>
+<tr><td>Storage &amp; sharding</td><td>8-byte integer primary key (8 GB per billion rows); never shard by the monotonic ID</td><td>Text UUIDs cost 36 GB per billion rows and random UUIDs fragment the index 1.5–2× — and the public URL carries a random token, because a sequential public ID leaks the sales count</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"A distributed ID generator hands out numbers that are unique across every machine that mints them, without any machine having to ask anyone for permission: the classic layout is Snowflake — a 64-bit integer split into 41 bits of timestamp in milliseconds since a custom epoch, 10 bits of machine ID, and 12 bits of sequence — which gives 4,096 IDs a millisecond per machine, 1,024 machines, about 4.2 billion IDs a second across the fleet, and 69.7 years of life from the epoch. The demand here is 50,000 IDs a second across 16 machines — 3.1 a millisecond each — so throughput is not the constraint; the constraints are uniqueness, ordering, and clock safety. The machine ID is leased from a coordination service at startup, never derived from a hostname, because two machines sharing an ID is the one way this design duplicates. The sequence is what makes IDs unique inside one millisecond, and if it overflows the generator waits for the next millisecond — at most 1 ms of latency — rather than reusing a number. The clock is a monitored dependency: a backward jump stalls minting, because minting with a smaller timestamp breaks ordering and can duplicate an ID. The three decisions are coordination-free by default, sortable inside and random outside — the Snowflake ID is the primary key at 8 GB per billion rows, and the public URL carries a random token — and the bit budget is a dial: steal two bits from time for sequence and the burst quadruples to 16,384 a millisecond while the lifetime falls to 17.4 years. And the trap to name: never shard by the ID itself, because time-ordered IDs all sort into the newest shard and the whole system's write throughput becomes the throughput of one shard."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: uniqueness by construction, not by coordination — every window has its own numbering scheme that can never collide with another's.</li>
+<li>Back-of-the-envelope: 2 billion IDs over five years, 50,000 a second at peak, 3.1 a millisecond per machine against a 4,096 budget; 41/10/12 gives 1,024 machines, 4.2 billion IDs a second, 69.7 years from the epoch; 8 GB per billion rows as integers against 36 GB as text UUIDs.</li>
+<li>Architecture: the local generator library, the timestamp since a custom epoch, the leased machine ID, the per-millisecond sequence, the bit packing, the coordination fork, and the primary key as the last line of defence.</li>
+<li>Deep dive: coordination-free by default; sortable inside, random outside; the bit budget is a dial and the epoch is an expiry date.</li>
+<li>Failure modes and the close: the backward clock, the sequence overflow, the shared machine ID, the expiring epoch, the hot tail, and the leaking ID — and the line to end on: an ID is a design decision with a bit budget, a clock, and a database index attached to it.</li>
+</ol>
+
+<p class="foot">Lesson 46 · Design a Distributed ID Generator · Next: a new lesson lands tomorrow morning.</p>
+</div>
+<script>
+function computeSnowflake(tsBits, machineBits, seqBits, peakIdsSec, machines) {
+  var perMs = Math.pow(2, seqBits);
+  var maxMachines = Math.pow(2, machineBits);
+  var years = Math.pow(2, tsBits) / 1000 / 31557600;
+  var fleetPerSec = maxMachines * perMs * 1000;
+  var demandPerMs = peakIdsSec / machines / 1000;
+  return { perMs: perMs, maxMachines: maxMachines, years: years, fleetPerSec: fleetPerSec, demandPerMs: demandPerMs };
+}
+function computeChooser(choice, peakIdsSec, totalIds, kgsRange) {
+  var out = { choice: choice };
+  if (choice === "snowflake") {
+    out.collision = 0;
+    out.storageGB = 8;
+    out.sortable = "Yes — roughly time-ordered (k-ordered)";
+    out.spof = "No — coordination-free, any machine can die";
+    out.capacity = 4194304000;
+    out.capacityNote = "fleet ceiling ≈ 4.2B IDs/sec";
+  } else if (choice === "uuid") {
+    out.collision = totalIds * totalIds / (2 * Math.pow(2, 122));
+    out.storageGB = 16;
+    out.storageTextGB = 36;
+    out.sortable = "No — random, no time inside the ID";
+    out.spof = "No — coordination-free";
+    out.capacity = Infinity;
+    out.capacityNote = "no coordination, no ceiling";
+  } else if (choice === "ulid") {
+    var perMs = peakIdsSec / 1000;
+    out.collision = perMs * perMs / (2 * Math.pow(2, 80));
+    out.storageGB = 16;
+    out.sortable = "Yes — timestamp first, then randomness";
+    out.spof = "No — coordination-free";
+    out.capacity = Infinity;
+    out.capacityNote = "no coordination, no ceiling";
+  } else if (choice === "autoinc") {
+    out.collision = 0;
+    out.storageGB = 8;
+    out.sortable = "Yes — strictly increasing";
+    out.spof = "Yes — single writer, single point of failure";
+    out.capacity = 50000;
+    out.capacityNote = "single writer, tens of thousands/sec";
+  } else if (choice === "kgs") {
+    out.collision = 0;
+    out.storageGB = 8;
+    out.sortable = "Roughly — ranges handed out in order";
+    out.spof = "Yes — DB-backed, standby required";
+    out.capacity = Infinity;
+    out.allocsPerSec = peakIdsSec / Math.max(1, kgsRange);
+    out.capacityNote = "DB writes: " + fmtNum(out.allocsPerSec) + " range allocations/sec";
+  }
+  return out;
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtSci(n) {
+  if (n === 0) return "0 — by construction, not by luck";
+  if (n < 1e-6) return n.toExponential(1);
+  return n.toFixed(6);
+}
+function renderLabA() {
+  var tsBits = parseFloat(document.getElementById("tsBits").value) || 0;
+  var machineBits = parseFloat(document.getElementById("machineBits").value) || 0;
+  var seqBits = parseFloat(document.getElementById("seqBits").value) || 0;
+  var peakIdsSec = parseFloat(document.getElementById("peakIdsSec").value) || 0;
+  var machines = parseFloat(document.getElementById("genMachines").value) || 1;
+  var r = computeSnowflake(tsBits, machineBits, seqBits, peakIdsSec, machines);
+  var totalBits = tsBits + machineBits + seqBits;
+  var demandFits = r.demandPerMs <= r.perMs;
+  document.getElementById("labAResult").innerHTML =
+    "Bit budget: " + tsBits + " + " + machineBits + " + " + seqBits + " = <b>" + totalBits + " bits</b>" + (totalBits === 63 ? " (plus the sign bit — the full 64)" : " — not 63! The layout must add up to 63 usable bits") + "<br>" +
+    "Per machine: <b>" + fmtNum(r.perMs) + " IDs per millisecond</b> = <b>" + fmtNum(r.perMs * 1000) + " per second</b><br>" +
+    "Machines supported: <b>" + fmtNum(r.maxMachines) + "</b> · Lifetime from the epoch: <b>" + r.years.toFixed(1) + " years</b><br>" +
+    "Fleet capacity: <b>" + fmtNum(r.fleetPerSec) + " IDs/sec</b><br>" +
+    "Demand: " + fmtNum(peakIdsSec) + " IDs/sec across " + machines + " machines = <b>" + r.demandPerMs.toFixed(1) + " IDs per millisecond per machine</b><br><br>" +
+    (demandFits
+      ? "<b>The demand fits.</b> Each machine needs " + r.demandPerMs.toFixed(1) + " IDs a millisecond against a budget of " + fmtNum(r.perMs) + " — headroom of about " + Math.max(1, Math.round(r.perMs / Math.max(r.demandPerMs, 0.001))).toLocaleString("en-US") + "×. Throughput is not the constraint on this design."
+      : "<b>Overflow.</b> Each machine needs " + r.demandPerMs.toFixed(1) + " IDs a millisecond but the sequence only holds " + fmtNum(r.perMs) + " — the generator would wait for the next millisecond on every overflow, capping the machine at " + fmtNum(r.perMs * 1000) + " IDs/sec. Widen the sequence bits (and pay for it with lifetime or machines), or add machines.");
+}
+function renderLabB() {
+  var choice = document.getElementById("genChoice").value;
+  var peak = parseFloat(document.getElementById("labBPeak").value) || 0;
+  var total = parseFloat(document.getElementById("labBTotal").value) || 0;
+  var range = parseFloat(document.getElementById("kgsRange").value) || 10000;
+  var r = computeChooser(choice, peak, total, range);
+  var fits = peak <= r.capacity;
+  var html = "<b>Collision chance over " + fmtNum(total) + " IDs: " + fmtSci(r.collision) + "</b><br>" +
+    "Storage per billion IDs: <b>" + r.storageGB + " GB</b>" + (r.storageTextGB ? " as binary, <b>" + r.storageTextGB + " GB</b> as 36-character text" : "") + " (primary-key index roughly doubles it)<br>" +
+    "Sortable: <b>" + r.sortable + "</b><br>" +
+    "Single point of failure: <b>" + r.spof + "</b><br>" +
+    "Capacity: <b>" + r.capacityNote + "</b><br><br>";
+  if (choice === "snowflake") {
+    html += fits
+      ? "<b>Snowflake fits.</b> Coordination-free, sortable, 8 GB per billion rows, and a 4.2 billion-a-second ceiling the demand will never touch — this is the default for an internal primary key."
+      : "<b>Snowflake does not fit this demand.</b> The peak exceeds the 4.2 billion-a-second fleet ceiling — widen the sequence bits or add machines, because the layout, not the idea, is the limit.";
+  } else if (choice === "uuid") {
+    html += "<b>UUID v4 fits on uniqueness — and nowhere else.</b> The collision chance is effectively zero, but the IDs are random: no sortability, 16 GB per billion rows as binary (36 GB as text), and an index that fragments. Use it where unpredictability matters, not as a primary key.";
+  } else if (choice === "ulid") {
+    html += "<b>ULID is the compromise.</b> Timestamp first, so the IDs sort and answer 'since Tuesday'; randomness after, so they cannot be guessed within the millisecond. Same 16 GB per billion rows as a UUID — the price of 128 bits.";
+  } else if (choice === "autoinc") {
+    html += fits
+      ? "<b>Auto-increment fits — while there is one database.</b> Strictly increasing, 8 GB per billion rows, zero collision chance — and a single writer that is also the single point of failure. The day the database shards, this answer stops working."
+      : "<b>Auto-increment does not fit.</b> The peak exceeds what a single writer serves — tens of thousands a second — so the ID service inherits the database's throughput ceiling and its failure modes. This is the price of per-ID coordination.";
+  } else if (choice === "kgs") {
+    html += "<b>KGS fits, with a standby.</b> " + fmtNum(r.allocsPerSec) + " database allocations a second at this range size — the database is barely involved — and the IDs are roughly sequential. The price is the database as a single point of failure, so the standby is part of the design, not an afterthought.";
+  }
+  document.getElementById("labBResult").innerHTML = html;
+}
+["tsBits", "machineBits", "seqBits", "peakIdsSec", "genMachines"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabA);
+});
+["genChoice", "labBPeak", "labBTotal", "kgsRange"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
