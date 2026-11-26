@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design a Real-Time Analytics System — one billion events a day, and the dashboard still loads in 200 ms</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #0e7490; --accent-soft: #e0f2f7;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #4cc3de; --accent-soft: #16333d;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number], .lab input[type=text] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  .sugg { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .sugg:last-child { border-bottom: none; }
+  .bar { height: 8px; border-radius: 999px; background: var(--accent); margin-top: 4px; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+  .bits { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 1rem 0; overflow-x: auto; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 47</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 47 · Classic design</span>
+  <h1>Design a Real-Time Analytics System — one billion events a day, and the dashboard still loads in 200 ms</h1>
+  <p class="whyline">It is cup-final night at Riverside FC and five million fans are watching the match on the club app: every tap, every page view, every video play, every ticket purchase is an event, and the club's dashboard has to show — right now, not tomorrow morning — how many people are watching, which page is spiking, and whether the ticket checkout is converting. And tomorrow morning the same system has to answer, exactly, how many tickets were sold and to whom. One system has to be both live and right, and those two wants pull in opposite directions. Today you design the pipeline that counts a billion events a day without ever making a dashboard wait for a scan.</p>
+  <div class="meta"><span>Kafka &amp; stream processing</span><span>Pre-aggregation</span><span>HyperLogLog</span><span>Watermarks &amp; late data</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a real-time analytics system?</h2>
+<p>Start from zero. An <strong>event</strong> is one thing that happened, written down: a fan opened the match page, pressed play on a highlight, added a ticket to the cart, bought it. A <strong>real-time analytics system</strong> is the pipeline that collects those events from every app, phone, and website, counts and groups them as they arrive, and serves the answers to dashboards and alerts within seconds — while keeping the raw events around so that any question can be re-answered later. The soccer running example: the cup final kicks off at 8pm and the club's operations room watches one dashboard — viewers now, goals per minute, ticket sales per minute, checkout conversion, the top five pages — and every number on that dashboard is a question answered from events that arrived in the last few seconds. That is the whole lesson in one picture: <strong>a billion events a day are not a storage problem, they are an aggregation problem — and the dashboard never reads the billion, it reads the summary.</strong></p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Event:</strong> one recorded fact — a page view, a click, a purchase — with a timestamp, a user, and a few properties. <strong>Metric:</strong> the number being tracked — views, purchases, revenue, active users. <strong>Dimension:</strong> a way of slicing a metric — by country, by device, by page. <strong>Series:</strong> one metric sliced one way — "ticket-page views from Canada on mobile" is one series. <strong>Rollup / pre-aggregation:</strong> counting events into small buckets ahead of time — one number per minute per series — so the dashboard reads the bucket, not the events. <strong>Window:</strong> a fixed slice of time the counting happens over — a one-minute tumbling window counts each event exactly once, in exactly one minute. <strong>Watermark:</strong> the system's belief about how complete the data is — "we have seen all events up to 10:04" — which is how it decides when a one-minute bucket is finished. <strong>Late event:</strong> an event that arrives after its window has closed — a phone that was offline in the stadium and sends its events when it reconnects. <strong>Cardinality:</strong> how many distinct values a dimension has — 200 countries is low cardinality, 5 million user IDs is high. <strong>Funnel:</strong> a chain of steps — view → add to cart → buy — and the conversion rate between each pair. <strong>Retention:</strong> how long data is kept — seven days in the fast log, thirty days in cheap storage. <strong>Backfill / replay:</strong> reprocessing old raw events to rebuild a rollup — the way a bug in the counting is fixed after the fact.</p></div>
+<p>Why does this lesson exist, when its pieces have all shown up before? Because every earlier lesson quietly produced events and never counted them. Lesson 9's message queue carried the events. Lesson 44's HyperLogLog counted distinct viewers in 12 KB and the Count-Min Sketch counted frequencies without storing the events. Lesson 23's backpressure is what the pipeline feels at 8pm when the goal goes in. None of them stopped to ask what the whole pipeline looks like when the dashboard has to be live <em>and</em> right, and what it costs when the team asks for one more slice. The one idea to carry through the whole lesson: <strong>the dashboard's latency budget decides the architecture — a chart that must load in 200 ms cannot be computed from a billion rows at query time, so the counting has to happen before the question is asked.</strong></p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are designing the analytics pipeline for Riverside FC's whole platform — the app, the website, the ticket shop, the video service — about 1 billion events a day, dashboards that must load in under 200 ms, and two kinds of answers: live numbers for the operations room, and exact numbers for the morning's revenue report. Every number below is computed from one formula each, and Lab A and Lab B let you re-run all of them.</p>
+<ul>
+<li><strong>The demand: 1 billion events a day is 11,574 a second on average — and about 58,000 a second at the cup-final peak.</strong> 1,000,000,000 ÷ 86,400 seconds in a day = <strong>11,574 events a second</strong> on average. Traffic is not flat: the goal goes in and the whole stadium taps at once, so the peak is about five times the average, 11,574 × 5 = <strong>57,870 events a second</strong>. That is the number the ingestion layer is sized for, and it is not a big number — a single Kafka topic with a few dozen partitions absorbs it without noticing. (Lab A runs the demand check.)</li>
+<li><strong>The raw volume: 200 bytes per event means 200 GB a day — and the log stores it three times over.</strong> An event is a small JSON record — event name, user ID, timestamp, a few properties — about 200 bytes. 1 billion × 200 bytes = <strong>200 GB a day</strong> of raw events. The ingestion log (Kafka) keeps three copies for durability, so one day of log is 200 × 3 = 600 GB, and seven days of retention is 600 × 7 = <strong>4.2 TB</strong>. That is the price of never losing an event, and it is cheap — the expensive part is never the log, it is the counting. (Lab A runs the storage.)</li>
+<li><strong>The counting is nearly free: 50 microseconds per event means the cup-final peak needs about three CPU cores.</strong> Stream processing is parse the event, hash its series key, and add to a counter — about 50 microseconds of work per event. At the peak of 57,870 events a second, that is 57,870 × 50 µs = <strong>2.9 CPU-seconds per second — about three cores</strong>. The whole real-time counting for a billion events a day fits on a handful of cores, which is the first surprise of this design: ingestion and counting are cheap, and the money goes on storage and on the questions the team asks, not on the counting itself.</li>
+<li><strong>The rollup collapses the data by a factor of about 1,700: 7.2 million points a day, 115 MB.</strong> The dashboard does not need a billion events — it needs 5,000 series (one metric sliced one way), each with one point per minute: 5,000 × 1,440 minutes a day = <strong>7.2 million points a day</strong>. At 16 bytes a point (timestamp + value + count), that is 7.2M × 16 = <strong>115 MB a day</strong> of rollups, against 200 GB of raw events — a collapse of about 1,700×. This is the whole design in one ratio: the dashboard reads 115 MB, not 200 GB. (Lab A runs the collapse.)</li>
+<li><strong>The query that must never happen: scanning raw events for a 24-hour chart takes 200 seconds.</strong> A dashboard panel showing one series over the last 24 hours needs 1,440 points — one per minute. Read from the rollup store, that is 1,440 tiny rows, fetched in milliseconds. Read from the raw events, it is a scan of the day's 200 GB, and at a scan speed of 1 GB a second that is <strong>200 seconds</strong> — a thousand times over the 200 ms budget. Any system that answers dashboard questions by scanning raw events is a system that has not been designed yet. The pre-aggregation is the design, not an optimisation.</li>
+<li><strong>The uniques: 5 million distinct viewers a day cost 40 MB exactly — or 12 KB approximately.</strong> "How many distinct fans watched today?" is the expensive question, because a distinct count needs to remember who it has seen. The exact answer is a set of 5 million user IDs at 8 bytes each = <strong>40 MB per metric per day</strong> — and that is per series, so a hundred series needing uniques is 4 GB a day. The approximate answer is a HyperLogLog sketch (Lesson 44): 16,384 registers × 6 bits = <strong>12 KB</strong>, with an error of 1.04 ÷ √16,384 ≈ <strong>0.81%</strong> — about ±40,600 on 5 million viewers. A hundred series is 1.2 MB instead of 4 GB, a 3,255× saving, and the sketches merge across shards, which the sets do not. (Lab B runs the trade.)</li>
+<li><strong>The cardinality trap: 10,000 pages × 200 countries × 5 devices is 10 million possible series.</strong> Dimensions multiply: every page, crossed with every country, crossed with every device, is a series — 10,000 × 200 × 5 = <strong>10,000,000 possible series</strong>. Most are empty, but if 1 million of them actually get traffic, the rollup bill becomes 1,000,000 × 1,440 points × 16 bytes = <strong>23 GB a day</strong> — two hundred times the 115 MB the design budgeted. Cardinality is the cost driver of this system, and it is decided by which dimensions the team is allowed to ask for, not by the event rate.</li>
+<li><strong>The funnel: 100,000 views → 20,000 adds → 5,000 buys is 20%, then 25%, then 5% overall — and $200,000 a day.</strong> The ticket shop's funnel is three steps: 100,000 fans view the ticket page, 20,000 add a ticket to the cart (20%), 5,000 buy one (25% of the carts, 5% of the views). At a $40 average order value, that is 5,000 × $40 = <strong>$200,000 a day</strong> of revenue the funnel is measuring. The funnel is the one place the pipeline cannot just count events independently: it has to know that the fan who bought is the same fan who viewed, which is a per-user join — and the design handles it by counting distinct users per step (HyperLogLog per step) and by keeping a short session window, not by joining a billion raw events at query time. (Lab B runs the funnel.)</li>
+<li><strong>The cold archive: 30 days of raw events compress to 600 GB — and it is the only way to fix a counting bug.</strong> The raw events are also written to cheap object storage in columnar Parquet files, which compress about 10×: 200 GB a day × 30 days = 6 TB raw, about <strong>600 GB</strong> stored. Nobody queries it for a dashboard — it is too slow for that. It exists for two jobs: ad-hoc questions the rollups were never built to answer, and the backfill — reprocessing the raw events to rebuild a rollup after a bug. A system with no raw archive cannot fix its own counting mistakes; it can only apologise for them.</li>
+<li><strong>The late-event bill: reprocessing one day costs 7.2 million bucket writes — 12 minutes at 10,000 writes a second.</strong> Events arrive late — a phone offline in the stadium sends its events when it reconnects — and the pipeline allows 10 minutes of lateness, correcting the buckets the late events belong to. A full one-day backfill rewrites every bucket: 1,440 buckets per series × 5,000 series = <strong>7.2 million bucket writes</strong>, and at a rollup store that takes 10,000 writes a second, that is 7,200,000 ÷ 10,000 = <strong>720 seconds — 12 minutes</strong>. A backfill is a scheduled job with a rate limit, not a button anyone presses in the middle of a match.</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Three numbers decide the shape of this design, and the first one is a surprise: the counting is nearly free — three CPU cores absorb the cup-final peak of 57,870 events a second — so any design that starts by optimising the ingestion throughput has optimised the wrong thing. The constraint is the dashboard's latency budget: a 24-hour chart needs 1,440 points, and reading them from the rollup store takes milliseconds while scanning the day's 200 GB of raw events takes 200 seconds — a thousand times over the 200 ms budget — which is why the pre-aggregation is the design and not an optimisation. And the second number is the cardinality trap: 5,000 series cost 115 MB a day, but 1 million series cost 23 GB a day, so the dimension list is a budget decision, not a product decision, and "unique users by page, by country, by device, by referrer" is a request that has to be costed before it is granted. A design that ingests into a durable log, counts into one-minute rollups before anyone asks, answers uniques with a 12 KB sketch instead of a 40 MB set, and keeps the raw events in a cheap archive for the day the counting is wrong has answered the questions that actually break analytics systems — and a design that starts from "store every event and query it" has answered a question nobody asked.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Follow one event — a fan pressing play on a cup-final highlight in the app — through the system. There are seven stages, and each one exists because a different failure is waiting in it.</p>
+<ol>
+<li><strong>Collection — the SDK in the app batches events and survives being offline.</strong> The app does not send one HTTP request per tap: the SDK buffers events on the phone and sends them in batches every few seconds, or when the batch reaches a size limit, so a fan tapping through the match page does not make a request per tap. Each event carries a client-generated event ID and a timestamp taken on the phone, and the buffer survives the app being closed — a fan whose phone loses signal in the stadium keeps recording, and the events are sent when the connection comes back. The collection layer's job is to never lose an event and never invent one: batching for efficiency, an event ID for deduplication, and a local buffer for the offline gap.</li>
+<li><strong>Ingestion — the event lands in a durable log, partitioned by user, and nothing else happens yet.</strong> The batch arrives at a small fleet of stateless collectors that validate the event, stamp it with an arrival time, and append it to a Kafka topic — partitioned by user ID, so all of one fan's events land on one partition in order. The log is the system's memory: three copies, seven days of retention, and it is the only thing the collectors write to. Nothing is counted here, nothing is stored in a database here — the log's one job is to accept events at 57,870 a second and never drop one, and the rest of the pipeline reads from the log at its own pace. If the counting breaks, the log is still there, and the counting can be replayed.</li>
+<li><strong>Stream processing — the log is read once, and the one-minute buckets are filled as the events arrive.</strong> A stream processor reads each partition, assigns each event to its one-minute tumbling window by the event's own timestamp, and adds it to that window's counters — views, plays, adds, purchases — grouped by series key. The processor keeps the current windows in memory: 5,000 series × a few counters is trivial, and even a million series is about 100 MB of state. When the watermark passes a window — when the system believes all events up to 10:04 have arrived — the window is closed and its counters are flushed to the rollup store. The processor is the only component that has to be fast, and it is fast because it does almost nothing per event: parse, hash, add.</li>
+<li><strong>The rollup store — one row per series per minute, and the only thing the dashboard reads.</strong> The flushed counters land in a time-series store as one row per series per minute: 7.2 million rows a day for the 5,000-series design, 115 MB a day. The store also keeps the coarser rollups — one row per series per hour, one per day — computed from the minute rows, so a 30-day chart reads 30 daily rows instead of 43,200 minute rows. The rollup store is the dashboard's only data source: every panel on the operations-room wall is a query over a few thousand pre-computed rows, which is why it loads in milliseconds. It is also the store that gets rebuilt by a backfill — 7.2 million bucket writes, 12 minutes, rate-limited.</li>
+<li><strong>Uniques and top-k — the sketches, kept next to the counters.</strong> Two questions cannot be answered by adding numbers: "how many distinct fans?" and "which pages are the top ten?" The first is answered by a HyperLogLog sketch per series per minute — 12 KB per series per day, merged across partitions and across minutes, with a ±0.81% error the design states in the open. The second is answered by a Count-Min Sketch — about 54 KB per window (Lesson 44) — which never under-counts and is used to shortlist the top candidates before an exact count confirms them. The sketches live next to the counters in the rollup store, and they are the reason the dashboard can say "5 million distinct viewers" without holding a 40 MB set of user IDs for every series.</li>
+<li><strong>The query layer — two doors, and the dashboard only ever uses one.</strong> The query layer has two doors. The fast door serves dashboards and alerts from the rollup store: a panel is a time-range query over pre-computed rows, answered in milliseconds, and the layer caches the answers for the few seconds they are fresh. The slow door serves ad-hoc questions from the cold archive: a data analyst asking "which referrer drove the most purchases last Tuesday" scans the Parquet files in the object store, waits minutes, and gets an exact answer — and the layer enforces a time bound and a timeout on every such query, because an unbounded scan is a 200-second dashboard wait in disguise. The rule is that the fast door is the default, and the slow door is a deliberate, bounded choice.</li>
+<li><strong>Serving and alerting — the dashboard, the threshold, and the two kinds of number.</strong> The dashboard is a set of panels over the rollup store, refreshed every few seconds, and the alerting is a set of thresholds over the same store — "ticket sales per minute below 100 during the on-sale" pages the operations room. And the serving layer keeps the two kinds of number apart: the <em>live</em> number, which is the freshest count and will be revised as late events arrive, and the <em>final</em> number, which is the count after the watermark has passed and the lateness window has closed. The live number is what the wall shows at 8:47pm; the final number is what the morning's revenue report prints. A system that shows one number and calls it both is a system that will be caught out by its own revisions.</li>
+</ol>
+<table>
+<tr><th>Stage</th><th>What it does</th><th>What fails if it is missing</th></tr>
+<tr><td>Collection</td><td>SDK batches events, stamps a client event ID, buffers offline on the phone</td><td>One request per tap floods the network, offline events are lost, and retries double-count because there is no event ID to deduplicate on</td></tr>
+<tr><td>Ingestion</td><td>Stateless collectors validate and append to a Kafka topic, partitioned by user, RF = 3, 7-day retention</td><td>Events go straight to a database that cannot take 57,870 writes a second, or there is no durable log to replay from when the counting breaks</td></tr>
+<tr><td>Stream processing</td><td>Reads the log once, fills one-minute tumbling windows by event time, flushes on the watermark — ~3 cores at peak</td><td>Counting happens at query time, so a dashboard panel scans 200 GB and takes 200 seconds, a thousand times over budget</td></tr>
+<tr><td>Rollup store</td><td>One row per series per minute (7.2M rows, 115 MB/day), plus hourly and daily rollups</td><td>Every chart reads raw events, and the dashboard's latency budget is spent on scanning instead of serving</td></tr>
+<tr><td>Sketches</td><td>HyperLogLog for distinct users (12 KB, ±0.81%), Count-Min Sketch for top-k — stored next to the counters</td><td>Distinct counts hold a 40 MB set per series per day, and top-ten lists are computed by sorting a billion rows</td></tr>
+<tr><td>Query layer</td><td>Fast door: dashboards from rollups. Slow door: ad-hoc over the Parquet archive, with time bounds and timeouts</td><td>An analyst's ad-hoc question runs against the live store and takes the dashboard down with it — or takes 200 seconds and times out</td></tr>
+<tr><td>Serving &amp; alerting</td><td>Panels and thresholds over the rollup store; live numbers and final numbers kept apart</td><td>The wall shows a number that is silently revised ten minutes later, and the morning report disagrees with what the operations room saw</td></tr>
+</table>
+
+<h2>The heart of it: three decisions that make or break the design</h2>
+<h3>1. Pre-aggregate or scan raw — the latency budget decides, and it decides before anything else</h3>
+<p>The dashboard's budget is 200 ms, and a 24-hour chart needs 1,440 points. From the rollup store, that is 1,440 tiny rows — milliseconds. From the raw events, it is a 200 GB scan — 200 seconds. There is no middle ground to optimise into: the only way the dashboard loads in 200 ms is if the counting happened before the question was asked. That is why the rollup is not a performance optimisation layered on top of a raw-event store; it is the architecture. The raw events exist for the ad-hoc question and for the backfill, and the dashboard never touches them. The rule: <strong>name the latency budget first, and if the budget is under a second, the answer is pre-aggregation — everything else in the design follows from that one sentence.</strong></p>
+<h3>2. Exact or approximate — money is exact, uniques are approximate, and the design says which is which</h3>
+<p>Two questions look the same and cost wildly different amounts. "How many purchases?" is an exact count: add the events, and the answer is right — it has to be, because it becomes revenue, and revenue is never approximate. "How many distinct fans watched?" is a set problem: the exact answer needs a 40 MB set of user IDs per series per day, and a hundred series need 4 GB a day — and the sets do not merge across shards, so the exact answer is also a distributed-systems problem. The approximate answer is a 12 KB HyperLogLog sketch with a ±0.81% error, which merges across shards by taking the maximum of each register, and costs a hundred series 1.2 MB a day instead of 4 GB. The senior line: <strong>the design states, per metric, whether it is exact or approximate and what the error is — a dashboard that shows "5,000,000 viewers" without saying ±40,600 is a dashboard that is lying by omission, and a revenue report that is approximate is a report that is wrong.</strong></p>
+<h3>3. Fresh or correct — the watermark is a promise about what you have not seen yet</h3>
+<p>The live number at 8:47pm and the final number at 9:00am are different numbers, and the system has to be honest about that. Events arrive late — the phone offline in the stadium, the clock on a fan's phone five minutes fast — so a one-minute window that closes at 10:04 is not complete at 10:04; it is complete when the watermark says so, and the watermark is a guess about how late the slowest event can be. The design picks an allowed lateness — ten minutes here — and the live number is the count so far, which will be revised, while the final number is the count after the lateness window closes, which will not. The alternative is to wait for correctness before showing anything, which means the operations room watches a dashboard that is ten minutes stale during the match — and the alternative to that is to show a number and pretend it is final, which means the morning report disagrees with the wall. The senior line: <strong>freshness and correctness are the same trade as the rest of the series — the watermark is the dial, the live number and the final number are two different products, and the design names both.</strong></p>
+<div class="callout green"><strong>The senior line on the three decisions</strong><p>Every real-time analytics system is the same three sentences, and the room is won by saying them with numbers attached. Pre-aggregate before the question is asked — a 24-hour chart is 1,440 points from the rollup store, fetched in milliseconds, against a 200 GB raw scan that takes 200 seconds, a thousand times over the 200 ms budget, so the one-minute rollup is the design and the raw events are the archive, not the other way round. Exact for money, approximate for uniques — purchases are counted exactly because they become $200,000 a day of revenue, while 5 million distinct viewers are a 12 KB HyperLogLog sketch at ±0.81% (±40,600) instead of a 40 MB set, and a hundred series cost 1.2 MB a day instead of 4 GB. And fresh or correct is a dial, not a default — the watermark says when a window is complete, ten minutes of allowed lateness revises the live number, and the final number is the one the morning report prints. Say those three sentences, with the arithmetic — 57,870 events a second at peak, three cores to count them, 7.2 million rollup points a day in 115 MB, 200 seconds against 200 ms, 12 KB against 40 MB — and the rest of the design — the durable log, the sketches, the two doors of the query layer, the live number kept apart from the final number — is machinery that follows.</p></div>
+
+<h2>Failure modes — six ways a real-time analytics system fails</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>Cardinality explosion</td><td>A team adds "by user ID" or "by referrer URL" as a dimension, the series count jumps from 5,000 to a million, and the rollup bill goes from 115 MB a day to 23 GB a day — and the rollup store falls behind the stream</td><td>Dimensions are a whitelist, not a free text field: every new dimension is costed (series × 1,440 × 16 bytes) before it is granted, high-cardinality dimensions are answered from sketches or from the ad-hoc door, and a per-series cap stops one dimension from eating the store</td></tr>
+<tr><td>Late and out-of-order events</td><td>A phone reconnects after the match and sends 500 events from an hour ago; the windows they belong to are already closed, so the dashboard's numbers for that hour are silently low — until the morning report disagrees with the wall</td><td>A watermark plus an allowed lateness of ten minutes, with corrections written back to the closed buckets — and the live number labelled as provisional until the lateness window closes, so the revision is expected, not a surprise</td></tr>
+<tr><td>Duplicate events</td><td>A retrying SDK sends the same purchase twice, the revenue chart shows $80,000 for a day that took $40,000, and the morning report has to be corrected in front of the finance team</td><td>A client-generated event ID on every event, and a deduplication window in the stream processor keyed on that ID — at-least-once delivery with idempotent counting (Lesson 9) — so a retry is a no-op, not a second sale</td></tr>
+<tr><td>The hot series</td><td>One match, one page, one series takes 90% of the events — the cup-final highlight page — and the partition or the rollup writer holding that series falls behind while the rest idle</td><td>Partition by a hash of the series key, not by the series itself, so the hot series shares its writer with nothing else that matters — and pre-split the rollup store's hot ranges, because the hot partition from Lesson 24 wears a new hat here too</td></tr>
+<tr><td>The backfill storm</td><td>A counting bug is found and someone reprocesses 30 days of raw events at full speed; the replay floods the rollup store, the live windows queue behind it, and the dashboard goes stale during a match</td><td>Backfills run rate-limited on a separate consumer group, against a separate rollup table that is swapped in when it is complete — never a live rewrite of the table the dashboard is reading</td></tr>
+<tr><td>The dashboard that queries raw</td><td>An analyst builds a panel against the raw-event store "just this once", the query scans 200 GB, takes 200 seconds, and holds the connection pool while the operations-room wall times out</td><td>Two doors, enforced: dashboards can only query the rollup store, ad-hoc queries go to the archive with a mandatory time bound and a timeout, and the query layer rejects a scan that would touch more than a day of raw data without a human approving it</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"Real-time means the number is right now."</strong> Real-time means the number is <em>fresh</em>, not that it is <em>final</em>. A live count at 8:47pm will be revised by late events for ten minutes after it is shown — the phone offline in the stadium, the clock five minutes fast — and the number the wall shows and the number the morning report prints are different numbers by design. The trap is showing one number and calling it both: the operations room acts on a count that is later revised, and the finance team finds the report disagrees with what everyone saw. The design names both numbers — live and final — and labels the live one as provisional until the watermark passes.</li>
+<li><strong>"Just store every event and query it."</strong> A billion events a day is 200 GB a day, and a dashboard panel that scans it takes 200 seconds against a 200 ms budget — a thousand times over. The raw events are not the database the dashboard reads; they are the archive the ad-hoc question reads and the backfill replays from. The counting has to happen before the question is asked — one-minute rollups, 7.2 million points a day, 115 MB — and a system that answers dashboard questions by scanning raw events is a system that has not been designed yet. Storage is cheap; scanning is the cost, and the scan is what the pre-aggregation removes.</li>
+<li><strong>"Count distinct users with a set."</strong> A set of 5 million user IDs is 40 MB per metric per day — and a hundred series needing uniques is 4 GB a day, every day, forever — and the sets do not merge across shards, so the exact answer is also a distributed join. A HyperLogLog sketch is 12 KB, merges by taking the maximum of each register, and is wrong by ±0.81% — about ±40,600 on 5 million viewers. The trap is reaching for exactness where nobody needs it: nobody makes a decision differently on 5,000,000 versus 5,040,600 viewers, and the 3,255× saving buys a hundred series for the price of one. Exactness is for money — the $200,000 a day of ticket revenue — and the design says which metrics are which.</li>
+</ul>
+
+<h2>Interactive lab 1: the ingestion &amp; rollup planner</h2>
+<div class="lab">
+<h3>Lab A — Size the pipeline, and watch the rollup collapse the data</h3>
+<p>Set the events per day, the event size, the peak factor, the log retention and replication, and the number of metric series. The planner computes the average and peak event rate, the CPU cores the counting needs, the raw volume, the log storage, the rollup points and size, and how long a dashboard query would take scanning raw events versus reading rollups.</p>
+<label for="eventsPerDay">Events per day</label>
+<input type="number" id="eventsPerDay" value="1000000000" />
+<label for="eventBytes">Bytes per event</label>
+<input type="number" id="eventBytes" value="200" />
+<label for="peakFactor">Peak factor over the daily average (the goal goes in)</label>
+<input type="number" id="peakFactor" value="5" />
+<label for="retentionDays">Log retention (days)</label>
+<input type="number" id="retentionDays" value="7" />
+<label for="replFactor">Log replication factor</label>
+<input type="number" id="replFactor" value="3" />
+<label for="seriesCount">Metric series (one metric sliced one way)</label>
+<input type="number" id="seriesCount" value="5000" />
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Check the defaults: 1 billion events a day is 11,574 a second on average and 57,870 at peak, the counting needs about 3 cores at 50 µs an event, the raw volume is 200 GB a day, the log is 4.2 TB at RF = 3 for 7 days, and the rollups are 7.2 million points a day in 115 MB — while a raw scan of one day takes 200 seconds against a 200 ms budget. Then try the cardinality trap: raise the series to 1,000,000 and watch the rollups jump to 23 GB a day. Then try a quiet day: 100 million events and 500 series, and watch the whole pipeline shrink to a rounding error.</p>
+</div>
+
+<h2>Interactive lab 2: the uniques &amp; funnel planner</h2>
+<div class="lab">
+<h3>Lab B — Exact or approximate uniques, and the ticket funnel</h3>
+<p>Pick how distinct users are counted, set the daily distinct users and how many series need uniques, then set the three funnel steps and the average order value. The lab shows the storage for uniques under each method, the error band, the funnel conversion at each step, and the revenue the funnel is measuring.</p>
+<label for="uniqMethod">How distinct users are counted</label>
+<select id="uniqMethod">
+<option value="hll">HyperLogLog sketch (12 KB, ±0.81%)</option>
+<option value="exact">Exact set (8 bytes per user ID)</option>
+</select>
+<label for="dailyUsers">Distinct users per day</label>
+<input type="number" id="dailyUsers" value="5000000" />
+<label for="uniqCombos">Series that need a distinct-user count</label>
+<input type="number" id="uniqCombos" value="100" />
+<label for="funnelViews">Funnel step 1 — ticket-page views</label>
+<input type="number" id="funnelViews" value="100000" />
+<label for="funnelAdds">Funnel step 2 — adds to cart</label>
+<input type="number" id="funnelAdds" value="20000" />
+<label for="funnelBuys">Funnel step 3 — purchases</label>
+<input type="number" id="funnelBuys" value="5000" />
+<label for="avgOrder">Average order value ($)</label>
+<input type="number" id="avgOrder" value="40" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that HyperLogLog costs 1.2 MB a day for a hundred series against 4 GB exact, with an error band of about ±40,600 on 5 million viewers, and that the funnel reads 20% then 25% then 5% overall on $200,000 a day. Then switch to exact and watch the uniques storage jump 3,255×. Then change the funnel to 100,000 views → 5,000 adds → 4,000 buys and watch the story change: a 5% first step and an 80% second step means the page is the problem, not the checkout.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. Design the analytics pipeline for Riverside FC: 1 billion events a day, dashboards that must load in under 200 ms, unique viewers per match, and a funnel from the ticket page to purchase. Which architecture, and why?</summary>
+<p><strong>Model answer.</strong> I start from the latency budget, because the budget decides the architecture: a 24-hour chart needs 1,440 points, and reading them from a pre-computed rollup takes milliseconds, while scanning the day's 200 GB of raw events takes 200 seconds — a thousand times over the 200 ms budget — so the counting has to happen before the question is asked. The pipeline has seven stages. Collection: SDKs in the app and website batch events, stamp each with a client event ID, and buffer offline, so a fan in the stadium keeps recording and retries never double-count. Ingestion: stateless collectors validate and append to a Kafka topic, partitioned by user ID, three copies, seven days of retention — 200 GB a day of raw events, 4.2 TB of log — and the log is the system's memory, so a broken counter can be replayed. Stream processing: a processor reads the log once, fills one-minute tumbling windows by event time, and flushes on the watermark — 57,870 events a second at the cup-final peak, 50 µs an event, about three cores. The rollup store: one row per series per minute — 5,000 series × 1,440 minutes = 7.2 million points a day, 115 MB — plus hourly and daily rollups, and this store is the dashboard's only data source. Uniques are HyperLogLog sketches, 12 KB per series per day at ±0.81% (±40,600 on 5 million viewers), because the exact set is 40 MB per series and 4 GB a day for a hundred series — and the sketches merge across shards, which the sets do not. The funnel is counted as distinct users per step from the sketches, with a short session window, not by joining a billion raw events. The query layer has two doors: dashboards read the rollups, and ad-hoc questions read the Parquet archive in object storage — 30 days at 10× compression, about 600 GB — with a time bound and a timeout. And the serving layer keeps the live number and the final number apart: the wall shows the fresh count, the morning report prints the count after the ten-minute lateness window closes. I would close with the boundary: the dimension list is a budget decision — 10,000 pages × 200 countries × 5 devices is 10 million possible series, and a million live ones cost 23 GB a day of rollups — so every new dimension is costed before it is granted.</p>
+</details>
+<details>
+<summary>Q2. The dashboard shows 12,000 ticket purchases for the 10:00 hour at 10:00, and 12,400 for the same hour at 10:05. Is the system broken?</summary>
+<p><strong>Model answer.</strong> I start with what changed between the two readings, because the difference is the design working, not a bug: the first number was the live count — the events that had arrived by 10:00 — and the second is the count after 400 late events arrived. Events arrive late for ordinary reasons: a phone offline in the stadium sends its events when it reconnects, a fan's clock is five minutes fast, a batch sits in a retry queue. The pipeline's watermark said the 10:00 hour was complete when it was not, or the window was still open, and the allowed lateness of ten minutes exists precisely so those 400 events can land in the bucket they belong to and correct it. So the system is not broken; it is fresh-but-revisable by design, and the two numbers are two different products — the live number, which is provisional, and the final number, which is the count after the lateness window closes. What would be broken is showing one number and calling it both: the operations room would act on 12,000 and the morning report would print 12,400, and nobody would know which one to trust. The fix is labelling, not engineering: the wall shows the live number marked provisional, the report prints the final number, and the team knows the live number moves for ten minutes. And I would close with the case that <em>would</em> be a bug: if the count kept rising after the lateness window closed, or if it jumped by more than the late-event rate the system sees — that is a duplicate, a retry without an event ID, and the deduplication window is the thing to check.</p>
+</details>
+<details>
+<summary>Q3. The product team wants "unique viewers by page, by country, by device, by referrer" — every combination. What breaks, and what do you do?</summary>
+<p><strong>Model answer.</strong> I start with the multiplication, because the request sounds like four slices and is actually a series explosion: 10,000 pages × 200 countries × 5 devices × 1,000 referrers is 10,000,000,000 possible series — ten billion — and even if only a million of them get traffic, the rollup bill is 1,000,000 × 1,440 points × 16 bytes = 23 GB a day, two hundred times the 115 MB the design budgeted for 5,000 series. What breaks is the rollup store first — it falls behind the stream — and then the dashboard, because a million series is a million things to keep fresh. And the uniques make it worse: a hundred series needing distinct counts is 1.2 MB a day with HyperLogLog, but the full cross product would need a sketch per series, so the sketch bill multiplies with the series count too. What I do is refuse the cross product and offer the slices that answer the actual question: pre-compute the one-dimensional and two-dimensional rollups the team really looks at — by page, by country, by page × country — and answer the full four-way combination from the ad-hoc door, over the Parquet archive, where a query takes minutes and nobody is waiting on it. I would also cap the dimensions: a whitelist, a per-series cost shown in the open (series × 1,440 × 16 bytes), and a rule that a dimension with more than a few thousand values — a referrer URL, a user ID — is never a rollup dimension, because high-cardinality dimensions are answered from sketches or from the archive, never from a pre-computed table. And I would close with the line that settles it: the dimension list is a budget decision, not a product decision, and "every combination" is a request that has to be costed before it is granted — the team can have any slice they want, but they cannot have all of them pre-computed.</p>
+</details>
+<details>
+<summary>Q4. A fan's phone is offline during the match and sends 500 events when it reconnects. How does the system count them once, and where do they land?</summary>
+<p><strong>Model answer.</strong> I start with the phone, because the answer begins before the events reach the server: the SDK buffers the 500 events locally while the phone is offline, and each one carries a client-generated event ID and the timestamp from when the fan actually tapped — not the time the phone reconnects. When the connection comes back, the SDK sends the batch, and the batch may be retried — the network drops, the SDK sends it again — so the same 500 events can arrive twice. The system counts them once in two places. First, deduplication: the stream processor keeps a window of event IDs it has seen and drops any event whose ID it has already counted — at-least-once delivery with idempotent counting, the Lesson 9 pattern — so a retry is a no-op, not a second view. Second, placement: the events are assigned to their one-minute windows by their own event timestamps, not by their arrival time, so a goal viewed at 20:14 lands in the 20:14 bucket even though it arrives at 21:02. But the 20:14 window has already closed — the watermark passed it — so the late events are handled by the allowed lateness: within ten minutes they correct the closed bucket, and beyond ten minutes they land in a late-arrivals counter and are picked up by the backfill, not silently dropped and not silently counted in the wrong minute. And I would close with the honest caveat: the deduplication window is finite — a retry a day later is outside it — which is why the event ID is also written into the archive, so a replay can dedupe exactly, and why the live number is labelled provisional until the lateness window closes.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — The rollup math.</strong> A platform takes 2 billion events a day, 300 bytes each, with a peak factor of 4, a log replication factor of 3, and 30 days of log retention. It tracks 20,000 series in one-minute rollups at 16 bytes a point. (a) What is the average event rate, and the peak? (b) How many GB of raw events a day? (c) How many TB does the log hold? (d) How many rollup points a day, and how many MB? <em>Rubric: (a) 2,000,000,000 ÷ 86,400 = 23,148 a second on average, × 4 = 92,593 a second at peak; (b) 2 billion × 300 bytes = 600 GB a day; (c) 600 GB × 3 copies × 30 days = 54,000 GB = 54 TB; (d) 20,000 × 1,440 = 28.8 million points a day, × 16 bytes = 460.8 MB a day. The point of the drill: the log is 54 TB and the rollups are under half a gigabyte — the dashboard reads the half gigabyte, and the 54 TB exists so the counting can be replayed.</em></p>
+<p><strong>Drill 2 — The uniques trade.</strong> A platform has 8 million distinct users a day, and 500 series need a distinct-user count. (a) How much storage a day does the exact set cost? (b) How much does HyperLogLog cost, at 12 KB per series per day? (c) How many times smaller is the sketch, and what is the error band on 8 million users? <em>Rubric: (a) 8,000,000 × 8 bytes = 64 MB per series per day, × 500 = 32,000 MB = 32 GB a day; (b) 12,288 bytes × 500 = 6,144,000 bytes ≈ 6.1 MB a day; (c) 32,000 MB ÷ 6.1 MB ≈ 5,208× smaller, and the error is 1.04 ÷ √16,384 ≈ 0.81%, so ±0.81% of 8 million ≈ ±65,000 users. The point of the drill: nobody makes a different decision on 8,000,000 versus 8,065,000 viewers, and the 5,208× saving buys five hundred series for the price of one — exactness is for money, not for uniques.</em></p>
+<p><strong>Drill 3 — The backfill.</strong> A counting bug is found and one full day of rollups must be rebuilt: 5,000 series, one-minute buckets, and the rollup store takes 10,000 bucket writes a second. (a) How many bucket writes does the backfill need? (b) How long does it take at full speed? (c) Why must it run rate-limited on a separate consumer group, and what happens if it runs at full speed against the live table? <em>Rubric: (a) 1,440 buckets per series × 5,000 series = 7.2 million bucket writes; (b) 7,200,000 ÷ 10,000 = 720 seconds = 12 minutes; (c) because the backfill competes with the live windows for the rollup store's write capacity — at full speed it queues the live flushes behind 7.2 million rewrites, the dashboard goes stale during a match, and a half-rebuilt live table shows a mix of old and new numbers. The backfill runs rate-limited against a separate table that is swapped in when it is complete, so the wall never sees a half-finished rebuild.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Ingestion</td><td>Durable log (Kafka), partitioned by user, RF = 3, 7-day retention — the only thing collectors write to</td><td>Never write events straight to a database — the log is the replay source when the counting breaks, and the database cannot take the peak write rate anyway</td></tr>
+<tr><td>Counting</td><td>Pre-aggregate into one-minute rollups before anyone asks — the dashboard reads 1,440 points, not a billion rows</td><td>A dashboard that scans raw events takes 200 seconds against a 200 ms budget — pre-aggregation is the design, not an optimisation</td></tr>
+<tr><td>Uniques</td><td>HyperLogLog sketches, 12 KB per series per day, ±0.81% — exact only for money</td><td>Use the exact set when the number becomes revenue or a bill; a 40 MB set per series per day is the price, and it does not merge across shards</td></tr>
+<tr><td>Freshness vs correctness</td><td>Watermark + 10 minutes of allowed lateness; live numbers provisional, final numbers after the window closes</td><td>Shorten the lateness window when the wall must be stable, lengthen it when the phones are offline longer — and label which number is which either way</td></tr>
+<tr><td>Dimensions</td><td>Whitelist, costed in the open: series × 1,440 × 16 bytes a day; no user ID or free-text URL as a rollup dimension</td><td>High-cardinality slices go to the ad-hoc door over the archive — the team can have any slice, but not all of them pre-computed</td></tr>
+<tr><td>Repair</td><td>Raw events in a Parquet archive (30 days, ~10× compression); backfills rate-limited on a separate table, swapped in whole</td><td>A system with no raw archive cannot fix its own counting mistakes — it can only apologise for them</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"A real-time analytics system collects events from every app, phone, and website, counts them as they arrive, and serves the answers to dashboards within seconds — while keeping the raw events around so any question can be re-answered later. The demand here is a billion events a day: 11,574 a second on average, 57,870 at the cup-final peak, 200 GB a day of raw events, 4.2 TB of log at three copies for seven days — and the counting costs about three CPU cores at 50 microseconds an event. The architecture is seven stages: the SDK batches events with a client event ID and buffers offline; the collectors append to a Kafka topic partitioned by user; a stream processor fills one-minute tumbling windows and flushes on the watermark; the rollup store holds one row per series per minute — 5,000 series, 7.2 million points a day, 115 MB — plus hourly and daily rollups; HyperLogLog sketches answer distinct users in 12 KB at ±0.81% instead of a 40 MB set; the query layer has two doors, dashboards from rollups and ad-hoc from the Parquet archive; and the serving layer keeps the live number apart from the final number. The three decisions are pre-aggregate before the question is asked — a 24-hour chart is 1,440 points in milliseconds against a 200-second raw scan — exact for money and approximate for uniques, and fresh or correct is a dial set by the watermark with ten minutes of allowed lateness. And the trap to name: dimensions multiply — 10,000 pages times 200 countries times 5 devices is 10 million possible series, and a million live ones cost 23 GB a day — so the dimension list is a budget decision, not a product decision."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: a billion events a day are not a storage problem, they are an aggregation problem — and the dashboard never reads the billion, it reads the summary.</li>
+<li>Back-of-the-envelope: 1 billion events a day, 11,574 a second average, 57,870 at peak, 200 GB a day raw, 4.2 TB of log, three cores to count it; 5,000 series, 7.2 million rollup points a day in 115 MB; a 24-hour chart is 1,440 points in milliseconds against a 200-second raw scan.</li>
+<li>Architecture: the batching SDK, the durable log, the stream processor and its watermark, the rollup store, the sketches, the two doors of the query layer, and the live number kept apart from the final number.</li>
+<li>Deep dive: pre-aggregate before the question is asked; exact for money, approximate for uniques; fresh or correct is a dial set by the watermark.</li>
+<li>Failure modes and the close: the cardinality explosion, the late event, the duplicate, the hot series, the backfill storm, and the dashboard that queries raw — and the line to end on: the dashboard's latency budget decides the architecture, so the counting has to happen before the question is asked.</li>
+</ol>
+
+<p class="foot">Lesson 47 · Design a Real-Time Analytics System · Next: a new lesson lands tomorrow morning.</p>
+</div>
+<script>
+function computeAnalytics(eventsPerDay, eventBytes, peakFactor, retentionDays, replFactor, seriesCount) {
+  var avgPerSec = eventsPerDay / 86400;
+  var peakPerSec = avgPerSec * peakFactor;
+  var cores = peakPerSec * 50e-6;
+  var rawGBPerDay = eventsPerDay * eventBytes / 1e9;
+  var logTB = rawGBPerDay * replFactor * retentionDays / 1000;
+  var pointsPerDay = seriesCount * 1440;
+  var rollupMBPerDay = pointsPerDay * 16 / 1e6;
+  var rawScanSec = rawGBPerDay / 1;
+  return { avgPerSec: avgPerSec, peakPerSec: peakPerSec, cores: cores, rawGBPerDay: rawGBPerDay, logTB: logTB, pointsPerDay: pointsPerDay, rollupMBPerDay: rollupMBPerDay, rawScanSec: rawScanSec };
+}
+function computeUniques(method, usersPerDay, combos, views, adds, purchases, avgOrder) {
+  var exactBytes = usersPerDay * 8 * combos;
+  var hllBytes = 12288 * combos;
+  var errUsers = usersPerDay * 1.04 / Math.sqrt(16384);
+  var step1 = views > 0 ? adds / views : 0;
+  var step2 = adds > 0 ? purchases / adds : 0;
+  var overall = views > 0 ? purchases / views : 0;
+  var revenue = purchases * avgOrder;
+  return { exactBytes: exactBytes, hllBytes: hllBytes, errUsers: errUsers, step1: step1, step2: step2, overall: overall, revenue: revenue, method: method };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtBytes(bytes) {
+  if (bytes >= 1e12) return (bytes / 1e12).toFixed(1) + " TB";
+  if (bytes >= 1e9) return (bytes / 1e9).toFixed(1) + " GB";
+  if (bytes >= 1e6) return (bytes / 1e6).toFixed(1) + " MB";
+  if (bytes >= 1e3) return (bytes / 1e3).toFixed(1) + " KB";
+  return Math.round(bytes) + " B";
+}
+function fmtPct(x) {
+  return (x * 100).toFixed(1) + "%";
+}
+function renderLabA() {
+  var eventsPerDay = parseFloat(document.getElementById("eventsPerDay").value) || 0;
+  var eventBytes = parseFloat(document.getElementById("eventBytes").value) || 0;
+  var peakFactor = parseFloat(document.getElementById("peakFactor").value) || 0;
+  var retentionDays = parseFloat(document.getElementById("retentionDays").value) || 0;
+  var replFactor = parseFloat(document.getElementById("replFactor").value) || 0;
+  var seriesCount = parseFloat(document.getElementById("seriesCount").value) || 0;
+  var r = computeAnalytics(eventsPerDay, eventBytes, peakFactor, retentionDays, replFactor, seriesCount);
+  var collapse = r.rawGBPerDay * 1e9 / Math.max(r.rollupMBPerDay * 1e6, 1);
+  document.getElementById("labAResult").innerHTML =
+    "Event rate: <b>" + fmtNum(r.avgPerSec) + " events/sec average</b> · <b>" + fmtNum(r.peakPerSec) + " at peak</b> (" + peakFactor + "×)<br>" +
+    "Counting: <b>" + r.cores.toFixed(1) + " CPU cores</b> at 50 µs per event<br>" +
+    "Raw volume: <b>" + r.rawGBPerDay.toFixed(0) + " GB/day</b> · Log storage: <b>" + r.logTB.toFixed(1) + " TB</b> (RF = " + replFactor + ", " + retentionDays + " days)<br>" +
+    "Rollups: <b>" + fmtNum(r.pointsPerDay) + " points/day</b> = <b>" + r.rollupMBPerDay.toFixed(1) + " MB/day</b> — a collapse of about <b>" + fmtNum(collapse) + "×</b> from raw<br>" +
+    "Dashboard query over 24 h: <b>1,440 points</b> from the rollup store (milliseconds) vs a <b>" + fmtNum(r.rawScanSec) + " s</b> raw scan at 1 GB/s<br><br>" +
+    (r.rawScanSec > 0.2
+      ? "<b>The dashboard cannot scan raw.</b> " + fmtNum(r.rawScanSec) + " seconds is " + fmtNum(r.rawScanSec / 0.2) + "× over the 200 ms budget — the one-minute rollup is the design, not an optimisation."
+      : "<b>Small enough to scan — but the rollup still wins.</b> At this volume a raw scan fits the budget, which will not stay true as the platform grows; the rollup is what keeps it true.");
+}
+function renderLabB() {
+  var method = document.getElementById("uniqMethod").value;
+  var users = parseFloat(document.getElementById("dailyUsers").value) || 0;
+  var combos = parseFloat(document.getElementById("uniqCombos").value) || 0;
+  var views = parseFloat(document.getElementById("funnelViews").value) || 0;
+  var adds = parseFloat(document.getElementById("funnelAdds").value) || 0;
+  var purchases = parseFloat(document.getElementById("funnelBuys").value) || 0;
+  var aov = parseFloat(document.getElementById("avgOrder").value) || 0;
+  var r = computeUniques(method, users, combos, views, adds, purchases, aov);
+  var ratio = r.exactBytes / Math.max(r.hllBytes, 1);
+  var chosen = method === "hll" ? r.hllBytes : r.exactBytes;
+  document.getElementById("labBResult").innerHTML =
+    "Uniques storage per day (" + fmtNum(combos) + " series): exact set <b>" + fmtBytes(r.exactBytes) + "</b> vs HyperLogLog <b>" + fmtBytes(r.hllBytes) + "</b> — the sketch is <b>" + fmtNum(ratio) + "× smaller</b><br>" +
+    "Chosen method: <b>" + fmtBytes(chosen) + " per day</b>" + (method === "hll" ? " · error band ±<b>" + fmtNum(r.errUsers) + " users</b> (±0.81% on " + fmtNum(users) + ")" : " · exact — no error, and the sets do not merge across shards") + "<br>" +
+    "Funnel: <b>" + fmtNum(views) + " views → " + fmtNum(adds) + " adds (" + fmtPct(r.step1) + ") → " + fmtNum(purchases) + " buys (" + fmtPct(r.step2) + ")</b> · overall conversion <b>" + fmtPct(r.overall) + "</b><br>" +
+    "Revenue measured: <b>$" + fmtNum(r.revenue) + " per day</b> at $" + aov + " average order value<br><br>" +
+    (method === "hll"
+      ? "<b>Approximate uniques, exact money.</b> The sketch costs " + fmtBytes(r.hllBytes) + " a day instead of " + fmtBytes(r.exactBytes) + ", and nobody makes a different decision on " + fmtNum(users) + " versus " + fmtNum(users + r.errUsers) + " viewers — while the funnel's revenue stays an exact count, because revenue is never approximate."
+      : "<b>Exact uniques — at the exact price.</b> " + fmtBytes(r.exactBytes) + " a day, and the sets cannot merge across shards, so the exact answer is also a distributed join. Use this only where the number becomes revenue or a bill.");
+}
+["eventsPerDay", "eventBytes", "peakFactor", "retentionDays", "replFactor", "seriesCount"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabA);
+});
+["uniqMethod", "dailyUsers", "uniqCombos", "funnelViews", "funnelAdds", "funnelBuys", "avgOrder"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
