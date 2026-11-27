@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Design a Leaderboard System — five million players, one goal, and the board moves in under a second</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --paper: #f6f8fa; --surface: #ffffff; --surface-2: #edf1f4;
+    --ink: #172028; --muted: #56636d; --line: #cbd4da; --line-strong: #8998a3;
+    --accent: #0e7490; --accent-soft: #e0f2f7;
+    --blue: #1769aa; --blue-soft: #e1eff9;
+    --green: #167454; --green-soft: #ddf3e9;
+    --amber: #9c6415; --amber-soft: #fff0d6;
+    --purple: #6b4fa1; --purple-soft: #ece6f7;
+    --code: #15212a; --code-ink: #e9f0f4;
+    --shadow: 0 16px 42px rgba(35, 48, 58, .09); --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10161b; --surface: #182128; --surface-2: #202c34;
+      --ink: #eef3f6; --muted: #b4c0c8; --line: #33434e; --line-strong: #6f818c;
+      --accent: #4cc3de; --accent-soft: #16333d;
+      --blue: #69b6ef; --blue-soft: #172f40;
+      --green: #61c59f; --green-soft: #17372d;
+      --amber: #e4ae56; --amber-soft: #382d1b;
+      --purple: #b39ddb; --purple-soft: #2a2440;
+      --code: #0b1115; --code-ink: #ecf4f7;
+      --shadow: 0 20px 44px rgba(0, 0, 0, .23);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  a { color: var(--blue); text-underline-offset: 3px; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 22px 88px; }
+  .topline { height: 5px; margin: 0 -22px; background: var(--accent); }
+  .crumbs { margin: 22px 0 0; font-size: .85rem; color: var(--muted); }
+  .crumbs a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 28px 0 32px; border-bottom: 1px solid var(--line); }
+  .lesson-tag { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .hero h1 { margin: 0 0 14px; font-size: clamp(2rem, 6vw, 2.7rem); line-height: 1.1; letter-spacing: -0.02em; font-weight: 800; }
+  .whyline { font-size: 1.08rem; color: var(--muted); max-width: 44rem; margin: 0 0 18px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta span { font-size: .82rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+  h2 { font-size: 1.45rem; line-height: 1.25; letter-spacing: -0.01em; margin: 2.6rem 0 0.6rem; }
+  h3 { font-size: 1.12rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+  li { margin-bottom: 0.45rem; }
+  .callout { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 16px 18px; margin: 1.2rem 0; box-shadow: var(--shadow); }
+  .callout.blue { border-left-color: var(--blue); } .callout.green { border-left-color: var(--green); } .callout.amber { border-left-color: var(--amber); }
+  .callout strong:first-child { display: block; margin-bottom: 4px; }
+  .callout p:last-child { margin-bottom: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: .94rem; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 9px 11px; vertical-align: top; }
+  th { background: var(--surface-2); }
+  .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .lab h3 { margin-top: 0; }
+  .lab label { display: block; font-size: .92rem; color: var(--muted); margin: 12px 0 4px; }
+  .lab input[type=range] { width: 100%; }
+  .lab input[type=number], .lab input[type=text] { width: 100%; background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab select, .lab button { background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+  .lab button { cursor: pointer; font-weight: 700; }
+  .lab button.active { background: var(--accent-soft); border-color: var(--accent); }
+  .result { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+  .result b { font-size: 1.05rem; }
+  .sugg { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .sugg:last-child { border-bottom: none; }
+  .bar { height: 8px; border-radius: 999px; background: var(--accent); margin-top: 4px; }
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 0 0 12px; }
+  details summary { font-weight: 700; cursor: pointer; }
+  details p:last-child { margin-bottom: 0; }
+  .foot { margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+  .bits { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92rem; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 1rem 0; overflow-x: auto; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topline"></div>
+<p class="crumbs"><a href="../index.html">← All lessons</a> &nbsp;·&nbsp; Lesson 48</p>
+<header class="hero">
+  <span class="lesson-tag">Lesson 48 · Classic design</span>
+  <h1>Design a Leaderboard System — five million players, one goal, and the board moves in under a second</h1>
+  <p class="whyline">It is Saturday afternoon at Riverside FC and five million fantasy managers are watching the same match: their star striker scores in the 63rd minute, and in that one second two million teams gain four points each — two million scores have to move, five million ranks have to be re-sorted, and every manager refreshing the app expects to see their new position now, not after the next match. A leaderboard looks like the simplest page in the product — a sorted list — and it is the one that quietly turns a single event into two million writes. Today you design the board that absorbs a goal without ever making a fan wait for their rank.</p>
+  <div class="meta"><span>Redis sorted sets</span><span>Fan-out bursts</span><span>Sharding &amp; merge</span><span>Tie-breaking</span><span>2 interactive labs</span></div>
+</header>
+
+<h2>What is a leaderboard?</h2>
+<p>Start from zero. A <strong>leaderboard</strong> is a ranked list of players ordered by score — the fantasy league table, the top scorers chart, the weekly standings — where every player has a <strong>score</strong> (their points total) and a <strong>rank</strong> (their position: 1st, 2nd, 3,847,291st), and the board has to answer three questions at any moment: who are the top 100, what is my rank, and where are my friends. The soccer running example: Riverside FC runs a fantasy league with five million managers, each managing a team of eleven real players; every time a real player scores, assists, keeps a clean sheet, or gets booked, every fantasy team that owns him gains or loses points, and the league table has to move — live, during the match, for five million people at once. That is the whole lesson in one picture: <strong>a leaderboard is not a sorted list you compute when someone asks — it is a sorted structure you maintain as scores arrive, because sorting five million rows per page view is the one thing you can never afford.</strong></p>
+<div class="callout blue"><strong>Terms, defined as they appear</strong><p><strong>Score:</strong> a player's points total — the number the board sorts by. <strong>Rank:</strong> a player's position in the order — 1st is the highest score; rank is derived from the score, never stored. <strong>Sorted set:</strong> a data structure that keeps members ordered by score and can return the top 100 or any one member's rank in logarithmic time — Redis's <code>ZSET</code> is the standard one. <strong>ZADD / ZREVRANK / ZREVRANGE:</strong> the three sorted-set operations this lesson lives on — add or update a member's score, find a member's rank from the top, and read a range of the top. <strong>Fan-out:</strong> one real event becoming many writes — one goal by a popular striker becomes two million score updates, one per fantasy team that owns him. <strong>Shard:</strong> one slice of the board, holding some of the players — the board is split across shards so no single machine holds all five million players. <strong>Merge:</strong> combining each shard's top 100 into one global top 100. <strong>Tie-break:</strong> the rule that orders two players on the same score — here, whoever reached the score first ranks higher. <strong>Gameweek:</strong> one round of matches — the fantasy season is 38 gameweeks, and each one gets its own board. <strong>Ownership index:</strong> the lookup from a real player to every fantasy team that owns him — the thing that turns one goal into two million updates.</p></div>
+<p>Why does this lesson exist, when its pieces have all shown up before? Because every earlier lesson quietly produced a ranking and never built the board. Lesson 44's sketches counted things without storing them. Lesson 24's hot partitions warned that one key can take all the traffic. Lesson 45's distributed cache split data across shards and warned about the hot key. None of them stopped to ask what happens when the data structure itself is the ranking — when one event fans out to two million writes, when the top 100 live on thirty-two different machines, and when two players tie on 2,847 points and the board has to pick an order that does not flicker. The one idea to carry through the whole lesson: <strong>rank is a question you ask of a sorted structure, not a number you store — store the score, keep the structure sorted, and the rank is always a lookup away.</strong></p>
+
+<h2>Requirements and back-of-the-envelope math</h2>
+<p>Scope first. We are designing the fantasy leaderboard for Riverside FC's platform — five million managers, one season board, one gameweek board per round, a friends board for every manager, and a top-100 page that is refreshed constantly during matches. Every number below is computed from one formula each, and Lab A and Lab B let you re-run all of them.</p>
+<ul>
+<li><strong>The demand: 150 million score updates per matchday — about 27,778 a second across a 90-minute match.</strong> Five million managers, and each manager's score changes on average 30 times over a matchday — goals, assists, clean sheets, bonus points, bookings trickling in as the matches play out. 5,000,000 × 30 = <strong>150,000,000 updates</strong> per matchday. Spread over a 90-minute match window (5,400 seconds), that is 150,000,000 ÷ 5,400 = <strong>27,778 updates a second</strong> on average. That is the steady load the board is sized for — and it is not the hard number, because the updates do not arrive steadily. (Lab A runs the demand.)</li>
+<li><strong>The burst: one goal by a popular striker fans out to two million updates in a single second.</strong> The steady 27,778 a second is an average; the real load arrives in spikes. When the league's most-owned striker scores, every fantasy team that owns him gains four points at once — and two million teams own him. One real event becomes <strong>2,000,000 score updates</strong>, and if they all land within a second, that is a burst of 2,000,000 updates a second — about 72× the average rate. The board is not sized for the average; it is sized for the goal. (Lab B runs the burst.)</li>
+<li><strong>The absorb time: one node takes 20 seconds to swallow a goal — thirty-two shards take 0.63 seconds.</strong> A single Redis node applies roughly 100,000 sorted-set updates a second for a board this size. One node facing the 2,000,000-update burst needs 2,000,000 ÷ 100,000 = <strong>20 seconds</strong> — twenty seconds in which the board is stale, the ranks are wrong, and five million managers are refreshing. Split the board across 32 shards by hashing the manager ID, and each shard takes 2,000,000 ÷ 32 = 62,500 updates, which at 100,000 a second is <strong>0.625 seconds</strong> — under a second, inside the time a fan takes to look from the TV to their phone. Sharding is not a capacity choice here; it is the difference between a live board and a stale one. (Lab A runs the absorb time.)</li>
+<li><strong>The storage: five million players fit in 400 MB — one sorted set, one box, no drama.</strong> A sorted-set entry is the member ID, the score, and the skiplist pointers — about 80 bytes per player at this size. 5,000,000 × 80 bytes = <strong>400,000,000 bytes = 400 MB</strong> for the whole season board. Per shard at 32 shards, that is 400 ÷ 32 = <strong>12.5 MB</strong>. The storage is the least interesting number in this design: the board is small, it fits in memory on one machine, and the reason to shard is write throughput and burst absorption, not capacity. A design that shards a leaderboard for storage has misunderstood the problem. (Lab A runs the storage.)</li>
+<li><strong>The read: the top 100 is a microsecond lookup — and the global top 100 is a merge of 3,200 candidates.</strong> Reading the top 100 from one sorted set is <code>ZREVRANGE 0 99</code> — a walk down the skiplist plus 100 entries, tens of microseconds. But the board is sharded, so no single shard holds the global top 100: each of the 32 shards returns its own top 100, and the read path merges 32 × 100 = <strong>3,200 candidates</strong>, sorts them, and keeps the best 100. The merge is exact, not approximate — any player in the global top 100 must be in their own shard's top 100, so nothing is missed — and sorting 3,200 numbers takes microseconds. The read path costs one round trip per shard plus a trivial sort. (Lab A runs the merge.)</li>
+<li><strong>Your rank: about 23 comparisons, not a scan of five million rows.</strong> "Where am I?" is <code>ZREVRANK</code> — the sorted set counts how many members sit above you, which is a walk down the skiplist: log₂(5,000,000) ≈ <strong>22.3, about 23 comparisons</strong>. The naive version — <code>SELECT COUNT(*) WHERE score &gt; mine</code> — scans the table or an index and gets slower as the league grows; the sorted set answers in logarithmic time at any size. And the rank is never stored: storing it would mean rewriting the rank of every player below you on every goal — up to five million writes per event — while deriving it costs 23 comparisons per read. (Lab A runs the rank lookup.)</li>
+<li><strong>The read storm: 500,000 top-100 views a minute, and a five-second cache turns them into almost nothing.</strong> After a goal, the top-100 page is the most-read page in the product: say 500,000 views a minute, which is 500,000 ÷ 60 = <strong>8,333 reads a second</strong> hitting the merge path. The merged top 100 is the same for everyone, so it is cached as one key with a five-second TTL: 8,333 reads a second becomes one read every five seconds, <strong>0.2 reads a second</strong> — a reduction of about 41,665×. The cache is five seconds stale at most, and nobody's rank decision changes in five seconds; the board trades five seconds of freshness for a read path that cannot be flattened by its own fans. (Lab A runs the read storm.)</li>
+<li><strong>The tie: two players on 2,847 points, and the board must pick an order that never flickers.</strong> Scores are integers and ties are everywhere — thousands of managers finish a gameweek on the same total. A board that orders ties arbitrarily will shuffle them on every refresh, and a manager watching their rank will see it jump for no reason. The fix is to fold the tie-break into the score itself: store a composite score of <code>points × 10⁹ + (10⁹ − t)</code>, where <code>t</code> is the seconds since the season started when the player first reached that total. Two players on 2,847 points: the one who reached it at t = 1,000,000 seconds scores 2,847,999,000,000, the one who reached it 44 seconds later scores 2,847,998,999,956 — the earlier player ranks higher by exactly 44, and the order is stable forever. The largest score is about 3,000 × 10⁹ + 10⁹ ≈ 3 × 10¹², far below the 2⁵³ ≈ 9 × 10¹⁵ limit where a double stops representing integers exactly, so the encoding is exact. (Lab B runs the tie-break, and Drill 3 works it by hand.)</li>
+<li><strong>The seasons: 38 gameweek boards at 400 MB each is 15.2 GB — so only the live ones stay in memory.</strong> The season board is 400 MB, but there is also one board per gameweek, and 38 × 400 MB = <strong>15,200 MB = 15.2 GB</strong> if every gameweek board lives in Redis forever. The fix is a lifecycle: the current gameweek and the season board live in memory; finished gameweeks are snapshotted to disk and evicted, and reloaded only if someone opens an old gameweek. The board's storage bill is a lifecycle decision, not a capacity decision — the same lesson as the rollup store in Lesson 47, wearing a new shirt.</li>
+<li><strong>The alternative: computing a team's score at read time costs 11 lookups — and 11 million lookups after one goal.</strong> The fan-out can be avoided entirely: instead of updating two million teams when a striker scores, store each real player's points once and compute a fantasy team's score when someone views it — 11 lookups, one per player in the team, about 0.55 ms at 0.05 ms a lookup. But after a goal, a million managers refresh at once, and a million refreshes × 11 lookups = <strong>11,000,000 lookups</strong> — five and a half times the two million writes the fan-out would have cost, and every one of them lands on the same hot keys: the eleven players in the popular teams. Write-time fan-out pays once per event; read-time computation pays once per viewer per event. The fan-out wins whenever viewers outnumber owners — which, after a goal, they always do. (Lab B runs the comparison.)</li>
+</ul>
+<div class="callout amber"><strong>The decision the numbers force</strong><p>Three numbers decide the shape of this design, and the first one is a surprise: the board is tiny — five million players in 400 MB, one box, no storage problem at all — so any design that starts by sharding for capacity has optimised the wrong thing. The constraint is the burst: one goal fans out to two million updates, one node needs 20 seconds to swallow them, and thirty-two shards need 0.63 seconds, which is why the sharding exists and why it is by manager ID and never by score. And the second number is the read storm: 500,000 top-100 views a minute is 8,333 reads a second, and a five-second cache on the merged result turns it into 0.2 reads a second — a 41,665× reduction — which is why the top-100 page is a cached merge and never a live query. A design that keeps one sorted set per shard, updates scores as events arrive, merges 3,200 candidates for the global top 100, answers "where am I?" in 23 comparisons, encodes the tie-break into the score so the order never flickers, and caches the one page everyone reads has answered the questions that actually break leaderboards — and a design that sorts five million rows per page view, or stores the rank, has answered a question nobody asked.</p></div>
+
+<h2>The architecture, in one pass</h2>
+<p>Follow one event — the striker scoring in the 63rd minute — through the system. There are seven stages, and each one exists because a different failure is waiting in it.</p>
+<ol>
+<li><strong>Scoring events — the match feed turns play into points, once.</strong> The live match feed reports the goal, and a scoring service turns it into points: four points for the goal, plus the assist, plus the clean-sheet points that are still only provisional while the match runs. Each real player's points total is the single source of truth for what happened on the pitch, and it is updated exactly once per event — one goal, one points update, with an event ID so a replayed feed message is a no-op. The scoring service's job is to never invent a point and never lose one: the feed can retry, the service can crash, and the points total must still be right.</li>
+<li><strong>Fan-out — the ownership index turns one goal into two million team updates.</strong> The goal is worth four points to the striker, but it is worth four points to every fantasy team that owns him — two million of them. The ownership index is the lookup from a real player to every fantasy team that owns him, and the fan-out stage reads it and produces two million small jobs: "team 4,102,887 gains four points." The index is the heart of the burst, and it is the reason the burst exists at all: one real event, two million affected teams. The fan-out is also where the alternative lives — computing the score at read time instead — and the design chooses fan-out here because viewers outnumber owners after a goal (see the tenth number above).</li>
+<li><strong>Score updates — a queue absorbs the burst, and the shards apply it in under a second.</strong> The two million jobs go into a queue, partitioned by manager ID so that all updates for one manager land on one shard in order. Thirty-two consumer groups — one per shard — pull their jobs and apply them as <code>ZADD</code> calls against their shard's sorted set, at about 100,000 updates a second per node. The queue is what makes the burst survivable: the goal arrives in one second, the queue holds two million jobs, and the shards drain it in 0.63 seconds. If a shard is slow, the queue grows and the board is briefly stale; it never drops an update, because a dropped update is a wrong rank, and a wrong rank is the one thing the board cannot show.</li>
+<li><strong>The read path — the top 100 is a cached merge, your rank is 23 comparisons, your friends are two lookups each.</strong> Three reads, three different paths. The top-100 page is a merge of 32 shards' top 100s — 3,200 candidates, sorted, best 100 kept — cached for five seconds as one key, so 8,333 reads a second becomes 0.2. Your rank is <code>ZREVRANK</code> on your shard: about 23 comparisons down the skiplist, no scan. Your friends board is the cheapest of all: for each of your ~20 friends, one <code>ZSCORE</code> and one <code>ZREVRANK</code> — two lookups at about 0.05 ms each, about 2 ms for the whole board — because a friends board is twenty lookups, not a pre-computed table, and pre-computing one per manager would be five million tables. The read path's rule: the global board is merged and cached, the personal board is looked up, and the friends board is computed on demand.</li>
+<li><strong>The tie-break — the order is encoded in the score, so it can never flicker.</strong> The score stored in the sorted set is not the points total; it is the composite <code>points × 10⁹ + (10⁹ − t)</code>, where <code>t</code> is the seconds since the season started when the manager first reached that total. Two managers on 2,847 points are ordered by who got there first, and the order is fixed the moment the second one arrives — it cannot change on a refresh, because the stored score cannot change without the points changing. The display layer shows the points (2,847) and hides the encoding; the sorted set never sees a tie it has to guess at. This is the one place the design spends complexity, and it spends it here because a flickering rank is the fastest way to lose a user's trust in the board.</li>
+<li><strong>Time-bucketed boards — the season board, the gameweek board, and the archive.</strong> There is not one board; there are three kinds. The season board accumulates all 38 gameweeks. The gameweek board resets every round — same managers, same structure, fresh scores — and is the board most managers actually watch. The archive holds finished gameweeks as snapshots on disk, reloaded only when someone opens an old round. A score update writes to the season board and the current gameweek board — two <code>ZADD</code>s per team, not one — and the reset is a fresh empty board swapped in, never a delete of the live one. The reset is also the moment a correction lands: a stat change that revises a goal to an assist is applied to the affected boards as a compensating update, and the archive keeps the version that was shown at the time.</li>
+<li><strong>Corrections and the reset — the board is allowed to be revised, and the revision is announced.</strong> Real football is corrected after the fact: a goal becomes an assist on Monday morning, a clean sheet is revised, a booking is rescinded. A correction replays through the same pipeline — the scoring service revises the real player's points, the fan-out produces the affected teams, the shards apply the delta — and the board moves, sometimes by hundreds of places for the teams at the boundary. The design treats a correction as an ordinary update with a flag, and the product shows it: "your rank changed because the assist was re-awarded." A board that silently revises ranks is a board its users stop trusting; a board that revises them in the open is a board they argue with, which is the healthier outcome.</li>
+</ol>
+<table>
+<tr><th>Stage</th><th>What it does</th><th>What fails if it is missing</th></tr>
+<tr><td>Scoring events</td><td>Match feed → points per real player, updated once per event with an event ID</td><td>A replayed feed message double-counts a goal, and two million teams gain four points they never earned</td></tr>
+<tr><td>Fan-out</td><td>Ownership index turns one goal into two million team-update jobs</td><td>The scoring service tries to update teams itself and blocks on the burst, or the update happens at read time and 11 million lookups flatten the hot keys</td></tr>
+<tr><td>Score updates</td><td>Queue partitioned by manager ID, 32 shards applying ZADD at ~100K/sec per node</td><td>One node faces the burst alone and takes 20 seconds to absorb a goal, while five million managers refresh a stale board</td></tr>
+<tr><td>Read path</td><td>Top 100 as a cached merge, rank as ZREVRANK (~23 comparisons), friends as on-demand lookups</td><td>The top-100 page runs a live merge 8,333 times a second, or "where am I?" scans five million rows</td></tr>
+<tr><td>Tie-break</td><td>Composite score points × 10⁹ + (10⁹ − t) — earliest to the total ranks higher</td><td>Tied managers shuffle on every refresh, and the rank flickers for no reason anyone can explain</td></tr>
+<tr><td>Time-bucketed boards</td><td>Season board + current gameweek board live; finished gameweeks snapshotted to disk</td><td>38 gameweek boards at 400 MB each sit in memory forever — 15.2 GB for boards nobody opens</td></tr>
+<tr><td>Corrections &amp; reset</td><td>Stat corrections replay through the same pipeline; resets swap in a fresh board</td><td>A Monday-morning correction silently moves thousands of ranks, and nobody can say why the board changed</td></tr>
+</table>
+
+<h2>The heart of it: three decisions that make or break the design</h2>
+<h3>1. Store the score, derive the rank — never store the rank</h3>
+<p>The rank is a question, not a number. The moment you store it — a <code>rank</code> column on five million rows — every goal becomes a catastrophe: two million teams gain four points, and every team below each of them moves down one place, so a single goal rewrites the rank of up to five million rows. The sorted set never stores the rank at all: it stores the score, keeps the members ordered, and answers "where am I?" by counting the members above you — about 23 comparisons. The rule: <strong>store the thing that changes (the score) in the structure that keeps it ordered (the sorted set), and compute the thing that depends on everyone else (the rank) at read time — the write path stays one update per team, and the read path stays logarithmic.</strong></p>
+<h3>2. Shard by who, never by score — the burst decides the shard key</h3>
+<p>There are two obvious ways to split five million players across 32 shards: by manager ID, or by score range — the top scorers on one shard, the next band on the next. The score-range split looks tidy and is a trap: after a goal, the two million updates land on the teams that own the scorer, and the teams that own the popular striker are spread across the whole table — but the top of the board is where the reads concentrate, and a score-range shard holding the top 156,000 players takes all the top-100 traffic, all the rank lookups from the leaders, and the hottest write band at once. Worse, players move between score ranges as they gain points, so a shard keyed by score has to migrate members on every update — the shard key itself changes with the data. Sharding by manager ID keeps every update on one stable shard, spreads the burst evenly (62,500 updates per shard), and the global top 100 is a merge of 3,200 candidates that costs microseconds. The senior line: <strong>the shard key must be stable under the workload — hash the manager, never the score — because the score is the thing that moves, and a shard key that moves is not a shard key.</strong></p>
+<h3>3. Fan out at write time, compute at read time only for the small boards — the viewer count decides</h3>
+<p>One goal, two ways to handle it. Fan out at write time: two million <code>ZADD</code>s, 0.63 seconds across 32 shards, and every read after that is a lookup. Compute at read time: store the real players' points once, and add up the eleven players in a team whenever someone views it — 11 lookups, 0.55 ms, no fan-out at all. The read-time version looks cheaper until a million managers refresh at once: a million refreshes × 11 lookups = 11 million lookups on the same eleven hot keys, five and a half times the writes the fan-out would have cost, and every one of them arrives in the same second. The rule is a ratio, not a preference: <strong>fan out at write time when viewers outnumber owners, compute at read time when owners outnumber viewers — and the friends board is the read-time case done right, because twenty friends is twenty lookups and nobody pre-computes five million friends boards.</strong> The same design uses both, on purpose, in different places.</p>
+<div class="callout green"><strong>The senior line on the three decisions</strong><p>Every leaderboard is the same three sentences, and the room is won by saying them with numbers attached. Store the score and derive the rank — a single goal would rewrite up to five million stored ranks, while the sorted set answers "where am I?" in about 23 comparisons, so the write path stays one update per team and the read path stays logarithmic. Shard by who, never by score — one node needs 20 seconds to swallow a two-million-update goal, thirty-two shards need 0.63 seconds, and a score-range shard would take all the top-100 traffic and migrate members on every update, because the score is the thing that moves. And fan out at write time when viewers outnumber owners — two million writes per goal against eleven million lookups when a million managers refresh at once — while the friends board is the read-time case done right, twenty lookups and no pre-computed table. Say those three sentences, with the arithmetic — 150 million updates a matchday, 27,778 a second on average, a two-million-update burst per goal, 400 MB for five million players, 3,200 candidates merged into a top 100, a 41,665× read reduction from a five-second cache, a tie-break encoded in the score so the order never flickers — and the rest of the design — the ownership index, the queue, the time-bucketed boards, the announced corrections — is machinery that follows.</p></div>
+
+<h2>Failure modes — six ways a leaderboard fails</h2>
+<table>
+<tr><th>Failure</th><th>What the engineer sees</th><th>What saves you</th></tr>
+<tr><td>The goal burst</td><td>The most-owned striker scores, two million updates arrive in one second, and the single node applying them takes 20 seconds while five million managers refresh a board that has not moved</td><td>Shard by manager ID across 32 shards so each takes 62,500 updates and drains in 0.63 seconds — and a queue in front of the shards so a slow shard makes the board briefly stale, never wrong</td></tr>
+<tr><td>The hot shard</td><td>The board was sharded by score range, the top shard holds the leaders, and it takes all the top-100 reads, all the leaders' rank lookups, and the hottest write band — while the bottom shards idle</td><td>Shard by a hash of the manager ID, which is stable and spreads the burst evenly; the global top 100 is a merge, not a shard</td></tr>
+<tr><td>The flickering tie</td><td>Thousands of managers share 2,847 points, the board orders ties arbitrarily, and a manager's rank jumps on every refresh with no change in their score</td><td>Encode the tie-break in the score — points × 10⁹ + (10⁹ − t), earliest to the total first — so the order is fixed the moment the second manager arrives</td></tr>
+<tr><td>The stale top 100</td><td>After a goal, 500,000 managers a minute hit the top-100 page, the live merge runs 8,333 times a second, and the merge path saturates before the shards do</td><td>Cache the merged top 100 for five seconds as one key — 8,333 reads a second becomes 0.2 — and accept five seconds of staleness on a page where nobody's decision changes in five seconds</td></tr>
+<tr><td>The Monday correction</td><td>A goal is re-awarded as an assist on Monday morning, thousands of ranks move, and the support queue fills with managers asking why the board changed overnight</td><td>Corrections replay through the same pipeline as ordinary updates, flagged as corrections, and the product shows the reason — a board that revises in the open keeps its users' trust</td></tr>
+<tr><td>The reset that deletes the season</td><td>The gameweek reset runs a delete against the live board, a crash mid-reset leaves half the managers on the old board and half on nothing, and the season board is unrecoverable</td><td>Resets swap in a fresh empty board and archive the old one — never a delete of the live board — and the season board is a separate structure that no reset touches</td></tr>
+</table>
+
+<h2>Senior-depth traps</h2>
+<ul>
+<li><strong>"Just sort the table."</strong> The top 100 is not a query you run; it is a structure you maintain. <code>SELECT * FROM players ORDER BY score DESC LIMIT 100</code> sorts five million rows — or walks an index that still has to skip the dead entries — on every page view, and 500,000 views a minute turns it into the database's full-time job. A sorted set keeps the order as scores arrive, so the top 100 is a walk down the skiplist plus 100 entries, tens of microseconds, and the merge across 32 shards is 3,200 candidates sorted in memory. The trap is treating a leaderboard as a report you generate: it is a structure you maintain, and the read is the cheap part only because the write path paid for the order in advance.</li>
+<li><strong>"One sorted set for everything."</strong> Five million players fit in 400 MB on one box, so one sorted set looks like the simple answer — until the most-owned striker scores and two million updates queue behind one node's 100,000-updates-a-second ceiling for 20 seconds. The single set is also a single point of failure and a single point of contention: every write and every rank lookup funnels through one process. Thirty-two shards by manager ID is not about storage — it is about absorbing the burst in 0.63 seconds instead of 20, and about surviving a node loss with 31/32nds of the board still live. The trap is sizing the structure for the average day and forgetting the goal.</li>
+<li><strong>"Store the rank so the read is fast."</strong> Storing the rank feels like a performance optimisation and is a correctness disaster: a goal that moves two million teams also moves the rank of every team below each of them, so one event rewrites up to five million rank values — and a second goal arriving while the first rewrite is still running leaves the board half-updated, with ranks that contradict the scores. The sorted set's <code>ZREVRANK</code> answers in about 23 comparisons at any size, which is already fast; the stored rank is slower in the only dimension that matters, the write path, and wrong in the dimension that matters most, the truth. The trap is optimising the read you can already afford by breaking the write you cannot.</li>
+</ul>
+
+<h2>Interactive lab 1: the leaderboard sizing planner</h2>
+<div class="lab">
+<h3>Lab A — Size the board, and watch a goal move through it</h3>
+<p>Set the number of players, the score updates per matchday, the match window, the size of the goal burst, the shard count, and the per-node update rate. The planner computes the average update rate, the burst absorb time on one node versus sharded, the storage, the top-100 merge size, the rank-lookup cost, and what the five-second cache does to the read storm.</p>
+<label for="players">Players on the board</label>
+<input type="number" id="players" value="5000000" />
+<label for="updatesPerDay">Score updates per matchday</label>
+<input type="number" id="updatesPerDay" value="150000000" />
+<label for="matchMinutes">Match window (minutes)</label>
+<input type="number" id="matchMinutes" value="90" />
+<label for="burstTeams">Teams owning the scorer (the goal burst)</label>
+<input type="number" id="burstTeams" value="2000000" />
+<label for="shardCount">Shards (by manager ID)</label>
+<input type="number" id="shardCount" value="32" />
+<label for="zaddPerSec">Sorted-set updates per second, per node</label>
+<input type="number" id="zaddPerSec" value="100000" />
+<label for="topReadsPerMin">Top-100 page views per minute after a goal</label>
+<input type="number" id="topReadsPerMin" value="500000" />
+<div class="result" id="labAResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Check the defaults: 150 million updates over 90 minutes is 27,778 a second on average, a two-million-update goal takes 20 seconds on one node and 0.63 seconds across 32 shards, the board is 400 MB (12.5 MB a shard), the global top 100 merges 3,200 candidates, a rank lookup is about 23 comparisons, and the five-second cache turns 8,333 reads a second into 0.2. Then try the trap: set the shards to 1 and watch the burst take 20 seconds. Then try a bigger league: 10 million players and a four-million-team goal, and watch the sharded absorb time stay under a second.</p>
+</div>
+
+<h2>Interactive lab 2: the fan-out vs lazy-compute planner</h2>
+<div class="lab">
+<h3>Lab B — Fan out at write time, or compute at read time?</h3>
+<p>Pick how many teams own the scorer, how many managers refresh after the goal, and how many friends are on a friends board. The lab compares the write-time fan-out (one update per owning team) against read-time computation (eleven lookups per refreshing manager), and prices the friends board and the tie-break encoding.</p>
+<label for="owners">Teams owning the scorer</label>
+<input type="number" id="owners" value="2000000" />
+<label for="refreshers">Managers refreshing the app after the goal</label>
+<input type="number" id="refreshers" value="1000000" />
+<label for="friends">Friends on a friends board</label>
+<input type="number" id="friends" value="20" />
+<label for="tiePoints">Tie-break example — points both managers share</label>
+<input type="number" id="tiePoints" value="2847" />
+<label for="tieGapSec">Seconds between the two managers reaching that total</label>
+<input type="number" id="tieGapSec" value="44" />
+<div class="result" id="labBResult"></div>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:0;">Defaults are this lesson's worked example — check that the fan-out costs 2,000,000 writes while read-time computation costs 11,000,000 lookups for the same goal, that the friends board is about 2 ms for 20 friends, and that the earlier manager leads the tie by exactly 44 in the encoded score. Then flip the numbers: 100,000 refreshers against 2,000,000 owners, and watch read-time win — the ratio, not the preference, decides. Then set the gap to 1 second and see the tie still break cleanly.</p>
+</div>
+
+<h2>Questions, with full model answers</h2>
+<details>
+<summary>Q1. Design the fantasy leaderboard for Riverside FC: five million managers, live ranks during matches, a top 100, "where am I?", and a friends board. Which architecture, and why?</summary>
+<p><strong>Model answer.</strong> I start from the load shape, because the load is a burst, not a rate: five million managers × 30 score updates per matchday = 150 million updates, 27,778 a second on average across a 90-minute match — but one goal by the most-owned striker fans out to two million updates in a single second, and that burst is what the design is sized for. The architecture has seven stages. Scoring: the match feed turns play into points per real player, once, with an event ID so a replayed feed message is a no-op. Fan-out: an ownership index turns one goal into two million team-update jobs — one per fantasy team that owns the scorer. Score updates: the jobs go into a queue partitioned by manager ID, and 32 shards apply them as <code>ZADD</code> calls into Redis sorted sets at about 100,000 updates a second per node — the burst drains in 0.63 seconds sharded, against 20 seconds on a single node. The read path: the top 100 is a merge of each shard's top 100 — 3,200 candidates, sorted, best 100 kept — cached for five seconds as one key, so 500,000 views a minute (8,333 reads a second) becomes 0.2 reads a second; your rank is <code>ZREVRANK</code>, about 23 comparisons, and the rank is never stored, because storing it would rewrite up to five million rows per goal; your friends board is computed on demand, two lookups per friend, about 2 ms for twenty friends. Ties: the stored score is a composite, points × 10⁹ + (10⁹ − t), so whoever reached the total first ranks higher and the order never flickers — the largest score is about 3 × 10¹², far below the 2⁵³ exact-integer limit. Boards: a season board and a current gameweek board live in memory (400 MB each), finished gameweeks snapshotted to disk, because 38 × 400 MB is 15.2 GB. And corrections replay through the same pipeline, flagged, and shown in the open. I would close with the boundary: the board is tiny — 400 MB — so the sharding is for burst absorption, not capacity, and a design that shards by score range takes all the top-100 traffic on one shard and migrates members on every update.</p>
+</details>
+<details>
+<summary>Q2. The league's most-owned striker scores, and two million fantasy teams gain four points at once. What happens, and how do you absorb it?</summary>
+<p><strong>Model answer.</strong> I start with the multiplication, because the event is small and the fan-out is not: one goal is one scoring event, and the ownership index says two million teams own the striker, so one event becomes two million score updates. On a single node applying about 100,000 sorted-set updates a second, that is 2,000,000 ÷ 100,000 = 20 seconds — twenty seconds in which the board is stale, the ranks are wrong, and five million managers are refreshing. What absorbs it is two things, in order. First, a queue: the two million jobs go into a queue partitioned by manager ID, so a burst is held, not dropped — a dropped update is a wrong rank, and the queue is what lets the system be briefly stale instead of wrong. Second, sharding: the board is split across 32 shards by a hash of the manager ID, so each shard takes 2,000,000 ÷ 32 = 62,500 updates, and at 100,000 a second each shard drains in 0.625 seconds — inside the time a fan takes to look from the TV to their phone. And I would close with the alternative I am not choosing and why: computing each team's score at read time avoids the fan-out entirely — 11 lookups per team — but a million managers refreshing at once is 11 million lookups on the same eleven hot keys, five and a half times the writes, so the fan-out wins whenever viewers outnumber owners, which after a goal they always do.</p>
+</details>
+<details>
+<summary>Q3. Two managers finish the gameweek on 2,847 points each. Who is first, and how do you make the order stable?</summary>
+<p><strong>Model answer.</strong> I start with what the board actually stores, because the answer is not a rule applied at read time — it is an encoding applied at write time. Scores are integers and ties are everywhere, so a board that orders ties arbitrarily shuffles them on every refresh, and a manager's rank jumps for no reason. The design folds the tie-break into the score itself: the stored score is <code>points × 10⁹ + (10⁹ − t)</code>, where <code>t</code> is the seconds since the season started when the manager first reached that total. The manager who reached 2,847 first ranks higher, and the order is fixed the moment the second manager arrives, because the stored score cannot change without the points changing. With a 44-second gap: the earlier manager scores 2,847 × 10⁹ + (10⁹ − 1,000,000) = 2,847,999,000,000, the later one 2,847,998,999,956 — ahead by exactly 44, and the gap is preserved in the ordering forever. The encoding is exact because the largest score is about 3,000 × 10⁹ + 10⁹ ≈ 3 × 10¹², far below 2⁵³ ≈ 9 × 10¹⁵, where a double stops representing integers exactly. The display layer shows the points (2,847) and hides the encoding. And I would close with the case the encoding does not cover: a stat correction that changes both managers' totals replays through the same pipeline, and the tie-break is recomputed from the corrected totals — the order is stable for a given set of points, and a correction is a new set of points, announced in the open.</p>
+</details>
+<details>
+<summary>Q4. A stat correction on Monday morning re-awards a goal as an assist. What breaks, and how do you fix the board?</summary>
+<p><strong>Model answer.</strong> I start with the blast radius, because a correction is not a small edit — it is a second fan-out. The goal was worth four points to the scorer's owners and the assist is worth three, so every team that owned the scorer loses one point and every team that owned the assister gains three, and both sets of teams re-rank — potentially thousands of places at the boundary where the points are dense. What breaks, in a naive design, is three things: the board is edited in place with no record of why it moved, so the support queue fills with managers asking why their rank changed; the correction is applied to the live board while the gameweek is still being read, so some managers see the old board and some see the new one; and the season board and the gameweek board disagree, because the correction was applied to one and not the other. The fix is to treat the correction as an ordinary update through the same pipeline: the scoring service revises the real players' points, the fan-out produces the affected teams, the shards apply the delta to both the season board and the current gameweek board, and the correction is flagged so the product can show it — "your rank changed because the assist was re-awarded." The archive keeps the version that was shown at the time, so a dispute can be answered from the record. And I would close with the line that settles it: a board that revises silently loses its users' trust, and a board that revises in the open keeps it — the correction is a product feature, not a database patch.</p>
+</details>
+
+<h2>Practice drills (untimed — depth over speed)</h2>
+<p><strong>Drill 1 — The burst math.</strong> A league has 10 million players, 300 million score updates per matchday over a 90-minute match, 64 shards, 100,000 sorted-set updates a second per node, and 80 bytes per entry. A goal by the most-owned player fans out to 4 million teams. (a) What is the average update rate during the match? (b) How long does the burst take on one node, and across 64 shards? (c) How much storage does the board need in total, and per shard? <em>Rubric: (a) 300,000,000 ÷ 5,400 seconds = 55,556 updates a second; (b) one node: 4,000,000 ÷ 100,000 = 40 seconds; per shard 4,000,000 ÷ 64 = 62,500 updates, ÷ 100,000 = 0.625 seconds; (c) 10,000,000 × 80 bytes = 800 MB total, 800 ÷ 64 = 12.5 MB per shard. The point of the drill: doubling the league doubles the storage to a still-trivial 800 MB, but the burst still takes 40 seconds on one node — the shard count, not the size, is what absorbs a goal.</em></p>
+<p><strong>Drill 2 — The top-100 merge.</strong> The board is sharded across 32 shards by manager ID. (a) Each shard returns its top 100 — how many candidates does the merge sort, and why is the merged top 100 exact rather than approximate? (b) Why does sharding by score range fail, even though it looks tidier? <em>Rubric: (a) 32 × 100 = 3,200 candidates; the merge is exact because any player in the global top 100 must be in their own shard's top 100 — a player outside their shard's top 100 is beaten by at least 100 players on that shard alone, so they cannot be in the global top 100. (b) Score-range sharding puts all the leaders on the top shard, so it takes all the top-100 reads and the hottest write band, and players migrate between shards every time they gain points — the shard key changes with the data, so it is not a shard key. The point of the drill: the merge is exact because of a one-line proof, and the shard key must be stable under the workload.</em></p>
+<p><strong>Drill 3 — The tie-break, by hand.</strong> Two managers both reach 2,847 points. Manager A reaches it at t = 1,000,000 seconds after the season started; manager B reaches it 44 seconds later, at t = 1,000,044. The stored score is points × 10⁹ + (10⁹ − t). (a) What is each manager's stored score? (b) Who ranks higher, and by how much in the encoded score? (c) Why is the encoding exact — what is the largest score it can produce, and how does that compare with the exact-integer limit of a double? <em>Rubric: (a) A: 2,847 × 10⁹ + (10⁹ − 1,000,000) = 2,847,000,000,000 + 999,000,000 = 2,847,999,000,000. B: 2,847,000,000,000 + (10⁹ − 1,000,044) = 2,847,000,000,000 + 998,999,956 = 2,847,998,999,956. (b) A ranks higher by 2,847,999,000,000 − 2,847,998,999,956 = 44 — the gap in seconds, preserved exactly. (c) The largest score is about 3,000 × 10⁹ + 10⁹ ≈ 3 × 10¹², far below 2⁵³ ≈ 9.007 × 10¹⁵, so every integer the encoding produces is represented exactly in a double. The point of the drill: the tie-break is arithmetic, not a rule — the order is in the number, and it cannot flicker.</em></p>
+
+<h2>Cheat sheet — six decisions</h2>
+<table>
+<tr><th>Decision</th><th>Default</th><th>When to differ</th></tr>
+<tr><td>Data structure</td><td>Redis sorted set per shard — ZADD to update, ZREVRANK for "where am I?", ZREVRANGE for the top 100</td><td>Never sort five million rows per page view — the order is maintained as scores arrive, or the read path pays for it on every refresh</td></tr>
+<tr><td>Shard key</td><td>Hash of the manager ID — stable, spreads the burst evenly (62,500 updates per shard per goal)</td><td>Never shard by score range — the top shard takes all the reads and the members migrate on every update</td></tr>
+<tr><td>Rank</td><td>Derived at read time in ~23 comparisons — never stored</td><td>Storing the rank rewrites up to five million rows per goal and leaves the board half-updated mid-burst</td></tr>
+<tr><td>Fan-out</td><td>Write-time fan-out through a queue: one goal → two million ZADDs, 0.63 seconds across 32 shards</td><td>Compute at read time only when owners outnumber viewers — the friends board, twenty lookups, no pre-computed table</td></tr>
+<tr><td>Ties</td><td>Composite score points × 10⁹ + (10⁹ − t) — earliest to the total ranks higher, order never flickers</td><td>If the product wants ties shared (joint 1st), display the rank with ties grouped — but keep the stored order deterministic either way</td></tr>
+<tr><td>Reads</td><td>Top 100 as a cached merge (5 s TTL, 41,665× reduction); friends board on demand; old gameweeks snapshotted to disk</td><td>Shorten the cache when the board must be live to the second, and pay for it in merge traffic — the five seconds is a trade, not a default to forget</td></tr>
+</table>
+
+<h2>Sixty-second framing</h2>
+<p>"A leaderboard is a ranked list of players ordered by score, and it has to answer three questions at any moment: who are the top 100, what is my rank, and where are my friends. The demand here is a fantasy league with five million managers: 150 million score updates per matchday, 27,778 a second on average across a 90-minute match — but one goal by the most-owned striker fans out to two million updates in a single second, and that burst is what the design is sized for. The architecture is seven stages: the match feed turns play into points once per event; an ownership index turns one goal into two million team-update jobs; a queue partitioned by manager ID feeds 32 shards that apply ZADD at about 100,000 updates a second per node, draining the burst in 0.63 seconds against 20 seconds on a single node; the read path merges 32 shards' top 100s — 3,200 candidates — and caches the result for five seconds, turning 8,333 reads a second into 0.2; your rank is ZREVRANK in about 23 comparisons and is never stored; ties are encoded in the score as points times a billion plus a billion minus the seconds since the season started, so whoever reached the total first ranks higher and the order never flickers; and the season board and the current gameweek board live in memory at 400 MB each while finished gameweeks are snapshotted to disk. The three decisions are store the score and derive the rank — storing the rank would rewrite up to five million rows per goal — shard by who, never by score, because the score is the thing that moves — and fan out at write time when viewers outnumber owners, while the friends board is computed at read time. And the trap to name: the board is only 400 MB, so the sharding is for burst absorption, not capacity — a design that shards for storage has misunderstood the problem."</p>
+
+<h2>Talk-track for the room</h2>
+<ol>
+<li>Scope and the one idea: a leaderboard is not a sorted list you compute when someone asks — it is a sorted structure you maintain as scores arrive, because sorting five million rows per page view is the one thing you can never afford.</li>
+<li>Back-of-the-envelope: five million managers, 150 million updates a matchday, 27,778 a second on average, a two-million-update burst per goal, 20 seconds on one node against 0.63 seconds across 32 shards, 400 MB for the whole board, 3,200 candidates merged into a top 100, a five-second cache turning 8,333 reads a second into 0.2.</li>
+<li>Architecture: the scoring feed, the ownership index and the fan-out, the queue and the 32 shards, the cached merge, the 23-comparison rank lookup, the friends board on demand, the composite tie-break score, the time-bucketed boards, and the announced corrections.</li>
+<li>Deep dive: store the score and derive the rank; shard by who, never by score; fan out at write time when viewers outnumber owners.</li>
+<li>Failure modes and the close: the goal burst, the hot shard, the flickering tie, the stale top 100, the Monday correction, and the reset that deletes the season — and the line to end on: rank is a question you ask of a sorted structure, not a number you store.</li>
+</ol>
+
+<p class="foot">Lesson 48 · Design a Leaderboard System · Next: a new lesson lands tomorrow morning.</p>
+</div>
+<script>
+function computeBoard(players, updatesPerDay, matchMinutes, burstTeams, shardCount, zaddPerSec, topReadsPerMin) {
+  var windowSec = matchMinutes * 60;
+  var avgPerSec = updatesPerDay / windowSec;
+  var singleNodeSec = burstTeams / zaddPerSec;
+  var perShardUpdates = burstTeams / shardCount;
+  var shardedSec = perShardUpdates / zaddPerSec;
+  var storageBytes = players * 80;
+  var perShardBytes = storageBytes / shardCount;
+  var mergeCandidates = shardCount * 100;
+  var rankSteps = Math.log2(Math.max(players, 2));
+  var readsPerSec = topReadsPerMin / 60;
+  var cachedReadsPerSec = 1 / 5;
+  var readReduction = readsPerSec / cachedReadsPerSec;
+  return { avgPerSec: avgPerSec, singleNodeSec: singleNodeSec, perShardUpdates: perShardUpdates, shardedSec: shardedSec, storageBytes: storageBytes, perShardBytes: perShardBytes, mergeCandidates: mergeCandidates, rankSteps: rankSteps, readsPerSec: readsPerSec, cachedReadsPerSec: cachedReadsPerSec, readReduction: readReduction };
+}
+function computeFanout(owners, refreshers, friends, tiePoints, tieGapSec) {
+  var fanoutWrites = owners;
+  var readTimeLookups = refreshers * 11;
+  var ratio = readTimeLookups / Math.max(fanoutWrites, 1);
+  var friendsMs = friends * 2 * 0.05;
+  var tA = 1000000;
+  var scoreA = tiePoints * 1e9 + (1e9 - tA);
+  var scoreB = tiePoints * 1e9 + (1e9 - (tA + tieGapSec));
+  return { fanoutWrites: fanoutWrites, readTimeLookups: readTimeLookups, ratio: ratio, friendsMs: friendsMs, scoreA: scoreA, scoreB: scoreB, gap: scoreA - scoreB };
+}
+function fmtNum(n) {
+  return Math.round(n).toLocaleString("en-US");
+}
+function fmtBytes(bytes) {
+  if (bytes >= 1e12) return (bytes / 1e12).toFixed(1) + " TB";
+  if (bytes >= 1e9) return (bytes / 1e9).toFixed(1) + " GB";
+  if (bytes >= 1e6) return (bytes / 1e6).toFixed(1) + " MB";
+  if (bytes >= 1e3) return (bytes / 1e3).toFixed(1) + " KB";
+  return Math.round(bytes) + " B";
+}
+function renderLabA() {
+  var players = parseFloat(document.getElementById("players").value) || 0;
+  var updatesPerDay = parseFloat(document.getElementById("updatesPerDay").value) || 0;
+  var matchMinutes = parseFloat(document.getElementById("matchMinutes").value) || 0;
+  var burstTeams = parseFloat(document.getElementById("burstTeams").value) || 0;
+  var shardCount = parseFloat(document.getElementById("shardCount").value) || 0;
+  var zaddPerSec = parseFloat(document.getElementById("zaddPerSec").value) || 0;
+  var topReadsPerMin = parseFloat(document.getElementById("topReadsPerMin").value) || 0;
+  var r = computeBoard(players, updatesPerDay, matchMinutes, burstTeams, shardCount, zaddPerSec, topReadsPerMin);
+  document.getElementById("labAResult").innerHTML =
+    "Update rate: <b>" + fmtNum(r.avgPerSec) + " updates/sec average</b> across the " + matchMinutes + "-minute match window<br>" +
+    "Goal burst: <b>" + fmtNum(burstTeams) + " updates</b> — one node takes <b>" + r.singleNodeSec.toFixed(1) + " s</b>; across " + fmtNum(shardCount) + " shards each takes " + fmtNum(r.perShardUpdates) + " updates, <b>" + r.shardedSec.toFixed(2) + " s</b><br>" +
+    "Storage: <b>" + fmtBytes(r.storageBytes) + "</b> for the whole board · <b>" + fmtBytes(r.perShardBytes) + "</b> per shard<br>" +
+    "Top 100: merge <b>" + fmtNum(r.mergeCandidates) + " candidates</b> (" + fmtNum(shardCount) + " shards × 100) · Your rank: <b>~" + r.rankSteps.toFixed(1) + " comparisons</b> (log₂ of " + fmtNum(players) + " players)<br>" +
+    "Read storm: <b>" + fmtNum(r.readsPerSec) + " top-100 reads/sec</b> → a 5-second cache makes it <b>" + r.cachedReadsPerSec.toFixed(1) + " reads/sec</b>, a <b>" + fmtNum(r.readReduction) + "× reduction</b><br><br>" +
+    (r.shardedSec < 1
+      ? "<b>The board stays live.</b> The burst drains in under a second, inside the time a fan takes to look from the TV to their phone."
+      : "<b>The board goes stale.</b> The burst takes " + r.shardedSec.toFixed(1) + " seconds to drain — add shards, or the ranks lag the match.");
+}
+function renderLabB() {
+  var owners = parseFloat(document.getElementById("owners").value) || 0;
+  var refreshers = parseFloat(document.getElementById("refreshers").value) || 0;
+  var friends = parseFloat(document.getElementById("friends").value) || 0;
+  var tiePoints = parseFloat(document.getElementById("tiePoints").value) || 0;
+  var tieGapSec = parseFloat(document.getElementById("tieGapSec").value) || 0;
+  var r = computeFanout(owners, refreshers, friends, tiePoints, tieGapSec);
+  document.getElementById("labBResult").innerHTML =
+    "Write-time fan-out: <b>" + fmtNum(r.fanoutWrites) + " writes</b> — one per team that owns the scorer<br>" +
+    "Read-time computation: <b>" + fmtNum(r.readTimeLookups) + " lookups</b> — " + fmtNum(refreshers) + " refreshing managers × 11 players per team<br>" +
+    "Friends board: <b>" + r.friendsMs.toFixed(1) + " ms</b> for " + fmtNum(friends) + " friends (2 lookups each at 0.05 ms)<br>" +
+    "Tie-break: manager A (first to " + fmtNum(tiePoints) + " pts) scores <b>" + fmtNum(r.scoreA) + "</b> · manager B (" + fmtNum(tieGapSec) + " s later) scores <b>" + fmtNum(r.scoreB) + "</b> — A leads by <b>" + fmtNum(r.gap) + "</b><br><br>" +
+    (r.readTimeLookups > r.fanoutWrites
+      ? "<b>Fan out at write time.</b> Read-time computation costs " + r.ratio.toFixed(1) + "× more work for this goal, because the viewers outnumber the owners — and every lookup lands on the same eleven hot keys."
+      : "<b>Compute at read time.</b> Only " + fmtNum(r.readTimeLookups) + " lookups against " + fmtNum(r.fanoutWrites) + " writes — the viewers are fewer than the owners, so paying per viewer is cheaper than paying per owner.");
+}
+["players", "updatesPerDay", "matchMinutes", "burstTeams", "shardCount", "zaddPerSec", "topReadsPerMin"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabA);
+});
+["owners", "refreshers", "friends", "tiePoints", "tieGapSec"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", renderLabB);
+});
+renderLabA();
+renderLabB();
+</script>
+</body>
+</html>
